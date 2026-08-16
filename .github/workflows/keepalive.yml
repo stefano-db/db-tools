@@ -1,0 +1,43 @@
+name: Supabase wachhalten
+
+# Supabase pausiert Projekte im kostenlosen Tarif nach etwa einer Woche ohne
+# Zugriffe. Gezaehlt werden Anfragen an die API — Datenbank-Trigger oder
+# pg_cron-Jobs innerhalb der Datenbank helfen dabei nicht, weil sie von aussen
+# unsichtbar sind. Deshalb schickt dieser Workflow taeglich eine echte Abfrage.
+on:
+  schedule:
+    # Taeglich um 04:17 UTC. Krumme Zeit mit Absicht: zur vollen Stunde sind die
+    # GitHub-Runner ueberlastet und geplante Laeufe verzoegern sich teils um Stunden.
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Datenbank abfragen
+        env:
+          SUPABASE_URL: https://ywmckemniifskxbmmswf.supabase.co
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$ANON_KEY" ]; then
+            echo "::error::Das Repository-Secret SUPABASE_ANON_KEY fehlt."
+            echo "Anlegen unter: Settings -> Secrets and variables -> Actions -> New repository secret"
+            exit 1
+          fi
+
+          status=$(curl -s -o /tmp/body -w '%{http_code}' \
+            "$SUPABASE_URL/rest/v1/lanes?select=lane_number&limit=1" \
+            -H "apikey: $ANON_KEY")
+
+          echo "HTTP $status"
+          head -c 300 /tmp/body || true
+          echo
+
+          # 200 ist der Normalfall: die Anfrage kommt durch, RLS liefert dem
+          # anonymen Aufrufer eine leere Liste. Das zaehlt als Aktivitaet.
+          if [ "$status" != "200" ]; then
+            echo "::error::Supabase antwortet mit HTTP $status — Projekt pausiert oder Schluessel ungueltig."
+            exit 1
+          fi
+          echo "Projekt ist wach."

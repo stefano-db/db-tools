@@ -137,6 +137,9 @@ export interface ModuleInfo {
   canWrite: boolean;
 }
 
+/** Tabellenname -> Zeilen, wie sie in der Datenbank stehen. */
+export type BackupBundle = Record<string, unknown[]>;
+
 export interface Repository {
   readonly kind: 'demo' | 'supabase';
   /** false im Demo-Betrieb: dort gibt es keine Anmeldung. */
@@ -149,6 +152,14 @@ export interface Repository {
   updateDisplayName(name: string): Promise<void>;
   /** Module, die dieser Mitarbeiter aufrufen darf. */
   listModules(): Promise<ModuleInfo[]>;
+  /** Vollständige Sicherung aller Tabellen — Tabellenname -> Zeilen. */
+  exportBackup(): Promise<BackupBundle>;
+  /**
+   * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
+   * sichtbar und durchgestrichen — gelöscht wird nichts. Mitkaskadierte Einträge
+   * werden mit storniert, sonst bliebe ein falscher Anker stehen.
+   */
+  voidMaintenanceRecord(recordId: string, reason: string): Promise<void>;
   /** Meldet Anmeldung, Abmeldung und Ablauf der Sitzung. Gibt eine Abmeldefunktion zurück. */
   onAuthChange(callback: () => void): () => void;
 

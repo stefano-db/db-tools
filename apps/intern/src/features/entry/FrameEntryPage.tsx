@@ -17,6 +17,7 @@ export function FrameEntryPage() {
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [resetCandidates, setResetCandidates] = useState<{ laneId: string; laneNumber: number; rawValue: number }[] | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
 
   const lanes = useMemo(
@@ -79,6 +80,7 @@ export function FrameEntryPage() {
 
   async function persist(skipReset = false) {
     setSaving(true);
+    setSaveError(null);
     try {
       if (!skipReset && conflicts.length > 0) {
         setResetCandidates(conflicts);
@@ -91,6 +93,10 @@ export function FrameEntryPage() {
       await reload();
       setValues({});
       navigate('/wartung');
+    } catch (e) {
+      // Niemals stillschweigend scheitern: der Mechaniker muss sehen, dass seine
+      // Eingabe nicht angekommen ist — sonst hält er sie für gespeichert.
+      setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -121,6 +127,9 @@ export function FrameEntryPage() {
       await reload();
       setValues({});
       navigate('/wartung');
+    } catch (e) {
+      setResetCandidates(null);
+      setSaveError(e instanceof Error ? e.message : String(e));
     } finally {
       setSaving(false);
     }
@@ -146,6 +155,15 @@ export function FrameEntryPage() {
           />
         </label>
       </div>
+
+      {saveError && (
+        <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-red-800">
+          <strong className="font-semibold">■ Nicht gespeichert.</strong> {saveError}
+          <div className="mt-1 text-sm">
+            Deine Eingaben stehen noch im Formular — korrigiere sie und versuche es erneut.
+          </div>
+        </div>
+      )}
 
       {lanes.every((l) => l.currentFrames === null) && (
         <div className="rounded border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900">

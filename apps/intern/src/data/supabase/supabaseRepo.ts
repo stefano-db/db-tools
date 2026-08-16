@@ -10,6 +10,7 @@ import type {
   SessionInfo,
   Snapshot,
   ModuleInfo,
+  BackupBundle,
 } from '../types';
 
 /**
@@ -110,6 +111,44 @@ export class SupabaseRepository implements Repository {
       }),
     );
     return modules.filter((m) => m.canRead);
+  }
+
+  /**
+   * Vollstaendige Sicherung. Es wird gelesen, was der angemeldete Benutzer laut
+   * RLS sehen darf — deshalb ist der Export Administratoren vorbehalten.
+   */
+  async exportBackup(): Promise<BackupBundle> {
+    const tables = [
+      'profiles', 'app_modules', 'role_module_access', 'user_module_access',
+      'app_settings', 'maintenance_settings', 'lane_pairs', 'lanes',
+      'lane_counter_epochs', 'frame_readings', 'maintenance_types',
+      'maintenance_tasks', 'maintenance_records', 'maintenance_record_tasks',
+      'lane_issues', 'lane_issue_attachments',
+    ];
+    const bundle: BackupBundle = {};
+    for (const table of tables) {
+      const { data, error } = await this.client.from(table).select('*');
+      if (error) throw new Error(`${table}: ${error.message}`);
+      bundle[table] = data ?? [];
+    }
+    return bundle;
+  }
+
+  async voidMaintenanceRecord(recordId: string, reason: string): Promise<void> {
+    const userId = await this.userId();
+    const patch = { voided_at: new Date().toISOString(), voided_by: userId, void_reason: reason };
+
+    const { error } = await this.client.from('maintenance_records').update(patch).eq('id', recordId);
+    if (error) throw new Error(error.message);
+
+    // Mitkaskadierte Eintraege mit stornieren, sonst bliebe deren Anker stehen
+    // und die Bahn gaelte faelschlich als gewartet.
+    const { error: cascadeError } = await this.client
+      .from('maintenance_records')
+      .update(patch)
+      .eq('derived_from_record_id', recordId)
+      .is('voided_at', null);
+    if (cascadeError) throw new Error(cascadeError.message);
   }
 
   async updateDisplayName(name: string): Promise<void> {
@@ -270,45 +309,33 @@ export class SupabaseRepository implements Repository {
     };
   }
 
+  /**
+   * Läuft über die Datenbankfunktion record_frame_reading. Die kümmert sich um
+   * drei Dinge, die der Client nicht zuverlässig könnte: Zähler-Epoche bei der
+   * Ersteinrichtung anlegen, eine bereits vorhandene Ablesung desselben Tages
+   * als ersetzt markieren, und beides in einer Transaktion.
+   */
   async saveReadings(input: SaveReadingsInput): Promise<void> {
-    let snapshot = await this.load();
-    const userId = await this.userId();
+    const failed: string[] = [];
 
-    // Ersteinrichtung: Bahnen, für die noch nie ein Zählerstand erfasst wurde,
-    // haben keine Zähler-Epoche. Sie wird hier angelegt — mit counter_start = 0
-    // und cumulative_offset = 0, der Zählerstand ist also zugleich der
-    // kumulative Ausgangswert. Die Historie beginnt bewusst hier und tut nicht
-    // so, als wüsste sie etwas über die Zeit davor.
-    const missing = input.entries.filter((e) => !snapshot.currentEpoch[e.laneId]);
-    if (missing.length > 0) {
-      const { error } = await this.client.from('lane_counter_epochs').insert(
-        missing.map((e) => ({
-          lane_id: e.laneId,
-          effective_from: input.readingDate,
-          counter_start: 0,
-          cumulative_offset: 0,
-          reason: 'initial',
-          note: 'Automatisch bei der ersten Frame-Eingabe angelegt.',
-          created_by: userId,
-        })),
-      );
-      if (error) throw new Error(error.message);
-      snapshot = await this.load();
+    for (const entry of input.entries) {
+      const { error } = await this.client.rpc('record_frame_reading', {
+        p_lane_id: entry.laneId,
+        p_reading_date: input.readingDate,
+        p_raw_value: entry.rawValue,
+        // Idempotenzschlüssel: verhindert Doppelbuchungen aus der Offline-Warteschlange
+        p_client_request_id: crypto.randomUUID(),
+      });
+      if (error) failed.push(`${error.message}`);
     }
 
-    const rows = input.entries.map((e) => ({
-      lane_id: e.laneId,
-      epoch_id: snapshot.currentEpoch[e.laneId].id,
-      reading_date: input.readingDate,
-      raw_value: e.rawValue,
-      source: 'weekly',
-      recorded_by: userId,
-      // Idempotenzschlüssel: verhindert Doppelbuchungen aus der Offline-Warteschlange
-      client_request_id: crypto.randomUUID(),
-    }));
-
-    const { error } = await this.client.from('frame_readings').insert(rows);
-    if (error) throw new Error(error.message);
+    if (failed.length > 0) {
+      throw new Error(
+        failed.length === 1
+          ? failed[0]
+          : `${failed.length} Bahnen konnten nicht gespeichert werden: ${failed.join(' · ')}`,
+      );
+    }
   }
 
   async resetCounter(input: ResetCounterInput): Promise<void> {

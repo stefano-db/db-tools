@@ -10,7 +10,7 @@ const RESULT_LABEL: Record<string, string> = {
 };
 
 export function HistoryPage() {
-  const { snapshot } = useData();
+  const { snapshot, isAdmin, repo, reload } = useData();
   const [params, setParams] = useSearchParams();
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -142,7 +142,15 @@ export function HistoryPage() {
                             </h3>
                             <p className="mt-1 text-slate-700">{r.notes || '—'}</p>
                             {r.voidedAt && (
-                              <p className="mt-2 text-red-700">Storniert: {r.voidReason}</p>
+                              <p className="mt-2 text-red-700">■ Storniert: {r.voidReason}</p>
+                            )}
+                            {isAdmin && !r.voidedAt && r.source !== 'cascade' && (
+                              <VoidForm
+                                onVoid={async (reason) => {
+                                  await repo.voidMaintenanceRecord(r.id, reason);
+                                  await reload();
+                                }}
+                              />
                             )}
                           </div>
                         </div>
@@ -154,6 +162,66 @@ export function HistoryPage() {
             })}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Stornieren statt Löschen: der Eintrag bleibt sichtbar, wird durchgestrichen und
+ * traegt den Grund. Der Wartungsanker faellt damit auf den vorherigen Stand
+ * zurueck — die Bahn gilt also wieder als ungewartet, was der Wahrheit entspricht.
+ */
+function VoidForm({ onVoid }: { onVoid: (reason: string) => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-3 rounded border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-white"
+      >
+        Eintrag stornieren
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded border border-red-300 bg-red-50 p-3">
+      <p className="text-sm text-red-900">
+        Der Eintrag bleibt in der Historie stehen und wird durchgestrichen. Der Wartungsstand faellt
+        auf den vorherigen Wert zurueck — mitkaskadierte Eintraege werden ebenfalls storniert.
+      </p>
+      <input
+        autoFocus
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Grund, z. B. versehentlich abgeschlossen"
+        className="mt-2 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+      />
+      <div className="mt-2 flex gap-2">
+        <button
+          onClick={() => setOpen(false)}
+          className="rounded px-3 py-1.5 text-sm font-medium hover:bg-white"
+        >
+          Abbrechen
+        </button>
+        <button
+          disabled={!reason.trim() || busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              await onVoid(reason.trim());
+            } finally {
+              setBusy(false);
+            }
+          }}
+          className="rounded bg-red-700 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {busy ? 'Wird storniert…' : 'Stornieren'}
+        </button>
       </div>
     </div>
   );

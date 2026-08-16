@@ -27,6 +27,8 @@ export function SettingsPage() {
 
       <AccountCard />
 
+      {isAdmin && <BackupCard />}
+
       {!isAdmin && (
         <p className="rounded border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
           Weitere Einstellungen — Wartungsintervalle, Aufgaben, Vorwarnzeiten — können nur
@@ -160,6 +162,109 @@ export function SettingsPage() {
 
       {saving && <p className="text-sm text-slate-500">Wird gespeichert…</p>}
     </div>
+  );
+}
+
+/**
+ * Datensicherung.
+ *
+ * Der kostenlose Supabase-Tarif enthaelt keine automatischen Sicherungen. Diese
+ * Datei ist die Rueckversicherung: sie enthaelt alle Tabellen im Rohformat und
+ * laesst sich jederzeit wieder einspielen.
+ */
+function BackupCard() {
+  const { repo, snapshot } = useData();
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function download(content: string, filename: string, type: string) {
+    const url = URL.createObjectURL(new Blob([content], { type }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const stamp = () => new Date().toISOString().slice(0, 10);
+
+  async function downloadJson() {
+    setBusy(true);
+    setError(null);
+    try {
+      const bundle = await repo.exportBackup();
+      const rows = Object.values(bundle).reduce((n, list) => n + list.length, 0);
+      download(
+        JSON.stringify({ exportedAt: new Date().toISOString(), tables: bundle }, null, 2),
+        `bahnwartung-sicherung-${stamp()}.json`,
+        'application/json',
+      );
+      setMessage(`${rows} Datensätze gesichert.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function downloadCsv() {
+    if (!snapshot) return;
+    const head = ['Datum', 'Bahn', 'Intervall', 'Frames', 'Mitarbeiter', 'Abweichung', 'Storniert', 'Notiz'];
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [
+      head.join(';'),
+      ...snapshot.records.map((r) =>
+        [
+          r.performedOn,
+          r.laneNumber,
+          r.typeCode,
+          r.cumulativeFrames,
+          r.employeeName,
+          r.hasDeviation ? 'ja' : '',
+          r.voidedAt ? 'ja' : '',
+          r.notes ?? '',
+        ]
+          .map(esc)
+          .join(';'),
+      ),
+    ];
+    // BOM, damit Excel die Umlaute richtig anzeigt
+    download('\uFEFF' + lines.join('\r\n'), `wartungshistorie-${stamp()}.csv`, 'text/csv');
+  }
+
+  return (
+    <Card title="Datensicherung">
+      <p className="text-sm text-slate-600">
+        Der kostenlose Supabase-Tarif sichert <strong>nicht</strong> automatisch. Lade die Sicherung
+        regelmäßig herunter — einmal im Monat genügt — und lege sie außerhalb von Supabase ab.
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          onClick={downloadJson}
+          disabled={busy}
+          className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {busy ? 'Wird erstellt…' : 'Vollständige Sicherung (JSON)'}
+        </button>
+        <button
+          onClick={downloadCsv}
+          className="rounded border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-50"
+        >
+          Wartungshistorie (CSV für Excel)
+        </button>
+      </div>
+
+      {message && <p className="mt-2 text-sm text-emerald-700">● {message}</p>}
+      {error && <p className="mt-2 text-sm text-red-700">■ {error}</p>}
+
+      <p className="mt-3 text-xs text-slate-500">
+        Die JSON-Datei enthält alle Tabellen im Rohformat und kann wieder eingespielt werden — die
+        Anleitung dazu steht in <code className="rounded bg-slate-100 px-1">docs/backup.md</code>.
+        Die CSV-Datei ist zum Nachlesen und Archivieren gedacht, nicht zum Wiedereinspielen.
+      </p>
+    </Card>
   );
 }
 

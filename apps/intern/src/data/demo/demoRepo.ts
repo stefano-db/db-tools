@@ -16,6 +16,7 @@ import type {
   SessionInfo,
   Snapshot,
   ModuleInfo,
+  BackupBundle,
 } from '../types';
 import { buildDemoDb, type DemoDb } from './seed';
 
@@ -82,6 +83,34 @@ export class DemoRepository implements Repository {
 
   onAuthChange(): () => void {
     return () => {};
+  }
+
+  async exportBackup(): Promise<BackupBundle> {
+    return {
+      lane_pairs: this.db.pairs,
+      lanes: this.db.lanes,
+      lane_counter_epochs: this.db.epochs,
+      frame_readings: this.db.readings,
+      maintenance_types: this.db.types,
+      maintenance_tasks: this.db.tasks,
+      maintenance_records: this.db.records,
+      maintenance_record_tasks: this.db.recordTasks,
+      lane_issues: this.db.issues,
+      maintenance_settings: [this.db.settings],
+    };
+  }
+
+  async voidMaintenanceRecord(recordId: string, reason: string): Promise<void> {
+    const stamp = new Date().toISOString();
+    for (const r of this.db.records) {
+      if (r.id === recordId || r.derivedFromRecordId === recordId) {
+        if (r.voidedAt === null) {
+          r.voidedAt = stamp;
+          r.voidReason = reason;
+        }
+      }
+    }
+    this.write();
   }
 
   private read(): DemoDb {
