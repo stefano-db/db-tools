@@ -41,28 +41,28 @@ npm run build
    (Dashboard → Project Settings → General → Reference ID).
 2. Code nach GitHub pushen. Die Supabase-GitHub-Verbindung wendet die Dateien aus
    `supabase/migrations/` automatisch an. Details in [supabase/README.md](supabase/README.md).
-3. Benutzer über Supabase Auth anlegen. Jeder Benutzer erhält automatisch ein Profil
-   mit der Rolle `mechanic`; Admins werden per SQL gesetzt:
+3. Benutzer über *Authentication → Users → Add user* anlegen (mit „Auto Confirm User").
+   Jeder neue Benutzer erhält automatisch ein Profil mit der Rolle `mechanic`;
+   Adminrechte werden einmalig gesetzt:
    ```sql
-   update profiles set role = 'admin' where display_name = 'Marco';
+   update profiles set role = 'admin' where display_name = 'Marko';
    ```
-4. `app/.env` aus `app/.env.example` anlegen und die beiden Werte aus
+4. `apps/wartung/.env` aus `.env.example` anlegen und die beiden Werte aus
    Dashboard → Project Settings → API eintragen.
 
 Sobald beide Werte gesetzt sind, arbeitet dieselbe Oberfläche gegen die Datenbank —
 am Code ändert sich nichts.
 
-**Noch offen:** Die Supabase-Datenschicht (`src/data/supabase/`) ist gegen das
-Schema geschrieben, aber noch nicht gegen ein laufendes Projekt getestet. Sobald
-die Datenbank steht, sollte einmal der komplette Ablauf durchgespielt werden:
-Ersteinrichtung, Wocheneingabe, Wartungsabschluss mit Kaskade, Zählerwechsel.
-
 ## Ersteinrichtung der Bahnen
 
-Für jede Bahn wird eingetragen: aktueller Frame-Stand und der Stand bei der letzten
-Wartung je Intervall. Ist ein Wartungsstand nicht bekannt, bleibt er **leer** — nicht
-0. Die Bahn erscheint dann dauerhaft als „Wartungsstand unbekannt", bis die Wartung
-einmal regulär durchgeführt wurde.
+Einmalig für jede Bahn den aktuellen Zählerstand über *Frame-Stände* eintragen. Die
+Zähler-Epoche wird dabei automatisch angelegt; der abgelesene Wert ist zugleich der
+kumulative Ausgangswert.
+
+Die letzten Wartungsstände bleiben zunächst **unbekannt** — nicht 0. Jede Bahn zeigt
+dann `? Wartungsstand unbekannt` und meldet weder „fällig" noch „in Ordnung". Sobald
+eine Wartung das erste Mal regulär abgeschlossen wird, ist der Ausgangspunkt gesetzt
+und die Berechnung läuft für dieses Intervall selbstständig.
 
 ## Veröffentlichen über Cloudflare Pages
 
