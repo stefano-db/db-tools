@@ -31,7 +31,17 @@ export function FrameEntryPage() {
     const raw = values[lane.laneId];
     if (raw === undefined || raw === '') continue;
     const rawValue = Number(raw.replace(/[^\d]/g, ''));
-    const epoch = snapshot.currentEpoch[lane.laneId];
+    // Bei der Ersteinrichtung existiert noch keine Epoche; sie wird beim
+    // Speichern angelegt. Für die Vorschau wird hier mit denselben Werten
+    // gerechnet, die dann auch gespeichert werden.
+    const epoch = snapshot.currentEpoch[lane.laneId] ?? {
+      id: '',
+      laneId: lane.laneId,
+      effectiveFrom: readingDate,
+      counterStart: 0,
+      cumulativeOffset: 0,
+      reason: 'initial' as const,
+    };
     const issues = validateReading({
       rawValue,
       epoch,
@@ -136,6 +146,15 @@ export function FrameEntryPage() {
           />
         </label>
       </div>
+
+      {lanes.every((l) => l.currentFrames === null) && (
+        <div className="rounded border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          <strong className="font-semibold">Erste Eingabe.</strong> Trage für jede Bahn den Wert
+          ein, den der Maschinenzähler jetzt anzeigt. Ab hier zählt die App weiter — auch wenn der
+          Zähler später getauscht wird. Die Wartungsstände bleiben zunächst unbekannt und setzen
+          sich von selbst, sobald du eine Wartung das erste Mal abschließt.
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-left">

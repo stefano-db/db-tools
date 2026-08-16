@@ -237,8 +237,30 @@ export class SupabaseRepository implements Repository {
   }
 
   async saveReadings(input: SaveReadingsInput): Promise<void> {
-    const snapshot = await this.load();
+    let snapshot = await this.load();
     const userId = await this.userId();
+
+    // Ersteinrichtung: Bahnen, für die noch nie ein Zählerstand erfasst wurde,
+    // haben keine Zähler-Epoche. Sie wird hier angelegt — mit counter_start = 0
+    // und cumulative_offset = 0, der Zählerstand ist also zugleich der
+    // kumulative Ausgangswert. Die Historie beginnt bewusst hier und tut nicht
+    // so, als wüsste sie etwas über die Zeit davor.
+    const missing = input.entries.filter((e) => !snapshot.currentEpoch[e.laneId]);
+    if (missing.length > 0) {
+      const { error } = await this.client.from('lane_counter_epochs').insert(
+        missing.map((e) => ({
+          lane_id: e.laneId,
+          effective_from: input.readingDate,
+          counter_start: 0,
+          cumulative_offset: 0,
+          reason: 'initial',
+          note: 'Automatisch bei der ersten Frame-Eingabe angelegt.',
+          created_by: userId,
+        })),
+      );
+      if (error) throw new Error(error.message);
+      snapshot = await this.load();
+    }
 
     const rows = input.entries.map((e) => ({
       lane_id: e.laneId,

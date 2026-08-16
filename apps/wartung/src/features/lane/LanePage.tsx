@@ -93,6 +93,15 @@ export function LanePage() {
         </Section>
       )}
 
+      {statuses.some((s) => s.kind === 'unknown') && (
+        <div className="rounded border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <strong className="font-semibold">? Wartungsstand unbekannt.</strong> Für diese Intervalle
+          ist nicht hinterlegt, bei welchem Frame-Stand zuletzt gewartet wurde. Die App rät bewusst
+          nicht und meldet deshalb weder „fällig" noch „in Ordnung". Sobald du die Wartung einmal
+          regulär abschließt, ist der Ausgangspunkt gesetzt und die Berechnung läuft von allein.
+        </div>
+      )}
+
       <Section title={due.length > 0 ? 'Nicht fällig' : 'Wartungsstand'}>
         {others.map((s) => (
           <StatusRow
@@ -239,15 +248,29 @@ function StatusRow({
       )}
       <button
         onClick={onOpen}
-        className={`ml-auto rounded px-3 py-2 text-sm font-semibold ${
+        disabled={status.kind === 'no_data'}
+        title={
+          status.kind === 'no_data'
+            ? 'Erst einen Frame-Stand eintragen, dann lässt sich die Wartung dokumentieren.'
+            : undefined
+        }
+        className={`ml-auto rounded px-3 py-2 text-sm font-semibold disabled:opacity-40 ${
           open
             ? 'bg-slate-200 text-slate-700'
-            : early
+            : early && status.kind !== 'unknown'
               ? 'border border-slate-300 text-slate-700 hover:bg-slate-50'
               : 'bg-slate-900 text-white'
         }`}
       >
-        {open ? 'Geöffnet' : early ? 'Vorzeitig durchführen' : 'Wartung öffnen'}
+        {open
+          ? 'Geöffnet'
+          : status.kind === 'unknown'
+            ? 'Wartung durchführen und Stand setzen'
+            : status.kind === 'no_data'
+              ? 'Kein Frame-Stand'
+              : early
+                ? 'Vorzeitig durchführen'
+                : 'Wartung öffnen'}
       </button>
     </div>
   );
