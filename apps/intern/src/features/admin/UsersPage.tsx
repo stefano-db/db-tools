@@ -95,6 +95,7 @@ export function UsersPage() {
                 <th className="px-4 py-2 font-semibold">Leitung</th>
                 {isAdmin && <th className="px-4 py-2 font-semibold">Admin</th>}
                 <th className="px-4 py-2 font-semibold">Status</th>
+                <th className="px-4 py-2 font-semibold">Passwort</th>
               </tr>
             </thead>
             <tbody>
@@ -155,6 +156,7 @@ function UserRowView({
   onError: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   async function apply(patch: Partial<UserRow>) {
     setBusy(true);
@@ -220,6 +222,22 @@ function UserRowView({
         >
           {user.active ? 'Deaktivieren' : 'Aktivieren'}
         </button>
+      </td>
+      <td className="px-4 py-2">
+        <button
+          disabled={busy}
+          onClick={() => setResetting(true)}
+          className="rounded border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-50 disabled:opacity-40"
+        >
+          Zurücksetzen
+        </button>
+        {resetting && (
+          <PasswordDialog
+            user={user}
+            onClose={() => setResetting(false)}
+            onError={onError}
+          />
+        )}
       </td>
     </tr>
   );
@@ -374,4 +392,124 @@ function NewUserDialog({
       </form>
     </div>
   );
+}
+
+/**
+ * Neues Passwort setzen.
+ *
+ * Es gibt keine E-Mail, über die ein Zurücksetz-Link laufen könnte — der Zugang
+ * wird persönlich übergeben. Deshalb wird das Passwort hier im Klartext
+ * angezeigt: man muss es weitersagen können, und ein verstecktes Feld hilft
+ * niemandem.
+ */
+function PasswordDialog({
+  user,
+  onClose,
+  onError,
+}: {
+  user: UserRow;
+  onClose: () => void;
+  onError: (message: string) => void;
+}) {
+  const [password, setPassword] = useState(() => suggestPassword());
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await repository.setUserPassword(user.id, password);
+      setDone(true);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err));
+      onClose();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4">
+      <form onSubmit={submit} className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-semibold">Passwort zurücksetzen</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Für <strong>{user.displayName}</strong>
+          {user.username && <> (Anmeldung: {user.username})</>}
+        </p>
+
+        {done ? (
+          <>
+            <div className="mt-4 rounded border border-emerald-300 bg-emerald-50 p-4">
+              <p className="text-sm text-emerald-900">● Neues Passwort gesetzt:</p>
+              <p className="tabular mt-2 text-center text-xl font-bold tracking-wider">{password}</p>
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              Gib es persönlich weiter. Nach dem Schließen wird es nicht noch einmal angezeigt —
+              dann bleibt nur, es erneut zurückzusetzen.
+            </p>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Fertig
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <label className="mt-4 block text-sm font-medium">
+              Neues Passwort
+              <input
+                autoFocus
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="tabular mt-1 w-full rounded border border-slate-300 px-3 py-2 text-lg"
+              />
+              <span className="mt-1 block text-xs text-slate-500">
+                Vorgeschlagen und leicht vorlesbar. Du kannst es überschreiben; mindestens
+                8 Zeichen.
+              </span>
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setPassword(suggestPassword())}
+              className="mt-2 text-sm font-medium text-slate-600 hover:underline"
+            >
+              Anderen Vorschlag
+            </button>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button type="button" onClick={onClose} className="rounded px-4 py-2 text-sm font-medium">
+                Abbrechen
+              </button>
+              <button
+                type="submit"
+                disabled={busy}
+                className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              >
+                {busy ? 'Wird gesetzt…' : 'Passwort setzen'}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
+    </div>
+  );
+}
+
+/**
+ * Vorschlag, der sich am Telefon vorlesen lässt: keine Zeichen, die man
+ * verwechseln kann (0/O, 1/l/I), dafür zwei Wörter und Ziffern.
+ */
+function suggestPassword(): string {
+  const words = ['Bahn', 'Pin', 'Kugel', 'Strike', 'Spare', 'Gasse', 'Wurf', 'Kegel'];
+  const pick = () => words[Math.floor(Math.random() * words.length)];
+  const digits = String(Math.floor(Math.random() * 9000) + 1000);
+  return `${pick()}-${pick()}-${digits}`;
 }

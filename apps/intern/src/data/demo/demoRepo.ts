@@ -114,6 +114,10 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb können keine Konten geändert werden.');
   }
 
+  async setUserPassword(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keine Passwörter.');
+  }
+
   async exportBackup(): Promise<BackupBundle> {
     return {
       lane_pairs: this.db.pairs,

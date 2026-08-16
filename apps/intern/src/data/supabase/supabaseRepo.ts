@@ -265,6 +265,14 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
+  async setUserPassword(id: string, password: string): Promise<void> {
+    const { error } = await this.client.rpc('admin_set_password', {
+      p_user_id: id,
+      p_password: password,
+    });
+    if (error) throw new Error(error.message);
+  }
+
   async updateDisplayName(name: string): Promise<void> {
     const id = await this.userId();
     if (!id) throw new Error('Nicht angemeldet.');

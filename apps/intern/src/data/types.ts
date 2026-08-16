@@ -215,6 +215,8 @@ export interface Repository {
     id: string,
     patch: Partial<Pick<UserRow, 'displayName' | 'department' | 'isLead' | 'isAdmin' | 'active'>>,
   ): Promise<void>;
+  /** Passwort eines anderen Kontos setzen — für vergessene Zugänge. */
+  setUserPassword(id: string, password: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
    * sichtbar und durchgestrichen — gelöscht wird nichts. Mitkaskadierte Einträge
