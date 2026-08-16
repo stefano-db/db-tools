@@ -106,8 +106,32 @@ export interface CompleteMaintenanceInput {
   }[];
 }
 
+/**
+ * Angemeldeter Benutzer samt seiner Rechte am Modul 'maintenance'.
+ * canRead/canWrite kommen aus den Datenbankfunktionen has_module() und
+ * can_write_module() — es gibt also keine zweite Rechtelogik im Frontend,
+ * die von der RLS abweichen könnte.
+ */
+export interface SessionInfo {
+  userId: string;
+  email: string | null;
+  displayName: string;
+  role: 'mechanic' | 'counter' | 'admin';
+  canRead: boolean;
+  canWrite: boolean;
+}
+
 export interface Repository {
   readonly kind: 'demo' | 'supabase';
+  /** false im Demo-Betrieb: dort gibt es keine Anmeldung. */
+  readonly requiresLogin: boolean;
+
+  getSession(): Promise<SessionInfo | null>;
+  signIn(email: string, password: string): Promise<void>;
+  signOut(): Promise<void>;
+  /** Meldet Anmeldung, Abmeldung und Ablauf der Sitzung. Gibt eine Abmeldefunktion zurück. */
+  onAuthChange(callback: () => void): () => void;
+
   load(): Promise<Snapshot>;
   saveReadings(input: SaveReadingsInput): Promise<void>;
   resetCounter(input: ResetCounterInput): Promise<void>;

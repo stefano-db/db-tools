@@ -7,7 +7,8 @@ import {
   type ISODate,
   type LaneOverview,
 } from '../core';
-import { createRepository, type Repository, type Snapshot } from '../data';
+import { repository, type Repository, type Snapshot } from '../data';
+import { useAuth } from './AuthContext';
 
 export function todayISO(): ISODate {
   const now = new Date();
@@ -24,9 +25,11 @@ interface DataContextValue {
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
-  /** Angemeldeter Mitarbeiter. Im Demo-Betrieb frei wählbar. */
+  /** Name des angemeldeten Mitarbeiters — wird bei jeder Wartung mitgeschrieben. */
   employee: string;
-  setEmployee: (name: string) => void;
+  /** Darf dieser Benutzer Daten ändern, oder nur lesen? */
+  canWrite: boolean;
+  isAdmin: boolean;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -36,32 +39,34 @@ const EMPTY_SUMMARY: DashboardSummary = {
 };
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const repo = useMemo(() => createRepository(), []);
+  const { session } = useAuth();
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [employee, setEmployee] = useState(() => localStorage.getItem('bw.employee') ?? 'Marco');
   const today = todayISO();
 
   const reload = useCallback(async () => {
+    // Ohne Sitzung wird gar nicht erst geladen — sonst liefert die Datenbank
+    // wegen RLS nur leere Listen, und das sähe aus wie „alles in Ordnung".
+    if (!session) {
+      setSnapshot(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      setSnapshot(await repo.load());
+      setSnapshot(await repository.load());
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [repo]);
+  }, [session]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
-
-  useEffect(() => {
-    localStorage.setItem('bw.employee', employee);
-  }, [employee]);
 
   // Die Bewertung läuft ausschließlich über /core und wird bei jeder Änderung
   // vollständig neu berechnet — es gibt keinen abgeleiteten Zustand in der DB,
@@ -85,7 +90,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   return (
     <DataContext.Provider
-      value={{ repo, snapshot, overviews, summary, today, loading, error, reload, employee, setEmployee }}
+      value={{
+        repo: repository,
+        snapshot,
+        overviews,
+        summary,
+        today,
+        loading,
+        error,
+        reload,
+        employee: session?.displayName ?? 'Unbekannt',
+        canWrite: session?.canWrite ?? false,
+        isAdmin: session?.role === 'admin',
+      }}
     >
       {children}
     </DataContext.Provider>

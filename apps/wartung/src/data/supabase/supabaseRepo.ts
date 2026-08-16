@@ -7,6 +7,7 @@ import type {
   Repository,
   ResetCounterInput,
   SaveReadingsInput,
+  SessionInfo,
   Snapshot,
 } from '../types';
 
@@ -23,6 +24,7 @@ import type {
  */
 export class SupabaseRepository implements Repository {
   readonly kind = 'supabase' as const;
+  readonly requiresLogin = true;
   readonly client: SupabaseClient;
 
   constructor(url: string, anonKey: string) {
@@ -31,20 +33,64 @@ export class SupabaseRepository implements Repository {
     });
   }
 
-  private async userName(): Promise<string> {
-    const { data } = await this.client.auth.getUser();
-    if (!data.user) return 'Unbekannt';
-    const { data: profile } = await this.client
-      .from('profiles')
-      .select('display_name')
-      .eq('id', data.user.id)
-      .single();
-    return profile?.display_name ?? data.user.email ?? 'Unbekannt';
+  // --- Anmeldung -----------------------------------------------------------
+
+  /**
+   * Die Rechte kommen aus den Datenbankfunktionen has_module() und
+   * can_write_module(). Damit gilt im Frontend exakt dieselbe Regel wie in den
+   * RLS-Policies — es kann nicht auseinanderlaufen.
+   */
+  async getSession(): Promise<SessionInfo | null> {
+    const { data: userData } = await this.client.auth.getUser();
+    const user = userData.user;
+    if (!user) return null;
+
+    const [{ data: profile }, canRead, canWrite] = await Promise.all([
+      this.client.from('profiles').select('display_name, role').eq('id', user.id).maybeSingle(),
+      this.client.rpc('has_module', { p_module: 'maintenance' }),
+      this.client.rpc('can_write_module', { p_module: 'maintenance' }),
+    ]);
+
+    return {
+      userId: user.id,
+      email: user.email ?? null,
+      displayName: profile?.display_name ?? user.email ?? 'Unbekannt',
+      role: profile?.role ?? 'mechanic',
+      canRead: canRead.data === true,
+      canWrite: canWrite.data === true,
+    };
+  }
+
+  async signIn(email: string, password: string): Promise<void> {
+    const { error } = await this.client.auth.signInWithPassword({ email, password });
+    if (error) {
+      // Supabase meldet aus Sicherheitsgründen bewusst unspezifisch; für den
+      // Mechaniker am Tablet ist die englische Rohmeldung wertlos.
+      throw new Error(
+        error.message.toLowerCase().includes('invalid login')
+          ? 'E-Mail-Adresse oder Passwort stimmt nicht.'
+          : error.message,
+      );
+    }
+  }
+
+  async signOut(): Promise<void> {
+    await this.client.auth.signOut();
+  }
+
+  onAuthChange(callback: () => void): () => void {
+    const { data } = this.client.auth.onAuthStateChange(() => callback());
+    return () => data.subscription.unsubscribe();
   }
 
   private async userId(): Promise<string | null> {
     const { data } = await this.client.auth.getUser();
     return data.user?.id ?? null;
+  }
+
+  private async userName(): Promise<string> {
+    const session = await this.getSession();
+    return session?.displayName ?? 'Unbekannt';
   }
 
   async load(): Promise<Snapshot> {

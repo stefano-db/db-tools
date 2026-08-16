@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { RouterProvider, createBrowserRouter, Navigate } from 'react-router-dom';
 import './index.css';
 import { AppShell } from './app/AppShell';
+import { AuthProvider } from './app/AuthContext';
 import { DataProvider } from './app/DataContext';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
@@ -30,8 +31,10 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <DataProvider>
-      <RouterProvider router={router} />
-    </DataProvider>
+    <AuthProvider>
+      <DataProvider>
+        <RouterProvider router={router} />
+      </DataProvider>
+    </AuthProvider>
   </StrictMode>,
 );

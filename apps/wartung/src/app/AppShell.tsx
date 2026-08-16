@@ -1,18 +1,42 @@
 import { useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { IssueDialog } from '../features/issues/IssueDialog';
+import { LoginPage, NoAccessPage } from '../features/auth/LoginPage';
 
 const NAV = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/eingabe', label: 'Frame-Stände' },
-  { to: '/historie', label: 'Historie' },
-  { to: '/einstellungen', label: 'Einstellungen' },
+  { to: '/', label: 'Dashboard', end: true, adminOnly: false },
+  { to: '/eingabe', label: 'Frame-Stände', adminOnly: false },
+  { to: '/historie', label: 'Historie', adminOnly: false },
+  { to: '/einstellungen', label: 'Einstellungen', adminOnly: true },
 ];
 
 export function AppShell() {
-  const { repo, loading, error, employee, setEmployee } = useData();
+  const { session, loading: authLoading, requiresLogin, signOut } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-slate-900 text-slate-300">
+        Anmeldung wird geprüft…
+      </div>
+    );
+  }
+  if (requiresLogin && !session) return <LoginPage />;
+  if (session && !session.canRead) {
+    return <NoAccessPage name={session.displayName} onSignOut={() => void signOut()} />;
+  }
+
+  return <Shell />;
+}
+
+function Shell() {
+  const { repo, loading, error, employee, isAdmin } = useData();
+  const { session, signOut } = useAuth();
   const [issueOpen, setIssueOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const nav = NAV.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <div className="min-h-screen">
@@ -23,13 +47,13 @@ export function AppShell() {
             <div className="leading-tight">
               <div className="font-semibold">Bahnwartung</div>
               <div className="text-xs text-slate-400">
-                {repo.kind === 'demo' ? 'Demo-Bestand (lokal)' : 'Supabase'}
+                {repo.kind === 'demo' ? 'Demo-Bestand (lokal)' : 'Bowlingcenter'}
               </div>
             </div>
           </div>
 
           <nav className="order-3 -mx-1 flex w-full gap-1 overflow-x-auto md:order-none md:w-auto">
-            {NAV.map((item) => (
+            {nav.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -45,21 +69,44 @@ export function AppShell() {
             ))}
           </nav>
 
-          <div className="ml-auto flex items-center gap-3">
-            <label className="hidden text-xs text-slate-400 sm:block">
-              Mitarbeiter
-              <input
-                value={employee}
-                onChange={(e) => setEmployee(e.target.value)}
-                className="ml-2 w-28 rounded border border-slate-700 bg-slate-800 px-2 py-1 text-sm text-slate-100"
-              />
-            </label>
+          <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setIssueOpen(true)}
               className="rounded bg-slate-700 px-3 py-2 text-sm font-semibold hover:bg-slate-600"
             >
               Defekt melden
             </button>
+
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                className="flex items-center gap-2 rounded px-2 py-2 text-sm hover:bg-slate-800"
+              >
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-slate-600 text-xs font-bold">
+                  {initials(employee)}
+                </span>
+                <span className="hidden sm:inline">{employee}</span>
+              </button>
+
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 z-20 mt-1 w-56 rounded border border-slate-200 bg-white p-1 text-slate-900 shadow-lg">
+                    <div className="px-3 py-2 text-xs text-slate-500">
+                      {session?.email ?? 'Demo-Betrieb'}
+                      <div className="font-semibold text-slate-700">{roleLabel(session?.role)}</div>
+                    </div>
+                    <hr className="my-1 border-slate-100" />
+                    <button
+                      onClick={() => void signOut()}
+                      className="w-full rounded px-3 py-2 text-left text-sm font-medium hover:bg-slate-100"
+                    >
+                      Abmelden
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {loading && <div className="h-0.5 animate-pulse bg-sky-400" />}
@@ -77,4 +124,18 @@ export function AppShell() {
       {issueOpen && <IssueDialog onClose={() => setIssueOpen(false)} />}
     </div>
   );
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function roleLabel(role: string | undefined): string {
+  if (role === 'admin') return 'Administrator';
+  if (role === 'counter') return 'Counter';
+  return 'Mechaniker';
 }

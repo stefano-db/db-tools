@@ -13,6 +13,7 @@ import type {
   Repository,
   ResetCounterInput,
   SaveReadingsInput,
+  SessionInfo,
   Snapshot,
 } from '../types';
 import { buildDemoDb, type DemoDb } from './seed';
@@ -29,10 +30,39 @@ const STORAGE_KEY = 'bowling-wartung.demo.v1';
  */
 export class DemoRepository implements Repository {
   readonly kind = 'demo' as const;
+  readonly requiresLogin = false;
   private db: DemoDb;
 
   constructor() {
     this.db = this.read();
+  }
+
+  // --- Anmeldung -----------------------------------------------------------
+  // Im Demo-Betrieb gibt es keine echte Anmeldung: es wird eine feste Sitzung
+  // mit allen Rechten vorgetäuscht, damit die Oberfläche vollständig bedienbar
+  // bleibt, ohne dass eine Datenbank dahintersteht.
+
+  async getSession(): Promise<SessionInfo> {
+    return {
+      userId: 'demo',
+      email: null,
+      displayName: localStorage.getItem('bw.employee') || 'Marco',
+      role: 'admin',
+      canRead: true,
+      canWrite: true,
+    };
+  }
+
+  async signIn(): Promise<void> {
+    /* keine Anmeldung nötig */
+  }
+
+  async signOut(): Promise<void> {
+    /* keine Anmeldung nötig */
+  }
+
+  onAuthChange(): () => void {
+    return () => {};
   }
 
   private read(): DemoDb {
