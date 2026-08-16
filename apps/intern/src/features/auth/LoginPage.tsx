@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
+import { repository } from '../../data';
 
 export function LoginPage() {
   const { signIn } = useAuth();
@@ -7,6 +8,11 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
+
+  // Ein Zurücksetz-Link kann nur an eine echte Adresse gehen. Wer sich mit
+  // Benutzernamen anmeldet, wendet sich an die Leitung — das steht dann da.
+  const looksLikeEmail = email.includes('@');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -41,11 +47,14 @@ export function LoginPage() {
         </div>
 
         <label className="block text-sm font-medium">
-          E-Mail
+          Benutzername oder E-Mail
           <input
-            type="email"
+            type="text"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setResetSent(false);
+            }}
             autoComplete="username"
             autoCapitalize="none"
             autoCorrect="off"
@@ -81,9 +90,32 @@ export function LoginPage() {
           {busy ? 'Anmeldung läuft…' : 'Anmelden'}
         </button>
 
-        <p className="mt-4 text-xs text-slate-500">
-          Zugang vergessen? Melde dich bei der Centerleitung — Konten werden zentral vergeben.
-        </p>
+        {resetSent ? (
+          <p className="mt-4 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+            ● Wenn zu dieser Adresse ein Konto existiert, ist eine E-Mail unterwegs.
+          </p>
+        ) : looksLikeEmail ? (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await repository.sendPasswordReset(email);
+                setResetSent(true);
+                setError(null);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : String(err));
+              }
+            }}
+            className="mt-4 text-xs font-medium text-slate-600 hover:underline"
+          >
+            Passwort vergessen?
+          </button>
+        ) : (
+          <p className="mt-4 text-xs text-slate-500">
+            Passwort vergessen? Melde dich bei deiner Bereichsleitung — sie kann dir ein neues
+            geben.
+          </p>
+        )}
       </form>
     </div>
   );

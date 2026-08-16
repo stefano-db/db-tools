@@ -96,6 +96,7 @@ export class DemoRepository implements Repository {
       {
         id: 'demo',
         username: 'demo',
+        email: null,
         displayName: localStorage.getItem('bw.employee') || 'Marco',
         department: 'mechanik',
         isLead: true,
@@ -116,6 +117,14 @@ export class DemoRepository implements Repository {
 
   async setUserPassword(): Promise<void> {
     throw new Error('Im Demo-Betrieb gibt es keine Passwörter.');
+  }
+
+  async setUserEmail(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keine Konten.');
+  }
+
+  async sendPasswordReset(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keine E-Mail.');
   }
 
   async exportBackup(): Promise<BackupBundle> {

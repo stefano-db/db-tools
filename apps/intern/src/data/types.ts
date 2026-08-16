@@ -156,6 +156,8 @@ export interface SessionInfo {
 export interface UserRow {
   id: string;
   username: string | null;
+  /** Echte Adresse, falls hinterlegt. Technische Adressen erscheinen hier nicht. */
+  email: string | null;
   displayName: string;
   department: Department | null;
   isLead: boolean;
@@ -167,6 +169,8 @@ export interface UserRow {
 export interface CreateUserInput {
   username: string;
   displayName: string;
+  /** Optional. Mit Adresse kann sich die Person selbst ein neues Passwort schicken. */
+  email?: string;
   password: string;
   department: Department | null;
   isLead: boolean;
@@ -217,6 +221,10 @@ export interface Repository {
   ): Promise<void>;
   /** Passwort eines anderen Kontos setzen — für vergessene Zugänge. */
   setUserPassword(id: string, password: string): Promise<void>;
+  /** Anmeldeadresse setzen; leer heißt zurück auf den Benutzernamen. */
+  setUserEmail(id: string, email: string): Promise<void>;
+  /** Link zum Zurücksetzen an die hinterlegte Adresse schicken. */
+  sendPasswordReset(email: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
    * sichtbar und durchgestrichen — gelöscht wird nichts. Mitkaskadierte Einträge

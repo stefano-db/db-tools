@@ -91,6 +91,7 @@ export function UsersPage() {
               <tr>
                 <th className="px-4 py-2 font-semibold">Name</th>
                 <th className="px-4 py-2 font-semibold">Benutzername</th>
+                <th className="px-4 py-2 font-semibold">E-Mail</th>
                 <th className="px-4 py-2 font-semibold">Bereich</th>
                 <th className="px-4 py-2 font-semibold">Leitung</th>
                 {isAdmin && <th className="px-4 py-2 font-semibold">Admin</th>}
@@ -175,7 +176,10 @@ function UserRowView({
         {user.displayName}
         {isSelf && <span className="ml-2 text-xs text-slate-500">(du)</span>}
       </td>
-      <td className="px-4 py-2 text-slate-600">{user.username ?? '— E-Mail —'}</td>
+      <td className="px-4 py-2 text-slate-600">{user.username ?? '—'}</td>
+      <td className="px-4 py-2">
+        <EmailCell user={user} onError={onError} onSaved={() => apply({})} />
+      </td>
       <td className="px-4 py-2">
         <select
           value={user.department ?? ''}
@@ -256,6 +260,7 @@ function NewUserDialog({
 }) {
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [department, setDepartment] = useState<Department | ''>(ownDepartment ?? '');
   const [isLead, setIsLead] = useState(false);
@@ -282,6 +287,7 @@ function NewUserDialog({
       await repository.createUser({
         username: username || suggest(displayName),
         displayName,
+        email: email.trim() || undefined,
         password,
         department: department || null,
         isLead,
@@ -331,6 +337,22 @@ function NewUserDialog({
           />
           <span className="mt-1 block text-xs text-slate-500">
             Kleinbuchstaben, Ziffern, Punkt, Bindestrich. Keine E-Mail nötig.
+          </span>
+        </label>
+
+        <label className="mt-4 block text-sm font-medium">
+          E-Mail (optional)
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="leer lassen, wenn keine vorhanden"
+            autoCapitalize="none"
+            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+          />
+          <span className="mt-1 block text-xs text-slate-500">
+            Mit Adresse kann sich die Person ihr Passwort selbst zurücksetzen. Ohne Adresse
+            machst du das in dieser Liste.
           </span>
         </label>
 
@@ -512,4 +534,51 @@ function suggestPassword(): string {
   const pick = () => words[Math.floor(Math.random() * words.length)];
   const digits = String(Math.floor(Math.random() * 9000) + 1000);
   return `${pick()}-${pick()}-${digits}`;
+}
+
+/**
+ * E-Mail eines Kontos ändern.
+ *
+ * Leer bedeutet: zurück auf die Anmeldung per Benutzername. Der Wechsel betrifft
+ * die Anmeldung selbst — deshalb wird er erst beim Verlassen des Feldes wirksam
+ * und nicht bei jedem Tastendruck.
+ */
+function EmailCell({
+  user,
+  onError,
+  onSaved,
+}: {
+  user: UserRow;
+  onError: (message: string) => void;
+  onSaved: () => void;
+}) {
+  const [value, setValue] = useState(user.email ?? '');
+  const [busy, setBusy] = useState(false);
+
+  async function commit() {
+    const next = value.trim();
+    if (next === (user.email ?? '')) return;
+    setBusy(true);
+    try {
+      await repository.setUserEmail(user.id, next);
+      onSaved();
+    } catch (e) {
+      setValue(user.email ?? '');
+      onError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <input
+      type="email"
+      value={value}
+      disabled={busy}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      placeholder="keine"
+      className="w-52 rounded border border-slate-200 px-2 py-1 text-sm"
+    />
+  );
 }

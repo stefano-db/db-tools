@@ -46,9 +46,16 @@ export class SupabaseRepository implements Repository {
    * Namen an; Supabase braucht intern eine E-Mail. Enthält die Eingabe ein @,
    * ist es bereits eine echte Adresse (Administratoren).
    */
-  private static toEmail(login: string): string {
+  private async toEmail(login: string): Promise<string> {
     const value = login.trim();
-    return value.includes('@') ? value : `${value.toLowerCase()}@dreambowl.intern`;
+    if (value.includes('@')) return value;
+
+    // Zum Benutzernamen die hinterlegte Anmeldeadresse holen. Das kann die
+    // technische sein oder eine echte — die Anwendung muss das nicht wissen.
+    const { data } = await this.client.rpc('login_email_for_username', {
+      p_username: value.toLowerCase(),
+    });
+    return (data as string | null) ?? `${value.toLowerCase()}@dreambowl.intern`;
   }
 
   // --- Anmeldung -----------------------------------------------------------
@@ -90,7 +97,7 @@ export class SupabaseRepository implements Repository {
 
   async signIn(login: string, password: string): Promise<void> {
     const { error } = await this.client.auth.signInWithPassword({
-      email: SupabaseRepository.toEmail(login),
+      email: await this.toEmail(login),
       password,
     });
     if (error) {
@@ -185,12 +192,13 @@ export class SupabaseRepository implements Repository {
   async listUsers(): Promise<UserRow[]> {
     const { data, error } = await this.client
       .from('profiles')
-      .select('id, username, display_name, department, is_lead, is_admin, active, created_at')
+      .select('id, username, display_name, email, department, is_lead, is_admin, active, created_at')
       .order('display_name');
     if (error) throw new Error(error.message);
     return (data ?? []).map((p: any) => ({
       id: p.id,
       username: p.username,
+      email: p.email ?? null,
       displayName: p.display_name,
       department: p.department,
       isLead: p.is_lead === true,
@@ -218,12 +226,14 @@ export class SupabaseRepository implements Repository {
       throw new Error('Das Passwort muss mindestens 8 Zeichen haben.');
     }
 
+    const realEmail = input.email?.trim().toLowerCase() || null;
+
     const signupClient = createClient(this.url, this.anonKey, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
     const { data, error } = await signupClient.auth.signUp({
-      email: `${username}@dreambowl.intern`,
+      email: realEmail || `${username}@dreambowl.intern`,
       password: input.password,
       options: { data: { username, display_name: input.displayName.trim() } },
     });
@@ -262,6 +272,21 @@ export class SupabaseRepository implements Repository {
     if (patch.active !== undefined) row.active = patch.active;
 
     const { error } = await this.client.from('profiles').update(row).eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  async setUserEmail(id: string, email: string): Promise<void> {
+    const { error } = await this.client.rpc('admin_set_email', {
+      p_user_id: id,
+      p_email: email,
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async sendPasswordReset(email: string): Promise<void> {
+    const { error } = await this.client.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/`,
+    });
     if (error) throw new Error(error.message);
   }
 
