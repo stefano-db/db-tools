@@ -77,7 +77,7 @@ function ModuleTile({ module: m }: { module: ModuleInfo }) {
       <span>
         <span className="block text-lg font-semibold">
           {m.nameDe}
-          {m.externalUrl && (
+          {m.externalUrl && !m.externalUrl.startsWith('/') && (
             <span className="ml-2 align-middle text-xs font-normal text-slate-500">
               eigenes Werkzeug ↗
             </span>
@@ -98,11 +98,19 @@ function ModuleTile({ module: m }: { module: ModuleInfo }) {
   const cls =
     'flex items-start gap-4 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-slate-400 hover:shadow-sm';
 
-  // Externe Werkzeuge liegen ausserhalb der Plattform und oeffnen in einem
-  // neuen Tab — sonst verliert der Mitarbeiter seine Sitzung aus den Augen.
   if (m.externalUrl) {
+    // Eigenstaendige Seiten neben der React-Anwendung (z. B. das Urkundensystem)
+    // liegen auf derselben Adresse und brauchen einen vollen Seitenwechsel —
+    // der Router der Plattform kennt sie nicht. Fremde Adressen oeffnen dagegen
+    // in einem neuen Tab, damit die eigene Sitzung sichtbar bleibt.
+    const sameSite = m.externalUrl.startsWith('/');
     return (
-      <a href={m.externalUrl} target="_blank" rel="noopener noreferrer" className={cls}>
+      <a
+        href={m.externalUrl}
+        target={sameSite ? undefined : '_blank'}
+        rel={sameSite ? undefined : 'noopener noreferrer'}
+        className={cls}
+      >
         {inner}
       </a>
     );
