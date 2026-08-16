@@ -274,6 +274,23 @@ describe('Fall 8 – falsche Frame-Eingabe korrigiert', () => {
     expect(corrected.framesSince).toBe(17_760);
   });
 
+  it('meldet eine Korrektur nach unten nicht als Zaehler-Reset', () => {
+    // Wird die Ablesung desselben Tages ueberschrieben, ist der bisherige Wert
+    // genau der, der ersetzt werden soll. Ohne Vergleichswert darf ein
+    // niedrigerer Wert deshalb keinen Reset-Verdacht ausloesen.
+    const issues = validateReading({
+      rawValue: 84_100,
+      epoch,
+      readingDate: TODAY,
+      today: TODAY,
+      previousCumulative: null,
+      previousDate: null,
+      framesPerWeek: 2_100,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(issues).toHaveLength(0);
+  });
+
   it('akzeptiert einen plausiblen Zuwachs ohne Warnung', () => {
     const issues = validateReading({
       rawValue: 86_310,

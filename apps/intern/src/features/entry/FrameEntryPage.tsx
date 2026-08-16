@@ -27,11 +27,17 @@ export function FrameEntryPage() {
 
   if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
 
-  const checks: Record<string, { issues: ReadingIssue[]; delta: number | null }> = {};
+  const checks: Record<string, { issues: ReadingIssue[]; delta: number | null; corrects: boolean }> = {};
   for (const lane of lanes) {
     const raw = values[lane.laneId];
     if (raw === undefined || raw === '') continue;
     const rawValue = Number(raw.replace(/[^\d]/g, ''));
+    // Wird eine bereits erfasste Ablesung desselben Tages ueberschrieben, ist der
+    // bisherige Wert genau der, der ersetzt werden soll — er darf dann nicht als
+    // Vergleichsmassstab dienen. Sonst gilt jede Korrektur nach unten faelschlich
+    // als zurueckgesetzter Zaehler. Die Monotonie gegen die echten Nachbartage
+    // prueft weiterhin die Datenbank.
+    const corrects = lane.lastReadingDate === readingDate;
     // Bei der Ersteinrichtung existiert noch keine Epoche; sie wird beim
     // Speichern angelegt. Für die Vorschau wird hier mit denselben Werten
     // gerechnet, die dann auch gespeichert werden.
@@ -48,8 +54,8 @@ export function FrameEntryPage() {
       epoch,
       readingDate,
       today,
-      previousCumulative: lane.currentFrames,
-      previousDate: lane.lastReadingDate,
+      previousCumulative: corrects ? null : lane.currentFrames,
+      previousDate: corrects ? null : lane.lastReadingDate,
       framesPerWeek: lane.framesPerWeek,
       settings: snapshot.settings,
     });
@@ -58,6 +64,7 @@ export function FrameEntryPage() {
     checks[lane.laneId] = {
       issues,
       delta: cumulative !== null && lane.currentFrames !== null ? cumulative - lane.currentFrames : null,
+      corrects,
     };
   }
 
@@ -230,11 +237,18 @@ export function FrameEntryPage() {
                     />
                   </td>
                   <td className="px-4 py-2 text-sm">
-                    {check?.delta !== null && check?.delta !== undefined && (
-                      <span className="tabular font-semibold text-slate-800">
-                        {check.delta >= 0 ? '+' : ''}
-                        {formatFrames(check.delta)}
+                    {check?.corrects ? (
+                      <span className="text-slate-700">
+                        ersetzt {lane.lastRawValue !== null ? formatFrames(lane.lastRawValue) : '—'}
                       </span>
+                    ) : (
+                      check?.delta !== null &&
+                      check?.delta !== undefined && (
+                        <span className="tabular font-semibold text-slate-800">
+                          {check.delta >= 0 ? '+' : ''}
+                          {formatFrames(check.delta)}
+                        </span>
+                      )
                     )}
                     {error && <div className="text-red-700">■ {error.message}</div>}
                     {!error && warning && <div className="text-amber-700">▲ {warning.message}</div>}
