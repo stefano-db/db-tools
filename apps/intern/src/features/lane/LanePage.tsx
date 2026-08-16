@@ -179,7 +179,7 @@ export function LanePage() {
       <Section
         title="Letzte Wartungen"
         action={
-          <Link to={`/historie?bahn=${lane.laneNumber}`} className="text-sm font-semibold text-slate-700 hover:underline">
+          <Link to={`/wartung/historie?bahn=${lane.laneNumber}`} className="text-sm font-semibold text-slate-700 hover:underline">
             Gesamte Historie →
           </Link>
         }

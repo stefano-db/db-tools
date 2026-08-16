@@ -9,6 +9,7 @@ import type {
   SaveReadingsInput,
   SessionInfo,
   Snapshot,
+  ModuleInfo,
 } from '../types';
 
 /**
@@ -76,6 +77,39 @@ export class SupabaseRepository implements Repository {
 
   async signOut(): Promise<void> {
     await this.client.auth.signOut();
+  }
+
+  /**
+   * Nur aktive Module, und je Modul die Rechte des angemeldeten Benutzers.
+   * Die RLS lässt ihn ohnehin nicht an fremde Daten — die Übersicht zeigt also
+   * nicht mehr, als er auch wirklich benutzen kann.
+   */
+  async listModules(): Promise<ModuleInfo[]> {
+    const { data, error } = await this.client
+      .from('app_modules')
+      .select('*')
+      .eq('active', true)
+      .order('sort_order');
+    if (error) throw new Error(error.message);
+
+    const modules = await Promise.all(
+      (data ?? []).map(async (m: any) => {
+        const [canRead, canWrite] = await Promise.all([
+          this.client.rpc('has_module', { p_module: m.key }),
+          this.client.rpc('can_write_module', { p_module: m.key }),
+        ]);
+        return {
+          key: m.key,
+          nameDe: m.name_de,
+          path: m.path,
+          icon: m.icon,
+          sortOrder: m.sort_order,
+          canRead: canRead.data === true,
+          canWrite: canWrite.data === true,
+        };
+      }),
+    );
+    return modules.filter((m) => m.canRead);
   }
 
   async updateDisplayName(name: string): Promise<void> {

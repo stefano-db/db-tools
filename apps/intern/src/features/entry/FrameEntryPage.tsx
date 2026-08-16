@@ -90,7 +90,7 @@ export function FrameEntryPage() {
       await repo.saveReadings({ readingDate, entries });
       await reload();
       setValues({});
-      navigate('/');
+      navigate('/wartung');
     } finally {
       setSaving(false);
     }
@@ -120,7 +120,7 @@ export function FrameEntryPage() {
       await repo.saveReadings({ readingDate, entries });
       await reload();
       setValues({});
-      navigate('/');
+      navigate('/wartung');
     } finally {
       setSaving(false);
     }

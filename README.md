@@ -1,26 +1,42 @@
-# Interne Plattform — Bahnwartung
+# Interne Plattform
 
-Erstes Modul: Wartungsplanung für 18 Bowlingbahnen auf Basis der tatsächlich
-gespielten Frames.
+Eine Anmeldung für alle Mitarbeiter. Danach sieht jeder genau die Werkzeuge seines
+Bereichs. Erstes Modul ist die **Bahnwartung** — Wartungsplanung für 18
+Bowlingbahnen auf Basis der tatsächlich gespielten Frames.
+
+```
+/                        Modulübersicht — zeigt nur freigeschaltete Werkzeuge
+/wartung                 Modul Bahnwartung
+```
 
 ```
 supabase/migrations/     Schema und Stammdaten, per GitHub-Verbindung automatisch angewendet
-supabase/config.toml     Projektreferenz
 docs/03-ui-struktur.md   Seitenstruktur und Bedienführung
-apps/wartung/            React + TypeScript + Tailwind (Vite)
+apps/intern/             React + TypeScript + Tailwind (Vite)
+  src/app/               Anmeldung, Kopfzeile, Modulübersicht, Routing
   src/core/              Wartungslogik, framework-frei, vollständig getestet
   src/data/              Datenschicht (Demo lokal / Supabase)
-  src/features/          Dashboard, Eingabe, Wartung, Historie, Einstellungen
+  src/features/          Bildschirme des Wartungsmoduls
 ```
 
-Die Datenbank liegt bewusst im Wurzelverzeichnis und nicht im Modul: Sie bedient
-später alle Module der Plattform (Wartung, Counter, …), die als weitere Ordner
-unter `apps/` dazukommen.
+## Ein neues Modul hinzufügen
+
+1. Zeile in `app_modules` anlegen (`key`, `name_de`, `path`, `icon`) und in
+   `role_module_access` festlegen, welche Rolle es sehen darf.
+2. Tabellen des Moduls anlegen, RLS-Policies über `has_module('<key>')` und
+   `can_write_module('<key>')` — dieselbe Regel gilt dann automatisch im Frontend.
+3. Route in `src/main.tsx` ergänzen und die Bildschirme unter `src/features/`
+   einhängen.
+
+Anmeldung, Rechteprüfung, Kopfzeile und Modulübersicht müssen dafür nicht
+angefasst werden. Die Datenbank ist bewusst gemeinsam: Ein Defekt, den ein
+Counter-Mitarbeiter meldet, landet in derselben Tabelle, aus der der Mechaniker
+ihn abarbeitet.
 
 ## Entwicklung
 
 ```bash
-cd apps/wartung && npm install && npm run dev
+cd apps/intern && npm install && npm run dev
 ```
 
 Danach <http://localhost:5178/> öffnen.
@@ -47,7 +63,7 @@ npm run build
    ```sql
    update profiles set role = 'admin' where display_name = 'Marko';
    ```
-4. `apps/wartung/.env` aus `.env.example` anlegen und die beiden Werte aus
+4. `apps/intern/.env` aus `.env.example` anlegen und die beiden Werte aus
    Dashboard → Project Settings → API eintragen.
 
 Sobald beide Werte gesetzt sind, arbeitet dieselbe Oberfläche gegen die Datenbank —
@@ -73,7 +89,7 @@ Neues Pages-Projekt anlegen, mit dem GitHub-Repository verbinden und so konfigur
 
 | Einstellung | Wert |
 |---|---|
-| Root directory | `apps/wartung` |
+| Root directory | `apps/intern` |
 | Build command | `npm run build` |
 | Build output directory | `dist` |
 | Framework preset | None |
@@ -89,8 +105,8 @@ Ohne diese Werte baut Cloudflare stillschweigend die Demo-Fassung mit lokalen
 Beispieldaten — die App sähe funktionsfähig aus, hätte aber keinerlei Verbindung
 zur Datenbank.
 
-Die Node-Version steht in `apps/wartung/.node-version`, das SPA-Routing in
-`apps/wartung/public/_redirects` (landet beim Build automatisch in `dist`).
+Die Node-Version steht in `apps/intern/.node-version`, das SPA-Routing in
+`apps/intern/public/_redirects` (landet beim Build automatisch in `dist`).
 
 Danach unter *Custom domains* die Subdomain hinzufügen. Jeder Push auf `main`
 veröffentlicht automatisch neu.
@@ -102,7 +118,7 @@ der Anmeldung in der App selbst.
 ### Auf einen Unterpfad umstellen
 
 Soll die App später doch unter `example.de/wartung/` laufen: in
-`apps/wartung/vite.config.ts` `base: '/wartung/'` setzen, in `src/main.tsx` den
+`apps/intern/vite.config.ts` `base: '/wartung/'` setzen, in `src/main.tsx` den
 `basename` auf `'/wartung'`, und in `public/_redirects` die Pfade entsprechend
 anpassen. Mehr ist nicht nötig.
 

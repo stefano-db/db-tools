@@ -121,6 +121,22 @@ export interface SessionInfo {
   canWrite: boolean;
 }
 
+/**
+ * Ein Werkzeug der internen Plattform. Welche Module ein Mitarbeiter sieht,
+ * ergibt sich aus seiner Rolle und aus individuellen Freigaben — beides wird
+ * über die Datenbankfunktionen ermittelt, nicht im Frontend entschieden.
+ */
+export interface ModuleInfo {
+  key: string;
+  nameDe: string;
+  /** Route innerhalb der Plattform, z. B. '/wartung'. */
+  path: string;
+  icon: string | null;
+  sortOrder: number;
+  canRead: boolean;
+  canWrite: boolean;
+}
+
 export interface Repository {
   readonly kind: 'demo' | 'supabase';
   /** false im Demo-Betrieb: dort gibt es keine Anmeldung. */
@@ -131,6 +147,8 @@ export interface Repository {
   signOut(): Promise<void>;
   /** Anzeigename des eigenen Kontos ändern — er steht in jedem Wartungseintrag. */
   updateDisplayName(name: string): Promise<void>;
+  /** Module, die dieser Mitarbeiter aufrufen darf. */
+  listModules(): Promise<ModuleInfo[]>;
   /** Meldet Anmeldung, Abmeldung und Ablauf der Sitzung. Gibt eine Abmeldefunktion zurück. */
   onAuthChange(callback: () => void): () => void;
 

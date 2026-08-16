@@ -44,7 +44,7 @@ export function DashboardPage() {
             <Banner
               tone="amber"
               text={`${stale.length} ${stale.length === 1 ? 'Bahn hat' : 'Bahnen haben'} seit über einer Woche keine Ablesung`}
-              action={{ to: '/eingabe', label: 'Frame-Stände eintragen' }}
+              action={{ to: '/wartung/eingabe', label: 'Frame-Stände eintragen' }}
             />
           )}
           {openIssues.length > 0 && (
@@ -158,7 +158,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
 
   return (
     <Link
-      to={`/bahn/${lane.laneNumber}`}
+      to={`/wartung/bahn/${lane.laneNumber}`}
       className={`block rounded-lg border border-l-4 border-slate-200 bg-white p-4 transition hover:border-slate-400 ${STATUS_STYLE[worst].border}`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -210,7 +210,7 @@ function CompactRow({ overview }: { overview: LaneOverview }) {
   const { lane, statuses, worst } = overview;
   return (
     <Link
-      to={`/bahn/${lane.laneNumber}`}
+      to={`/wartung/bahn/${lane.laneNumber}`}
       className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 px-4 py-2.5 last:border-0 hover:bg-slate-50"
     >
       <span className="flex w-24 items-center gap-2 font-semibold">

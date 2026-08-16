@@ -15,6 +15,7 @@ import type {
   SaveReadingsInput,
   SessionInfo,
   Snapshot,
+  ModuleInfo,
 } from '../types';
 import { buildDemoDb, type DemoDb } from './seed';
 
@@ -63,6 +64,20 @@ export class DemoRepository implements Repository {
 
   async updateDisplayName(name: string): Promise<void> {
     localStorage.setItem('bw.employee', name);
+  }
+
+  async listModules(): Promise<ModuleInfo[]> {
+    return [
+      {
+        key: 'maintenance',
+        nameDe: 'Bahnwartung',
+        path: '/wartung',
+        icon: 'wrench',
+        sortOrder: 10,
+        canRead: true,
+        canWrite: true,
+      },
+    ];
   }
 
   onAuthChange(): () => void {
