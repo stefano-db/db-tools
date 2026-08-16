@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bahnwartung",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "bowling-wartung/app"],
+      "port": 5178,
+      "url": "http://localhost:5178"
+    }
+  ]
+}

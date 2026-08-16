@@ -1,0 +1,30 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-slate-100 text-slate-900 antialiased;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* Zahlen sollen in Tabellen und Karten exakt untereinander stehen. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tablet: großzügige Tippflächen, keine Hover-Abhängigkeit. */
+@media (pointer: coarse) {
+  button,
+  a,
+  input,
+  select {
+    min-height: 44px;
+  }
+}
