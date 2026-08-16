@@ -349,6 +349,8 @@ td{padding:10px 14px;color:var(--t);vertical-align:middle}
 <div id="mov"><div class="modal"><div class="mtitle" id="mt"></div><div id="mb"></div><div class="mact" id="ma"></div></div></div>
 <div id="pr"></div>
 <script src="lib/xlsx.full.min.js"></script>
+<script src="lib/supabase.js"></script>
+<script src="db.js"></script>
 <script>
 'use strict';
 const W=595,H=842;
@@ -416,33 +418,16 @@ function modal({title,body,actions=[]}){
   document.getElementById('mov').classList.add('open');
 }
 
-function save(){try{localStorage.setItem('db2_ev',JSON.stringify(S.evs));}catch{}}
-function load(){
-  try{const r=localStorage.getItem('db2_ev');if(r)S.evs=JSON.parse(r);}catch{}
-  S.evs.forEach(ev=>{(ev.docs||[]).forEach((d,i)=>{if(!d.id)d.id=`d_leg_${i}_${ev.id}`;});});
-  try{const b=localStorage.getItem('db2_bg');if(b)S.cbg=b;}catch{}
-  try{const f=localStorage.getItem('db2_cf');if(f)S.cfs=JSON.parse(f);}catch{}
-  try{const l=localStorage.getItem('db2_cl');if(l)S.clf=l==='1';}catch{}
-  try{const m=localStorage.getItem('db2_rm');if(m)S.rm=m;}catch{}
-  DFS.forEach(f=>{if(!S.cfs[f.id])S.cfs[f.id]={xP:f.xP,yP:f.yP,fs:f.fs,col:f.col,bold:f.bold,font:f.font};});
-}
-function saveCF(){try{localStorage.setItem('db2_cf',JSON.stringify(S.cfs));}catch{}}
+function save(){DB.saveEvents(S.evs);}
+function load(){/* wird von DB.boot() befuellt */}
+
+function saveCF(){DB.saveSettings({fields:S.cfs,locked:S.clf,mode:S.rm});}
 
 /* 7-Tage-Auto-Cleanup: Events, deren Event-Datum älter als 7 Tage ist, werden beim Start entfernt. */
 function cleanup(){
-  const cutoff=Date.now()-7*864e5;
-  const before=S.evs.length;
-  S.evs=S.evs.filter(ev=>{
-    let t=Date.parse(ev.dt+'T23:59:59');
-    if(isNaN(t))t=ev.ca||Date.now();
-    return t>=cutoff;
-  });
-  const n=before-S.evs.length;
-  if(n){
-    if(S.aid&&!S.evs.find(x=>x.id===S.aid))S.aid=null;
-    save();
-    setTimeout(()=>toast(n===1?'1 altes Event (älter als 7 Tage) aufgeräumt.':`${n} alte Events (älter als 7 Tage) aufgeräumt.`,'info'),400);
-  }
+  DB.cleanup().then(n=>{
+    if(n)toast(n===1?'1 altes Event aufgeraeumt.':`${n} alte Events aufgeraeumt.`,'info');
+  }).catch(()=>{});
 }
 
 function go(v){
@@ -716,7 +701,7 @@ function renderR(){
       <div class="rsd" id="rsd"></div>
     </div>`;
   renderRT();renderRS();
-  document.querySelectorAll('.mbtn[data-m]').forEach(b=>b.addEventListener('click',()=>{S.rm=b.dataset.m;localStorage.setItem('db2_rm',S.rm);document.querySelectorAll('.mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderRT();renderRS();}));
+  document.querySelectorAll('.mbtn[data-m]').forEach(b=>b.addEventListener('click',()=>{S.rm=b.dataset.m;saveCF();document.querySelectorAll('.mbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');renderRT();renderRS();}));
   document.getElementById('btn-sv')?.addEventListener('click',saveR);
   document.getElementById('btn-ap')?.addEventListener('click',()=>{const ar=document.getElementById('add-row');if(ar){ar.style.display='flex';document.getElementById('ar-n')?.focus();}});
   document.getElementById('ar-no')?.addEventListener('click',()=>{const ar=document.getElementById('add-row');if(ar)ar.style.display='none';});
@@ -962,7 +947,7 @@ function wireCert(ev,ranked){
           src=c.toDataURL('image/jpeg',.85);
         }
         S.cbg=src;_bs=null;_bi=null;
-        try{localStorage.setItem('db2_bg',src);}catch{toast('Bild zu groß zum dauerhaften Speichern — gilt nur für diese Sitzung.','warning');}
+        DB.saveBackground(src).catch(err=>toast('Hintergrund nicht gespeichert: '+err.message,'error'));
         renderC();
       };
       img.onerror=()=>toast('Bild nicht lesbar.','error');
@@ -970,14 +955,14 @@ function wireCert(ev,ranked){
     };
     r.readAsDataURL(f);bgi.value='';
   });
-  document.getElementById('bgr')?.addEventListener('click',ev2=>{ev2.stopPropagation();S.cbg=null;_bs=null;_bi=null;try{localStorage.removeItem('db2_bg');}catch{}renderC();});
+  document.getElementById('bgr')?.addEventListener('click',ev2=>{ev2.stopPropagation();S.cbg=null;_bs=null;_bi=null;DB.clearBackground().catch(()=>{});renderC();});
   document.getElementById('btn-lk')?.addEventListener('click',()=>{
     modal({title:'Positionen sperren',body:`<div style="margin-bottom:14px"><label class="flbl">Passwort</label><input type="password" class="input" id="lpw" placeholder="Passwort wählen" autofocus/></div>`,
-      actions:[{label:'Abbrechen',style:'ghost'},{label:'🔒 Sperren',style:'primary',fn:()=>{const pw=document.getElementById('lpw')?.value||'';if(!pw){toast('Passwort eingeben.','warning');return;}S.clf=true;try{localStorage.setItem('db2_cl','1');localStorage.setItem('db2_cpw',btoa(encodeURIComponent(pw)));}catch{}toast('Gesperrt.','success');renderC();}}]});
+      actions:[{label:'Abbrechen',style:'ghost'},{label:'🔒 Sperren',style:'primary',fn:()=>{const pw=document.getElementById('lpw')?.value||'';if(!pw){toast('Passwort eingeben.','warning');return;}S.clf=true;try{localStorage.setItem('db2_cpw',btoa(encodeURIComponent(pw)));}catch{}saveCF();toast('Gesperrt.','success');renderC();}}]});
   });
   document.getElementById('btn-ul')?.addEventListener('click',()=>{
     modal({title:'🔓 Entsperren',body:`<div><label class="flbl">Passwort</label><input type="password" class="input" id="upw" placeholder="Passwort" autofocus/></div>`,
-      actions:[{label:'Abbrechen',style:'ghost'},{label:'Entsperren',style:'primary',fn:()=>{const pw=document.getElementById('upw')?.value||'';const sv=localStorage.getItem('db2_cpw');const ok=sv?btoa(encodeURIComponent(pw))===sv:pw==='dreambowl';if(ok){S.clf=false;try{localStorage.setItem('db2_cl','0');}catch{}toast('Entsperrt.','success');renderC();}else toast('Falsches Passwort.','error');}}]});
+      actions:[{label:'Abbrechen',style:'ghost'},{label:'Entsperren',style:'primary',fn:()=>{const pw=document.getElementById('upw')?.value||'';const sv=localStorage.getItem('db2_cpw');const ok=sv?btoa(encodeURIComponent(pw))===sv:pw==='dreambowl';if(ok){S.clf=false;saveCF();toast('Entsperrt.','success');renderC();}else toast('Falsches Passwort.','error');}}]});
     setTimeout(()=>document.getElementById('upw')?.addEventListener('keydown',ev2=>{if(ev2.key==='Enter')document.querySelector('#mov .bp')?.click();}),80);
   });
   document.getElementById('btn-cr')?.addEventListener('click',()=>{DFS.forEach(f=>{S.cfs[f.id]={xP:f.xP,yP:f.yP,fs:f.fs,col:f.col,bold:f.bold,font:f.font};});S.csi=null;saveCF();renderC();toast('Zurückgesetzt.','info');});
@@ -1165,13 +1150,24 @@ async function sendBug(){
 /* ── Clock & Boot ── */
 function clock(){const el=document.getElementById('clock');if(!el)return;const n=new Date();el.textContent=n.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit'})+' · '+n.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});}
 
-document.addEventListener('DOMContentLoaded',()=>{
-  load();cleanup();
+document.addEventListener('DOMContentLoaded',async ()=>{
+  /* Erst anmelden und laden — ohne Sitzung wird zur Plattform umgeleitet.
+     Die Oberflaeche wird nur aufgebaut, wenn wirklich Daten da sind. */
+  try{
+    const ok=await DB.boot(S);
+    if(!ok)return;
+  }catch(err){
+    document.body.innerHTML='<div style="padding:48px;font-family:system-ui;color:#eee;background:#1a1a1d;min-height:100vh">'+
+      '<h1>Daten konnten nicht geladen werden</h1><p>'+String(err&&err.message||err)+'</p>'+
+      '<p><a style="color:#e8b64c" href="/">Zurueck zur Uebersicht</a></p></div>';
+    return;
+  }
+  cleanup();
   document.querySelectorAll('.ni[data-v]').forEach(n=>n.addEventListener('click',()=>go(n.dataset.v)));
   document.addEventListener('keydown',ev=>{if(ev.altKey){const m={'1':'events','2':'review','3':'certificates'};if(m[ev.key]){ev.preventDefault();go(m[ev.key]);}}if(ev.key==='Escape'){document.getElementById('mov').classList.remove('open');closePop();}});
   document.getElementById('mov').addEventListener('click',ev=>{if(ev.target===ev.currentTarget)document.getElementById('mov').classList.remove('open');});
   const sr=document.getElementById('set-rm');if(sr)sr.value=S.rm;
-  document.getElementById('btn-ss')?.addEventListener('click',()=>{S.rm=document.getElementById('set-rm')?.value||'total';localStorage.setItem('db2_rm',S.rm);toast('Gespeichert.','success');});
+  document.getElementById('btn-ss')?.addEventListener('click',()=>{S.rm=document.getElementById('set-rm')?.value||'total';saveCF();toast('Gespeichert.','success');});
   document.getElementById('bug-send')?.addEventListener('click',sendBug);
   document.getElementById('bug-rl')?.addEventListener('click',()=>loadBugs());
   document.querySelectorAll('.mbtn[data-bf]').forEach(b=>b.addEventListener('click',()=>{
@@ -1186,7 +1182,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const nm=(document.getElementById('inp-n')?.value||'').trim();
     const dt=document.getElementById('inp-d')?.value||new Date().toISOString().split('T')[0];
     if(!nm){toast('Bitte Eventname eingeben.','warning');return;}
-    const ev={id:`ev_${Date.now()}`,name:nm,dt,st:'new',pl:[],docs:[],ca:Date.now()};
+    const ev={id:crypto.randomUUID(),name:nm,dt,st:'new',pl:[],docs:[],ca:Date.now()};
     S.evs.push(ev);save();renderEG();document.getElementById('inp-n').value='';toast(`„${nm}" erstellt.`,'success');
   });
   document.getElementById('inp-n')?.addEventListener('keydown',ev=>{if(ev.key==='Enter')document.getElementById('btn-c').click();});
