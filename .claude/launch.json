@@ -4,7 +4,7 @@
     {
       "name": "bahnwartung",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "bowling-wartung/app"],
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/wartung"],
       "port": 5178,
       "url": "http://localhost:5178"
     }

@@ -1,22 +1,26 @@
-# Bahnwartung
+# Interne Plattform — Bahnwartung
 
-Wartungsplanung für 18 Bowlingbahnen auf Basis der tatsächlich gespielten Frames.
+Erstes Modul: Wartungsplanung für 18 Bowlingbahnen auf Basis der tatsächlich
+gespielten Frames.
 
 ```
-bowling-wartung/
-  supabase/migrations/     Schema und Stammdaten, per GitHub-Verbindung automatisch angewendet
-  supabase/config.toml     Projektreferenz
-  docs/03-ui-struktur.md   Seitenstruktur und Bedienführung
-  app/                     React + TypeScript + Tailwind (Vite)
-    src/core/              Wartungslogik, framework-frei, vollständig getestet
-    src/data/              Datenschicht (Demo lokal / Supabase)
-    src/features/          Dashboard, Eingabe, Wartung, Historie, Einstellungen
+supabase/migrations/     Schema und Stammdaten, per GitHub-Verbindung automatisch angewendet
+supabase/config.toml     Projektreferenz
+docs/03-ui-struktur.md   Seitenstruktur und Bedienführung
+apps/wartung/            React + TypeScript + Tailwind (Vite)
+  src/core/              Wartungslogik, framework-frei, vollständig getestet
+  src/data/              Datenschicht (Demo lokal / Supabase)
+  src/features/          Dashboard, Eingabe, Wartung, Historie, Einstellungen
 ```
+
+Die Datenbank liegt bewusst im Wurzelverzeichnis und nicht im Modul: Sie bedient
+später alle Module der Plattform (Wartung, Counter, …), die als weitere Ordner
+unter `apps/` dazukommen.
 
 ## Entwicklung
 
 ```bash
-cd app && npm install && npm run dev
+cd apps/wartung && npm install && npm run dev
 ```
 
 Danach <http://localhost:5178/wartung/> öffnen.
@@ -65,8 +69,8 @@ einmal regulär durchgeführt wurde.
 Die App wird als Unterpfad `/wartung/` der bestehenden Website ausgeliefert
 (`vite.config.ts`: `base: '/wartung/'`).
 
-- Build-Befehl: `npm run build`
-- Ausgabeverzeichnis: `app/dist`
+- Build-Befehl: `npm run build --prefix apps/wartung`
+- Ausgabeverzeichnis: `apps/wartung/dist`
 - Zielordner auf der Website: `/wartung/`
 - Für das SPA-Routing eine Datei `_redirects` im Ausgabeverzeichnis:
   ```
