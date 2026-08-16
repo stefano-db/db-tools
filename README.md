@@ -23,7 +23,7 @@ unter `apps/` dazukommen.
 cd apps/wartung && npm install && npm run dev
 ```
 
-Danach <http://localhost:5178/wartung/> öffnen.
+Danach <http://localhost:5178/> öffnen.
 
 Ohne Supabase-Zugangsdaten läuft die App auf einem lokal erzeugten Beispielbestand
 im Browser (localStorage). Alle Funktionen sind nutzbar; unter *Einstellungen →
@@ -66,19 +66,45 @@ einmal regulär durchgeführt wurde.
 
 ## Veröffentlichen über Cloudflare Pages
 
-Die App wird als Unterpfad `/wartung/` der bestehenden Website ausgeliefert
-(`vite.config.ts`: `base: '/wartung/'`).
+Die App läuft unter einer eigenen Subdomain (z. B. `wartung.example.de`) und damit
+im Wurzelverzeichnis. Die bestehende Website bleibt unberührt und verlinkt nur dorthin.
 
-- Build-Befehl: `npm run build --prefix apps/wartung`
-- Ausgabeverzeichnis: `apps/wartung/dist`
-- Zielordner auf der Website: `/wartung/`
-- Für das SPA-Routing eine Datei `_redirects` im Ausgabeverzeichnis:
-  ```
-  /wartung/*  /wartung/index.html  200
-  ```
+Neues Pages-Projekt anlegen, mit dem GitHub-Repository verbinden und so konfigurieren:
+
+| Einstellung | Wert |
+|---|---|
+| Root directory | `apps/wartung` |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Framework preset | None |
+
+Umgebungsvariablen (Settings → Environment variables), für Production **und** Preview:
+
+```
+VITE_SUPABASE_URL       https://ywmckemniifskxbmmswf.supabase.co
+VITE_SUPABASE_ANON_KEY  <anon public key>
+```
+
+Ohne diese Werte baut Cloudflare stillschweigend die Demo-Fassung mit lokalen
+Beispieldaten — die App sähe funktionsfähig aus, hätte aber keinerlei Verbindung
+zur Datenbank.
+
+Die Node-Version steht in `apps/wartung/.node-version`, das SPA-Routing in
+`apps/wartung/public/_redirects` (landet beim Build automatisch in `dist`).
+
+Danach unter *Custom domains* die Subdomain hinzufügen. Jeder Push auf `main`
+veröffentlicht automatisch neu.
 
 Empfohlen: **Cloudflare Access** davorschalten, damit die App nur nach einer
-zusätzlichen Anmeldung erreichbar ist.
+zusätzlichen Anmeldung überhaupt erreichbar ist — eine zweite Schutzschicht vor
+der Anmeldung in der App selbst.
+
+### Auf einen Unterpfad umstellen
+
+Soll die App später doch unter `example.de/wartung/` laufen: in
+`apps/wartung/vite.config.ts` `base: '/wartung/'` setzen, in `src/main.tsx` den
+`basename` auf `'/wartung'`, und in `public/_redirects` die Pfade entsprechend
+anpassen. Mehr ist nicht nötig.
 
 ## Grundregeln der Datenhaltung
 

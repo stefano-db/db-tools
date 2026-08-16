@@ -26,7 +26,7 @@ const router = createBrowserRouter(
       ],
     },
   ],
-  { basename: '/wartung' },
+  { basename: '/' },
 );
 
 createRoot(document.getElementById('root')!).render(

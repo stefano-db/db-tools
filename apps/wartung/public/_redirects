@@ -1,0 +1,3 @@
+# Single-Page-App: alle Pfade auf index.html, damit direkte Aufrufe wie
+# /bahn/7 oder ein Neuladen nicht ins Leere laufen.
+/*  /index.html  200
