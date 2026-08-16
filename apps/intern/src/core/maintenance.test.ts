@@ -275,31 +275,63 @@ describe('Fall 8 – falsche Frame-Eingabe korrigiert', () => {
     expect(corrected.framesSince).toBe(17_760);
   });
 
-  it('nimmt bei einer Korrektur desselben Tages den ersetzten Wert nicht als Massstab', () => {
-    const same = readingBaseline({
-      selectedDate: '2026-08-16',
-      lastReadingDate: '2026-08-16',
-      lastCumulative: 282_958,
-    });
-    expect(same).toEqual({ isCorrection: true, previousCumulative: null, previousDate: null });
+  it('vergleicht eine Korrektur mit dem Vortag, nicht mit dem ersetzten Wert', () => {
+    const readings = [
+      { readingDate: '2026-08-09', cumulativeFrames: 280_100, supersededById: null },
+      { readingDate: '2026-08-16', cumulativeFrames: 282_958, supersededById: null },
+    ];
 
-    const newDay = readingBaseline({
-      selectedDate: '2026-08-23',
-      lastReadingDate: '2026-08-16',
-      lastCumulative: 282_958,
+    // Korrektur des 16.08.: Massstab ist der 09.08., nicht die 282.958
+    const correction = readingBaseline({ selectedDate: '2026-08-16', readings });
+    expect(correction).toEqual({
+      isCorrection: true,
+      replacedCumulative: 282_958,
+      previousCumulative: 280_100,
+      previousDate: '2026-08-09',
     });
-    expect(newDay).toEqual({
+
+    // Neuer Ablesetag: Massstab ist die jüngste gültige Ablesung
+    const nextWeek = readingBaseline({ selectedDate: '2026-08-23', readings });
+    expect(nextWeek).toMatchObject({
       isCorrection: false,
+      replacedCumulative: null,
       previousCumulative: 282_958,
-      previousDate: '2026-08-16',
     });
 
-    const first = readingBaseline({
+    // Ersetzte Ablesungen zaehlen nicht mit
+    const withSuperseded = readingBaseline({
       selectedDate: '2026-08-16',
-      lastReadingDate: null,
-      lastCumulative: null,
+      readings: [...readings, { readingDate: '2026-08-16', cumulativeFrames: 999_999, supersededById: 'x' }],
     });
-    expect(first.isCorrection).toBe(false);
+    expect(withSuperseded.replacedCumulative).toBe(282_958);
+
+    // Erste Ablesung ueberhaupt
+    expect(readingBaseline({ selectedDate: '2026-08-16', readings: [] })).toEqual({
+      isCorrection: false,
+      replacedCumulative: null,
+      previousCumulative: null,
+      previousDate: null,
+    });
+  });
+
+  it('warnt bei einer Korrektur weiterhin, wenn der Wert unter den Vortag faellt', () => {
+    const readings = [
+      { readingDate: '2026-08-09', cumulativeFrames: 280_100, supersededById: null },
+      { readingDate: '2026-08-16', cumulativeFrames: 282_958, supersededById: null },
+    ];
+    const base = readingBaseline({ selectedDate: '2026-08-16', readings });
+
+    const issues = validateReading({
+      rawValue: 279_000, // unter dem 09.08. -> Reset-Verdacht bleibt bestehen
+      epoch: { id: 'e1', laneId: 'l1', effectiveFrom: '2024-01-01', counterStart: 0, cumulativeOffset: 0, reason: 'initial' },
+      readingDate: '2026-08-16',
+      today: '2026-08-16',
+      previousCumulative: base.previousCumulative,
+      previousDate: base.previousDate,
+      framesPerWeek: 2_100,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(needsCounterResetDialog(issues)).toBe(true);
   });
 
   it('meldet eine Korrektur nach unten nicht als Zaehler-Reset', () => {

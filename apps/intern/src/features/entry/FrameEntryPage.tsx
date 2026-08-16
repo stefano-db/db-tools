@@ -33,15 +33,17 @@ export function FrameEntryPage() {
 
   if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
 
-  const checks: Record<string, { issues: ReadingIssue[]; delta: number | null; corrects: boolean }> = {};
+  const checks: Record<
+    string,
+    { issues: ReadingIssue[]; delta: number | null; corrects: boolean; replaced: number | null }
+  > = {};
   for (const lane of lanes) {
     const raw = values[lane.laneId];
     if (raw === undefined || raw === '') continue;
     const rawValue = Number(raw.replace(/[^\d]/g, ''));
     const baseline = readingBaseline({
       selectedDate: readingDate,
-      lastReadingDate: lane.lastReadingDate,
-      lastCumulative: lane.currentFrames,
+      readings: snapshot.readings.filter((r) => r.laneId === lane.laneId),
     });
     const corrects = baseline.isCorrection;
     // Bei der Ersteinrichtung existiert noch keine Epoche; sie wird beim
@@ -67,10 +69,14 @@ export function FrameEntryPage() {
     });
     const cumulative =
       rawValue >= epoch.counterStart ? epoch.cumulativeOffset + (rawValue - epoch.counterStart) : null;
+    // Der Zuwachs bezieht sich auf die Ablesung davor — bei einer Korrektur ist
+    // das nicht der Wert, der ueberschrieben wird.
+    const reference = baseline.previousCumulative;
     checks[lane.laneId] = {
       issues,
-      delta: cumulative !== null && lane.currentFrames !== null ? cumulative - lane.currentFrames : null,
+      delta: cumulative !== null && reference !== null ? cumulative - reference : null,
       corrects,
+      replaced: baseline.replacedCumulative,
     };
   }
 
@@ -243,18 +249,16 @@ export function FrameEntryPage() {
                     />
                   </td>
                   <td className="px-4 py-2 text-sm">
-                    {check?.corrects ? (
-                      <span className="text-slate-700">
-                        ersetzt {lane.lastRawValue !== null ? formatFrames(lane.lastRawValue) : '—'}
+                    {check?.delta !== null && check?.delta !== undefined && (
+                      <span className="tabular font-semibold text-slate-800">
+                        {check.delta >= 0 ? '+' : ''}
+                        {formatFrames(check.delta)}
                       </span>
-                    ) : (
-                      check?.delta !== null &&
-                      check?.delta !== undefined && (
-                        <span className="tabular font-semibold text-slate-800">
-                          {check.delta >= 0 ? '+' : ''}
-                          {formatFrames(check.delta)}
-                        </span>
-                      )
+                    )}
+                    {check?.corrects && check.replaced !== null && (
+                      <div className="text-xs text-slate-500">
+                        ersetzt {formatFrames(check.replaced)}
+                      </div>
                     )}
                     {error && <div className="text-red-700">■ {error.message}</div>}
                     {!error && warning && <div className="text-amber-700">▲ {warning.message}</div>}

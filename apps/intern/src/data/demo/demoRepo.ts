@@ -211,6 +211,22 @@ export class DemoRepository implements Repository {
       currentEpoch,
       records,
       recordTasks: this.db.recordTasks,
+      readings: [...this.db.readings]
+        .sort((a, b) => (a.readingDate < b.readingDate ? 1 : -1))
+        .map((r) => ({
+          id: r.id,
+          laneId: r.laneId,
+          laneNumber: laneNumberOf.get(r.laneId) ?? 0,
+          readingDate: r.readingDate,
+          rawValue: r.rawValue,
+          cumulativeFrames: r.cumulativeFrames,
+          source: 'weekly' as const,
+          supersededById: r.supersededById,
+          correctsReadingId: null,
+          correctionReason: r.correctionReason,
+          recordedAt: null,
+          recordedByName: null,
+        })),
       issues,
     };
   }

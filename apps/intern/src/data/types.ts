@@ -46,6 +46,23 @@ export interface RecordRow {
   voidReason: string | null;
 }
 
+/** Eine Frame-Ablesung, inklusive der ersetzten — das Protokoll bleibt vollständig. */
+export interface ReadingRow {
+  id: string;
+  laneId: string;
+  laneNumber: number;
+  readingDate: ISODate;
+  rawValue: number;
+  cumulativeFrames: number;
+  source: 'weekly' | 'correction' | 'initial';
+  /** Gesetzt, wenn diese Ablesung durch eine spätere ersetzt wurde. */
+  supersededById: string | null;
+  correctsReadingId: string | null;
+  correctionReason: string | null;
+  recordedAt: string | null;
+  recordedByName: string | null;
+}
+
 export interface RecordTaskRow {
   recordId: string;
   taskId: string;
@@ -78,6 +95,7 @@ export interface Snapshot {
   currentEpoch: Record<string, CounterEpoch>;
   records: RecordRow[];
   recordTasks: RecordTaskRow[];
+  readings: ReadingRow[];
   issues: IssueRow[];
 }
 

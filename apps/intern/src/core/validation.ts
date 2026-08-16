@@ -141,25 +141,35 @@ export function needsCounterResetDialog(issues: ReadingIssue[]): boolean {
 /**
  * Bestimmt, wogegen eine neue Ablesung verglichen wird.
  *
- * Überschreibt die Eingabe eine bereits erfasste Ablesung desselben Tages, ist
- * der bisherige Wert genau der, der ersetzt werden soll — er darf dann nicht als
- * Vergleichsmaßstab dienen. Sonst gilt jeder Zahlendreher nach unten als
- * zurückgesetzter Zähler, und statt zu speichern öffnet sich der Reset-Dialog.
- *
- * Die Monotonie gegen die echten Nachbartage prüft in diesem Fall die Datenbank;
- * sie schließt die ersetzte Zeile korrekt aus.
+ * Überschreibt die Eingabe eine bereits erfasste Ablesung desselben Tages, darf
+ * der Wert, der ersetzt werden soll, nicht der Maßstab sein — sonst gilt jeder
+ * Zahlendreher nach unten als zurückgesetzter Zähler. Verglichen wird dann mit
+ * der letzten Ablesung **davor**. Damit bleiben alle Prüfungen erhalten:
+ * Reset-Verdacht, unplausibler Sprung, Tippfehler.
  */
 export function readingBaseline(params: {
   selectedDate: ISODate;
-  lastReadingDate: ISODate | null;
-  lastCumulative: number | null;
-}): { previousCumulative: number | null; previousDate: ISODate | null; isCorrection: boolean } {
-  const isCorrection =
-    params.lastReadingDate !== null && params.lastReadingDate === params.selectedDate;
+  /** Alle Ablesungen der Bahn; ersetzte werden ignoriert. */
+  readings: { readingDate: ISODate; cumulativeFrames: number; supersededById: string | null }[];
+}): {
+  previousCumulative: number | null;
+  previousDate: ISODate | null;
+  isCorrection: boolean;
+  /** Der Wert, der überschrieben wird — nur zur Anzeige. */
+  replacedCumulative: number | null;
+} {
+  const active = params.readings.filter((r) => r.supersededById === null);
+
+  const onDate = active.find((r) => r.readingDate === params.selectedDate) ?? null;
+
+  const before = active
+    .filter((r) => r.readingDate < params.selectedDate)
+    .sort((a, b) => (a.readingDate < b.readingDate ? 1 : -1))[0];
 
   return {
-    isCorrection,
-    previousCumulative: isCorrection ? null : params.lastCumulative,
-    previousDate: isCorrection ? null : params.lastReadingDate,
+    isCorrection: onDate !== null,
+    replacedCumulative: onDate ? onDate.cumulativeFrames : null,
+    previousCumulative: before ? before.cumulativeFrames : null,
+    previousDate: before ? before.readingDate : null,
   };
 }

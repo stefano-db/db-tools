@@ -40,6 +40,8 @@ export function LanePage() {
   const history = snapshot.records
     .filter((r) => r.laneId === lane.laneId && r.source !== 'initial_import')
     .slice(0, 5);
+  // Auch die ersetzten Eingaben: eine Korrektur muss nachvollziehbar bleiben.
+  const readings = snapshot.readings.filter((r) => r.laneId === lane.laneId).slice(0, 10);
 
   const openType = snapshot.types.find((t) => t.id === openTypeId) ?? null;
 
@@ -195,6 +197,31 @@ export function LanePage() {
               <span className="text-slate-500">{r.employeeName}</span>
               {r.source === 'cascade' && <span className="text-xs text-slate-400">↳ mitkaskadiert</span>}
               {r.hasDeviation && <span className="text-xs font-semibold text-amber-700">▲ Abweichung</span>}
+            </div>
+          ))
+        )}
+      </Section>
+
+      <Section title="Frame-Eingaben">
+        {readings.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-slate-500">Noch keine Ablesung erfasst.</p>
+        ) : (
+          readings.map((r) => (
+            <div
+              key={r.id}
+              className={`flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm ${
+                r.supersededById ? 'text-slate-400' : ''
+              }`}
+            >
+              <span className="tabular w-24">{formatDateDe(r.readingDate)}</span>
+              <span className={`tabular w-28 text-right font-semibold ${r.supersededById ? 'line-through' : ''}`}>
+                {formatFrames(r.rawValue)}
+              </span>
+              <span className="tabular text-slate-500">
+                = {formatFrames(r.cumulativeFrames)} gesamt
+              </span>
+              {r.supersededById && <span className="text-xs">ersetzt</span>}
+              {r.correctionReason && <span className="text-xs text-slate-500">{r.correctionReason}</span>}
             </div>
           ))
         )}

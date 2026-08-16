@@ -180,7 +180,7 @@ export class SupabaseRepository implements Repository {
     const [
       settingsRes, typesRes, tasksRes, pairsRes,
       stateRes, rateRes, anchorRes, epochRes,
-      recordsRes, recordTasksRes, issuesRes,
+      recordsRes, recordTasksRes, readingsRes, issuesRes,
     ] = await Promise.all([
       this.client.from('maintenance_settings').select('*').single(),
       this.client.from('maintenance_types').select('*').eq('active', true).order('sort_order'),
@@ -195,12 +195,17 @@ export class SupabaseRepository implements Repository {
         .select('*, lanes(lane_number), maintenance_types(code)')
         .order('performed_on', { ascending: false }),
       this.client.from('maintenance_record_tasks').select('*'),
+      this.client
+        .from('frame_readings')
+        .select('*, lanes(lane_number)')
+        .order('reading_date', { ascending: false })
+        .order('recorded_at', { ascending: false }),
       this.client.from('lane_issues').select('*, lanes(lane_number)').order('reported_at', { ascending: false }),
     ]);
 
     const firstError = [
       settingsRes, typesRes, tasksRes, pairsRes, stateRes, rateRes,
-      anchorRes, epochRes, recordsRes, recordTasksRes, issuesRes,
+      anchorRes, epochRes, recordsRes, recordTasksRes, readingsRes, issuesRes,
     ].find((r) => r.error);
     if (firstError?.error) throw new Error(firstError.error.message);
 
@@ -293,6 +298,20 @@ export class SupabaseRepository implements Repository {
         taskId: t.task_id,
         result: t.result,
         taskTitleSnapshot: t.task_title_snapshot,
+      })),
+      readings: (readingsRes.data ?? []).map((r: any) => ({
+        id: r.id,
+        laneId: r.lane_id,
+        laneNumber: r.lanes?.lane_number ?? 0,
+        readingDate: r.reading_date,
+        rawValue: r.raw_value,
+        cumulativeFrames: r.cumulative_frames,
+        source: r.source,
+        supersededById: r.superseded_by_id,
+        correctsReadingId: r.corrects_reading_id,
+        correctionReason: r.correction_reason,
+        recordedAt: r.recorded_at,
+        recordedByName: null,
       })),
       issues: (issuesRes.data ?? []).map((i: any) => ({
         id: i.id,

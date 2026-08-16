@@ -13,6 +13,7 @@ export function HistoryPage() {
   const { snapshot, isAdmin, repo, reload } = useData();
   const [params, setParams] = useSearchParams();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const tab = params.get('art') === 'ablesungen' ? 'ablesungen' : 'wartungen';
 
   const lane = params.get('bahn') ?? '';
   const type = params.get('intervall') ?? '';
@@ -41,19 +42,47 @@ export function HistoryPage() {
 
   if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
 
+  const readingRows = snapshot.readings.filter((r) => {
+    if (lane && String(r.laneNumber) !== lane) return false;
+    if (from && r.readingDate < from) return false;
+    if (to && r.readingDate > to) return false;
+    return true;
+  });
+
   const employees = [...new Set(snapshot.records.map((r) => r.employeeName))].sort();
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Wartungshistorie</h1>
+      <h1 className="text-2xl font-bold">Historie</h1>
+
+      <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        {[
+          { key: 'wartungen', label: 'Wartungen' },
+          { key: 'ablesungen', label: 'Frame-Eingaben' },
+        ].map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setFilter('art', t.key === 'wartungen' ? '' : t.key)}
+            className={`rounded px-4 py-2 text-sm font-medium ${
+              tab === t.key ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-3">
         <Select label="Bahn" value={lane} onChange={(v) => setFilter('bahn', v)}
           options={snapshot.lanes.map((l) => ({ value: String(l.laneNumber), label: `Bahn ${l.laneNumber}` }))} />
-        <Select label="Intervall" value={type} onChange={(v) => setFilter('intervall', v)}
-          options={snapshot.types.map((t) => ({ value: t.code, label: t.code }))} />
-        <Select label="Mitarbeiter" value={employee} onChange={(v) => setFilter('mitarbeiter', v)}
-          options={employees.map((e) => ({ value: e, label: e }))} />
+        {tab === 'wartungen' && (
+          <>
+            <Select label="Intervall" value={type} onChange={(v) => setFilter('intervall', v)}
+              options={snapshot.types.map((t) => ({ value: t.code, label: t.code }))} />
+            <Select label="Mitarbeiter" value={employee} onChange={(v) => setFilter('mitarbeiter', v)}
+              options={employees.map((e) => ({ value: e, label: e }))} />
+          </>
+        )}
         <label className="text-sm font-medium">
           Von
           <input type="date" value={from} onChange={(e) => setFilter('von', e.target.value)}
@@ -72,6 +101,52 @@ export function HistoryPage() {
         )}
       </div>
 
+      {tab === 'ablesungen' ? (
+        <>
+          <p className="text-sm text-slate-600">
+            {readingRows.length} Eingaben · ersetzte Werte bleiben durchgestrichen stehen
+          </p>
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
+                <tr>
+                  <th className="px-4 py-2 font-semibold">Ablesedatum</th>
+                  <th className="px-4 py-2 font-semibold">Bahn</th>
+                  <th className="px-4 py-2 text-right font-semibold">Zählerstand</th>
+                  <th className="px-4 py-2 text-right font-semibold">Gesamt</th>
+                  <th className="px-4 py-2 font-semibold">Art</th>
+                </tr>
+              </thead>
+              <tbody>
+                {readingRows.map((r) => (
+                  <tr
+                    key={r.id}
+                    className={`border-t border-slate-100 ${r.supersededById ? 'text-slate-400' : ''}`}
+                  >
+                    <td className="tabular px-4 py-2">{formatDateDe(r.readingDate)}</td>
+                    <td className="px-4 py-2">Bahn {r.laneNumber}</td>
+                    <td className={`tabular px-4 py-2 text-right ${r.supersededById ? 'line-through' : ''}`}>
+                      {formatFrames(r.rawValue)}
+                    </td>
+                    <td className="tabular px-4 py-2 text-right">{formatFrames(r.cumulativeFrames)}</td>
+                    <td className="px-4 py-2 text-xs">
+                      {r.supersededById
+                        ? 'ersetzt'
+                        : r.source === 'correction'
+                          ? 'Korrektur'
+                          : r.source === 'initial'
+                            ? 'Ersteinrichtung'
+                            : 'Wocheneingabe'}
+                      {r.correctionReason && <span className="ml-2 text-slate-500">{r.correctionReason}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      ) : (
+        <>
       <p className="text-sm text-slate-600">{rows.length} Einträge</p>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -163,6 +238,8 @@ export function HistoryPage() {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }
