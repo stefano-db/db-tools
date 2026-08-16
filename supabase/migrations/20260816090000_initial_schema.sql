@@ -573,10 +573,17 @@ create trigger audit_lanes               after insert or update or delete on lan
 
 -- =============================================================================
 -- 11. Views  (nur Fakten, keine Faelligkeitsbewertung)
+-- -----------------------------------------------------------------------------
+--  WICHTIG: alle Views mit security_invoker = true.
+--  Ohne diese Angabe laufen Views mit den Rechten ihres Erstellers (postgres)
+--  und umgehen damit die RLS-Policies der zugrunde liegenden Tabellen — ein
+--  Benutzer ohne Recht auf das Modul 'maintenance' koennte ueber die View
+--  trotzdem alles lesen. Mit security_invoker greifen die Policies des
+--  aufrufenden Benutzers.
 -- =============================================================================
 
 -- Aktueller Stand je Bahn
-create or replace view v_lane_current_state as
+create or replace view v_lane_current_state with (security_invoker = true) as
 select
   l.id                as lane_id,
   l.lane_number,
@@ -603,7 +610,7 @@ left join lateral (
 
 -- Letzter Wartungsstand je Bahn und Wartungstyp.
 -- anchor_frames IS NULL  =>  Wartungsstand unbekannt (NICHT als 0 behandeln!)
-create or replace view v_lane_maintenance_anchor as
+create or replace view v_lane_maintenance_anchor with (security_invoker = true) as
 select
   l.id  as lane_id,
   mt.id as maintenance_type_id,
@@ -627,7 +634,7 @@ left join lateral (
 where mt.active;
 
 -- Gleitende Wochenrate je Bahn (Basis fuer Prognose und Plausibilitaetspruefung)
-create or replace view v_lane_weekly_rate as
+create or replace view v_lane_weekly_rate with (security_invoker = true) as
 with ranked as (
   select lane_id, reading_date, cumulative_frames,
          row_number() over (partition by lane_id order by reading_date desc) as rn
