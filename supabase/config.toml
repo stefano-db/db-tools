@@ -1,7 +1,4 @@
 # Supabase-Projektkonfiguration.
-# project_id muss der Referenz-ID des Projekts entsprechen
+# project_id entspricht der Referenz-ID des Projekts
 # (Dashboard -> Project Settings -> General -> Reference ID).
 project_id = "ywmckemniifskxbmmswf"
-
-[db]
-major_version = 17
