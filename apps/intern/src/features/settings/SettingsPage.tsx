@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { formatFrames } from '../../core';
 import { useAuth } from '../../app/AuthContext';
 import { useData } from '../../app/DataContext';
-import { DemoRepository } from '../../data';
+import { DEPARTMENT_LABEL, DemoRepository } from '../../data';
 
 export function SettingsPage() {
   const { snapshot, repo, reload, isAdmin } = useData();
@@ -317,8 +317,10 @@ function AccountCard() {
       </Field>
 
       <div className="text-sm text-slate-600">
-        Angemeldet als {session?.email ?? 'Demo-Betrieb'} · Rolle{' '}
-        {session?.role === 'admin' ? 'Administrator' : session?.role === 'counter' ? 'Counter' : 'Mechaniker'}
+        Angemeldet als {session?.username ?? session?.email ?? 'Demo-Betrieb'}
+        {session?.department && ` · ${DEPARTMENT_LABEL[session.department]}`}
+        {session?.isLead && ' · Leitung'}
+        {session?.isAdmin && ' · Administrator'}
       </div>
     </Card>
   );

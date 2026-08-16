@@ -17,6 +17,8 @@ import type {
   Snapshot,
   ModuleInfo,
   BackupBundle,
+  UserRow,
+  CreateUserInput,
 } from '../types';
 import { buildDemoDb, type DemoDb } from './seed';
 
@@ -48,8 +50,11 @@ export class DemoRepository implements Repository {
     return {
       userId: 'demo',
       email: null,
+      username: 'demo',
       displayName: localStorage.getItem('bw.employee') || 'Marco',
-      role: 'admin',
+      department: 'mechanik',
+      isLead: true,
+      isAdmin: true,
       canRead: true,
       canWrite: true,
     };
@@ -84,6 +89,29 @@ export class DemoRepository implements Repository {
 
   onAuthChange(): () => void {
     return () => {};
+  }
+
+  async listUsers(): Promise<UserRow[]> {
+    return [
+      {
+        id: 'demo',
+        username: 'demo',
+        displayName: localStorage.getItem('bw.employee') || 'Marco',
+        department: 'mechanik',
+        isLead: true,
+        isAdmin: true,
+        active: true,
+        createdAt: new Date(0).toISOString(),
+      },
+    ];
+  }
+
+  async createUser(_input: CreateUserInput): Promise<void> {
+    throw new Error('Im Demo-Betrieb können keine Konten angelegt werden.');
+  }
+
+  async updateUser(): Promise<void> {
+    throw new Error('Im Demo-Betrieb können keine Konten geändert werden.');
   }
 
   async exportBackup(): Promise<BackupBundle> {

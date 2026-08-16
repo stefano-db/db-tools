@@ -8,11 +8,13 @@ const ICONS: Record<string, string> = {
   wrench: '🔧',
   monitor: '🖥️',
   trophy: '🏆',
+  people: '👥',
 };
 
 const BESCHREIBUNG: Record<string, string> = {
   maintenance: 'Frame-Stände eintragen, fällige Wartungen sehen und dokumentieren',
   urkunden: 'Events anlegen, Ergebnisse auswerten und Urkunden drucken',
+  verwaltung: 'Mitarbeiter anlegen, Bereiche zuordnen und Rechte vergeben',
 };
 
 /**
@@ -62,6 +64,20 @@ export function PortalHome() {
           {(modules ?? []).map((m) => (
             <ModuleTile key={m.key} module={m} />
           ))}
+          {(session?.isAdmin || session?.isLead) && (
+            <ModuleTile
+              module={{
+                key: 'verwaltung',
+                nameDe: 'Verwaltung',
+                path: '/verwaltung',
+                externalUrl: null,
+                icon: 'people',
+                sortOrder: 999,
+                canRead: true,
+                canWrite: true,
+              }}
+            />
+          )}
         </div>
       </main>
     </div>

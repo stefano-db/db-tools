@@ -130,13 +130,46 @@ export interface CompleteMaintenanceInput {
  * can_write_module() — es gibt also keine zweite Rechtelogik im Frontend,
  * die von der RLS abweichen könnte.
  */
+export type Department = 'mechanik' | 'counter' | 'service';
+
+export const DEPARTMENT_LABEL: Record<Department, string> = {
+  mechanik: 'Mechanik',
+  counter: 'Counter',
+  service: 'Service',
+};
+
 export interface SessionInfo {
   userId: string;
   email: string | null;
+  /** Anmeldename der Mitarbeiter; Administratoren melden sich per E-Mail an. */
+  username: string | null;
+  /** Klarname — wird überall angezeigt. */
   displayName: string;
-  role: 'mechanic' | 'counter' | 'admin';
+  department: Department | null;
+  isLead: boolean;
+  isAdmin: boolean;
   canRead: boolean;
   canWrite: boolean;
+}
+
+/** Ein Benutzerkonto, wie es die Verwaltung zeigt. */
+export interface UserRow {
+  id: string;
+  username: string | null;
+  displayName: string;
+  department: Department | null;
+  isLead: boolean;
+  isAdmin: boolean;
+  active: boolean;
+  createdAt: string;
+}
+
+export interface CreateUserInput {
+  username: string;
+  displayName: string;
+  password: string;
+  department: Department | null;
+  isLead: boolean;
 }
 
 /**
@@ -174,6 +207,14 @@ export interface Repository {
   listModules(): Promise<ModuleInfo[]>;
   /** Vollständige Sicherung aller Tabellen — Tabellenname -> Zeilen. */
   exportBackup(): Promise<BackupBundle>;
+
+  // --- Benutzerverwaltung ---
+  listUsers(): Promise<UserRow[]>;
+  createUser(input: CreateUserInput): Promise<void>;
+  updateUser(
+    id: string,
+    patch: Partial<Pick<UserRow, 'displayName' | 'department' | 'isLead' | 'isAdmin' | 'active'>>,
+  ): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
    * sichtbar und durchgestrichen — gelöscht wird nichts. Mitkaskadierte Einträge

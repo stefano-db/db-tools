@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { DEPARTMENT_LABEL, type Department } from '../data';
 
 export interface NavItem {
   to: string;
@@ -80,7 +81,7 @@ export function Header({
                 <div className="absolute right-0 z-20 mt-1 w-56 rounded border border-slate-200 bg-white p-1 text-slate-900 shadow-lg">
                   <div className="px-3 py-2 text-xs text-slate-500">
                     {session?.email ?? 'Demo-Betrieb'}
-                    <div className="font-semibold text-slate-700">{roleLabel(session?.role)}</div>
+                    <div className="font-semibold text-slate-700">{roleLabel(session)}</div>
                   </div>
                   <hr className="my-1 border-slate-100" />
                   <button
@@ -108,8 +109,11 @@ function initials(name: string): string {
     .join('');
 }
 
-function roleLabel(role: string | undefined): string {
-  if (role === 'admin') return 'Administrator';
-  if (role === 'counter') return 'Counter';
-  return 'Mechaniker';
+function roleLabel(session: { department?: string | null; isLead?: boolean; isAdmin?: boolean } | null): string {
+  if (!session) return '';
+  const parts: string[] = [];
+  if (session.department) parts.push(DEPARTMENT_LABEL[session.department as Department]);
+  if (session.isLead) parts.push('Leitung');
+  if (session.isAdmin) parts.push('Administrator');
+  return parts.join(' · ') || 'Kein Bereich';
 }

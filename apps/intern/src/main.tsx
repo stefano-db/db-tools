@@ -6,6 +6,7 @@ import { MaintenanceShell, RequireAuth } from './app/AppShell';
 import { AuthProvider } from './app/AuthContext';
 import { DataProvider } from './app/DataContext';
 import { PortalHome } from './app/PortalHome';
+import { UsersPage } from './features/admin/UsersPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       { index: true, element: <PortalHome /> },
+      { path: 'verwaltung', element: <UsersPage /> },
       {
         path: 'wartung',
         element: <MaintenanceShell />,

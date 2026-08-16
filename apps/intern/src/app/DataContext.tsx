@@ -30,6 +30,7 @@ interface DataContextValue {
   /** Darf dieser Benutzer Daten ändern, oder nur lesen? */
   canWrite: boolean;
   isAdmin: boolean;
+  isLead: boolean;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -101,7 +102,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         reload,
         employee: session?.displayName ?? 'Unbekannt',
         canWrite: session?.canWrite ?? false,
-        isAdmin: session?.role === 'admin',
+        isAdmin: session?.isAdmin === true,
+        isLead: session?.isLead === true,
       }}
     >
       {children}

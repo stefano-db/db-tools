@@ -11,6 +11,8 @@ import type {
   Snapshot,
   ModuleInfo,
   BackupBundle,
+  UserRow,
+  CreateUserInput,
 } from '../types';
 
 /**
@@ -28,11 +30,25 @@ export class SupabaseRepository implements Repository {
   readonly kind = 'supabase' as const;
   readonly requiresLogin = true;
   readonly client: SupabaseClient;
+  private readonly url: string;
+  private readonly anonKey: string;
 
   constructor(url: string, anonKey: string) {
+    this.url = url;
+    this.anonKey = anonKey;
     this.client = createClient(url, anonKey, {
       auth: { persistSession: true, autoRefreshToken: true },
     });
+  }
+
+  /**
+   * Technische Adresse zu einem Benutzernamen. Mitarbeiter melden sich mit dem
+   * Namen an; Supabase braucht intern eine E-Mail. Enthält die Eingabe ein @,
+   * ist es bereits eine echte Adresse (Administratoren).
+   */
+  private static toEmail(login: string): string {
+    const value = login.trim();
+    return value.includes('@') ? value : `${value.toLowerCase()}@dreambowl.intern`;
   }
 
   // --- Anmeldung -----------------------------------------------------------
@@ -48,29 +64,41 @@ export class SupabaseRepository implements Repository {
     if (!user) return null;
 
     const [{ data: profile }, canRead, canWrite] = await Promise.all([
-      this.client.from('profiles').select('display_name, role').eq('id', user.id).maybeSingle(),
+      this.client
+        .from('profiles')
+        .select('display_name, username, department, is_lead, is_admin')
+        .eq('id', user.id)
+        .maybeSingle(),
       this.client.rpc('has_module', { p_module: 'maintenance' }),
       this.client.rpc('can_write_module', { p_module: 'maintenance' }),
     ]);
 
+    const email = user.email ?? null;
     return {
       userId: user.id,
-      email: user.email ?? null,
-      displayName: profile?.display_name ?? user.email ?? 'Unbekannt',
-      role: profile?.role ?? 'mechanic',
+      // Technische Adressen nie anzeigen — sie sind ein Implementierungsdetail.
+      email: email && email.endsWith('@dreambowl.intern') ? null : email,
+      username: profile?.username ?? null,
+      displayName: profile?.display_name ?? profile?.username ?? 'Unbekannt',
+      department: profile?.department ?? null,
+      isLead: profile?.is_lead === true,
+      isAdmin: profile?.is_admin === true,
       canRead: canRead.data === true,
       canWrite: canWrite.data === true,
     };
   }
 
-  async signIn(email: string, password: string): Promise<void> {
-    const { error } = await this.client.auth.signInWithPassword({ email, password });
+  async signIn(login: string, password: string): Promise<void> {
+    const { error } = await this.client.auth.signInWithPassword({
+      email: SupabaseRepository.toEmail(login),
+      password,
+    });
     if (error) {
       // Supabase meldet aus Sicherheitsgründen bewusst unspezifisch; für den
       // Mechaniker am Tablet ist die englische Rohmeldung wertlos.
       throw new Error(
         error.message.toLowerCase().includes('invalid login')
-          ? 'E-Mail-Adresse oder Passwort stimmt nicht.'
+          ? 'Benutzername oder Passwort stimmt nicht.'
           : error.message,
       );
     }
@@ -150,6 +178,91 @@ export class SupabaseRepository implements Repository {
       .eq('derived_from_record_id', recordId)
       .is('voided_at', null);
     if (cascadeError) throw new Error(cascadeError.message);
+  }
+
+  // --- Benutzerverwaltung ---------------------------------------------------
+
+  async listUsers(): Promise<UserRow[]> {
+    const { data, error } = await this.client
+      .from('profiles')
+      .select('id, username, display_name, department, is_lead, is_admin, active, created_at')
+      .order('display_name');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((p: any) => ({
+      id: p.id,
+      username: p.username,
+      displayName: p.display_name,
+      department: p.department,
+      isLead: p.is_lead === true,
+      isAdmin: p.is_admin === true,
+      active: p.active !== false,
+      createdAt: p.created_at,
+    }));
+  }
+
+  /**
+   * Legt ein Mitarbeiterkonto an.
+   *
+   * Die Registrierung laeuft ueber einen zweiten, sitzungslosen Client — sonst
+   * wuerde Supabase die Anmeldung des Administrators durch die des neuen
+   * Kontos ersetzen und man waere plötzlich als der neue Mitarbeiter angemeldet.
+   */
+  async createUser(input: CreateUserInput): Promise<void> {
+    const username = input.username.trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,}$/.test(username)) {
+      throw new Error(
+        'Benutzername: mindestens 3 Zeichen, nur Buchstaben, Ziffern, Punkt, Bindestrich, Unterstrich.',
+      );
+    }
+    if (input.password.length < 8) {
+      throw new Error('Das Passwort muss mindestens 8 Zeichen haben.');
+    }
+
+    const signupClient = createClient(this.url, this.anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data, error } = await signupClient.auth.signUp({
+      email: `${username}@dreambowl.intern`,
+      password: input.password,
+      options: { data: { username, display_name: input.displayName.trim() } },
+    });
+    if (error) {
+      throw new Error(
+        error.message.toLowerCase().includes('already registered')
+          ? `Der Benutzername „${username}" ist bereits vergeben.`
+          : error.message,
+      );
+    }
+    if (!data.user) throw new Error('Konto wurde nicht angelegt.');
+
+    // Bereich und Leitung setzt der Administrator, nicht die Registrierung.
+    const { error: profileError } = await this.client
+      .from('profiles')
+      .update({
+        display_name: input.displayName.trim(),
+        username,
+        department: input.department,
+        is_lead: input.isLead,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', data.user.id);
+    if (profileError) throw new Error(profileError.message);
+  }
+
+  async updateUser(
+    id: string,
+    patch: Partial<Pick<UserRow, 'displayName' | 'department' | 'isLead' | 'isAdmin' | 'active'>>,
+  ): Promise<void> {
+    const row: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (patch.displayName !== undefined) row.display_name = patch.displayName;
+    if (patch.department !== undefined) row.department = patch.department;
+    if (patch.isLead !== undefined) row.is_lead = patch.isLead;
+    if (patch.isAdmin !== undefined) row.is_admin = patch.isAdmin;
+    if (patch.active !== undefined) row.active = patch.active;
+
+    const { error } = await this.client.from('profiles').update(row).eq('id', id);
+    if (error) throw new Error(error.message);
   }
 
   async updateDisplayName(name: string): Promise<void> {
