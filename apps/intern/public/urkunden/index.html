@@ -580,7 +580,7 @@ function openPlayerPop(evId){
     <div class="pop-sub">Alle Felder sind jederzeit änderbar — Änderungen werden sofort gespeichert.</div>
     <div class="pop-scroll"><table class="ptab"><thead id="pt-h"></thead><tbody id="pt-b"></tbody></table></div>
     <div class="pop-foot">
-      <button class="btn bs btn-sm" id="pt-ag">＋ Spiel (Spalte)</button>
+      <button class="btn bp btn-sm" id="pt-addp">＋ Spieler hinzufügen</button>
       <span id="pt-cnt" style="font-size:.72rem;color:var(--mt)"></span>
       <button class="btn bp" id="pt-done" style="margin-left:auto">✓ Fertig</button>
     </div>
@@ -597,11 +597,12 @@ function openPlayerPop(evId){
 
   const gameCells=sc=>Array.from({length:gCols},(_,i)=>`<td><input class="pinp pop-g" type="number" min="0" max="300" placeholder="–" value="${sc&&sc[i]!=null?sc[i]:''}"/></td>`).join('');
 
+  let addNewRef=null;
   const draw=()=>{
-    _pop.querySelector('#pt-h').innerHTML=`<tr><th class="pnum">#</th><th style="min-width:180px">Name</th>${Array.from({length:gCols},(_,i)=>`<th style="text-align:center">Sp. ${i+1}</th>`).join('')}<th style="text-align:right">Gesamt</th><th style="width:40px"></th></tr>`;
+    _pop.querySelector('#pt-h').innerHTML=`<tr><th class="pnum">#</th><th style="min-width:180px">Name</th>${Array.from({length:gCols},(_,i)=>`<th style="text-align:center">Sp. ${i+1}</th>`).join('')}<th style="text-align:right">Gesamt</th><th style="width:46px;text-align:center"><button class="btn bs btn-ic btn-sm" id="pt-ag" title="Weiteres Spiel anhängen">＋</button></th></tr>`;
     const b=_pop.querySelector('#pt-b');
     b.innerHTML=ev.pl.map((p,i)=>`<tr data-pid="${e(p.id)}"><td class="pnum">${i+1}</td><td><input class="pinp pop-n" value="${e(p.name)}" placeholder="Name"/></td>${gameCells(p.scores)}<td class="ptot">${totOf(p.scores)}</td><td style="text-align:center"><button class="prm" title="Spieler entfernen">✕</button></td></tr>`).join('')
-      +`<tr class="pnew"><td class="pnum">＋</td><td><input class="pinp pop-n" id="pt-nn" placeholder="Neuer Spieler…"/></td>${gameCells(null)}<td class="ptot">–</td><td style="text-align:center"><button class="btn bp btn-ic btn-sm" id="pt-add" title="Spieler hinzufügen">＋</button></td></tr>`;
+      +`<tr class="pnew"><td class="pnum">＋</td><td><input class="pinp pop-n" id="pt-nn" placeholder="Neuer Spieler…"/></td>${gameCells(null)}<td class="ptot">–</td><td></td></tr>`;
     _pop.querySelector('#pt-cnt').textContent=`${ev.pl.length} Spieler`;
 
     /* Bestehende Zeilen: live bearbeitbar */
@@ -633,7 +634,10 @@ function openPlayerPop(evId){
       const nn=_pop.querySelector('#pt-nn');nn?.focus();
       _pop.querySelector('.pop-scroll').scrollTop=_pop.querySelector('.pop-scroll').scrollHeight;
     };
-    nrow.querySelector('#pt-add').addEventListener('click',addNew);
+    addNewRef=addNew;
+    /* Das Anhaengen einer Spielspalte sitzt in der Kopfzeile und wird bei jedem
+       Neuzeichnen neu verdrahtet. */
+    _pop.querySelector('#pt-ag')?.addEventListener('click',()=>{gCols++;draw();});
     nrow.querySelectorAll('.pinp').forEach(inp=>inp.addEventListener('keydown',e2=>{if(e2.key==='Enter'){e2.preventDefault();addNew();}}));
     const tot=()=>{const t=totOf(readRow(nrow));nrow.querySelector('.ptot').textContent=t||'–';};
     nrow.querySelectorAll('.pop-g').forEach(i=>i.addEventListener('input',tot));
@@ -641,7 +645,7 @@ function openPlayerPop(evId){
 
   _pop.querySelector('.pop-x').addEventListener('click',closePop);
   _pop.querySelector('#pt-done').addEventListener('click',closePop);
-  _pop.querySelector('#pt-ag').addEventListener('click',()=>{gCols++;draw();});
+  _pop.querySelector('#pt-addp').addEventListener('click',()=>addNewRef&&addNewRef());
   _pop.addEventListener('mousedown',e2=>{if(e2.target===_pop)closePop();});
 
   document.body.appendChild(_pop);
