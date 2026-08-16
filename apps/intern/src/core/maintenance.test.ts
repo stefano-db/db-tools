@@ -448,6 +448,30 @@ describe('Unbekannter Wartungsstand', () => {
   });
 });
 
+describe('Wartungsstand über dem aktuellen Zählerstand', () => {
+  // Entsteht, wenn eine Wartung abgeschlossen und die zugrunde liegende Ablesung
+  // danach nach unten korrigiert wird.
+  it('meldet den Widerspruch, statt eine falsche Restlaufzeit zu errechnen', () => {
+    const s = status(lane({ currentFrames: 0 }), T25, anchor('t25', 10_000));
+    expect(s.kind).toBe('unknown');
+    expect(s.label).toBe('Zu prüfen');
+    expect(s.detail).toContain('liegt über dem aktuellen');
+    // Genau das war der Fehler: 25.000 − (−10.000) = 35.000 "verbleibende" Frames
+    expect(s.framesRemaining).not.toBe(35_000);
+  });
+
+  it('zählt auf dem Dashboard als ungeklärt, nicht als in Ordnung', () => {
+    const o = computeLaneOverview(
+      lane({ currentFrames: 0 }),
+      [T25],
+      [anchor('t25', 10_000)],
+      DEFAULT_SETTINGS,
+      TODAY,
+    );
+    expect(summarize([o])).toMatchObject({ unclear: 1, ok: 0, due: 0 });
+  });
+});
+
 describe('Vorwarnung skaliert über alle Intervalle', () => {
   it('lässt die 500k-Wartung nicht ein Jahr lang gelb leuchten', () => {
     // Rest 100.000 = exakt 20 % des Intervalls, aber bei 2.000/Woche noch 50 Wochen

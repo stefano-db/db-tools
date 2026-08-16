@@ -77,6 +77,25 @@ export function computeMaintenanceStatus(
   }
 
   const framesSince = lane.currentFrames - anchor.anchorFrames;
+
+  // Der Wartungsstand liegt über dem aktuellen Zählerstand. Das kann nicht sein
+  // und entsteht in der Praxis so: eine Wartung wurde abgeschlossen und die
+  // zugrunde liegende Ablesung danach nach unten korrigiert. Weiterrechnen wäre
+  // hier das Schlimmste — es käme eine plausibel aussehende, falsche Zahl heraus.
+  if (framesSince < 0) {
+    return {
+      ...base,
+      kind: 'unknown',
+      framesSince,
+      nextDueAtFrames: anchor.anchorFrames + type.intervalFrames,
+      daysSince: anchor.anchorDate ? daysBetween(anchor.anchorDate, today) : null,
+      label: 'Zu prüfen',
+      detail:
+        `Wartungsstand (${formatFrames(anchor.anchorFrames)}) liegt über dem aktuellen ` +
+        `Zählerstand (${formatFrames(lane.currentFrames)}). Ablesung oder Wartungseintrag korrigieren.`,
+    };
+  }
+
   const framesRemaining = type.intervalFrames - framesSince;
   const overdueFrames = Math.max(0, framesSince - type.intervalFrames);
   const nextDueAtFrames = anchor.anchorFrames + type.intervalFrames;
