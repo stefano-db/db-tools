@@ -1,6 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { formatDateDe, formatFrames, validateReading, type ReadingIssue } from '../../core';
+import {
+  formatDateDe,
+  formatFrames,
+  readingBaseline,
+  validateReading,
+  type ReadingIssue,
+} from '../../core';
 import { useData } from '../../app/DataContext';
 
 /**
@@ -32,12 +38,12 @@ export function FrameEntryPage() {
     const raw = values[lane.laneId];
     if (raw === undefined || raw === '') continue;
     const rawValue = Number(raw.replace(/[^\d]/g, ''));
-    // Wird eine bereits erfasste Ablesung desselben Tages ueberschrieben, ist der
-    // bisherige Wert genau der, der ersetzt werden soll — er darf dann nicht als
-    // Vergleichsmassstab dienen. Sonst gilt jede Korrektur nach unten faelschlich
-    // als zurueckgesetzter Zaehler. Die Monotonie gegen die echten Nachbartage
-    // prueft weiterhin die Datenbank.
-    const corrects = lane.lastReadingDate === readingDate;
+    const baseline = readingBaseline({
+      selectedDate: readingDate,
+      lastReadingDate: lane.lastReadingDate,
+      lastCumulative: lane.currentFrames,
+    });
+    const corrects = baseline.isCorrection;
     // Bei der Ersteinrichtung existiert noch keine Epoche; sie wird beim
     // Speichern angelegt. Für die Vorschau wird hier mit denselben Werten
     // gerechnet, die dann auch gespeichert werden.
@@ -54,8 +60,8 @@ export function FrameEntryPage() {
       epoch,
       readingDate,
       today,
-      previousCumulative: corrects ? null : lane.currentFrames,
-      previousDate: corrects ? null : lane.lastReadingDate,
+      previousCumulative: baseline.previousCumulative,
+      previousDate: baseline.previousDate,
       framesPerWeek: lane.framesPerWeek,
       settings: snapshot.settings,
     });

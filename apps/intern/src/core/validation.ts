@@ -137,3 +137,29 @@ export function hasBlockingIssue(issues: ReadingIssue[]): boolean {
 export function needsCounterResetDialog(issues: ReadingIssue[]): boolean {
   return issues.some((i) => i.code === 'below_previous');
 }
+
+/**
+ * Bestimmt, wogegen eine neue Ablesung verglichen wird.
+ *
+ * Überschreibt die Eingabe eine bereits erfasste Ablesung desselben Tages, ist
+ * der bisherige Wert genau der, der ersetzt werden soll — er darf dann nicht als
+ * Vergleichsmaßstab dienen. Sonst gilt jeder Zahlendreher nach unten als
+ * zurückgesetzter Zähler, und statt zu speichern öffnet sich der Reset-Dialog.
+ *
+ * Die Monotonie gegen die echten Nachbartage prüft in diesem Fall die Datenbank;
+ * sie schließt die ersetzte Zeile korrekt aus.
+ */
+export function readingBaseline(params: {
+  selectedDate: ISODate;
+  lastReadingDate: ISODate | null;
+  lastCumulative: number | null;
+}): { previousCumulative: number | null; previousDate: ISODate | null; isCorrection: boolean } {
+  const isCorrection =
+    params.lastReadingDate !== null && params.lastReadingDate === params.selectedDate;
+
+  return {
+    isCorrection,
+    previousCumulative: isCorrection ? null : params.lastCumulative,
+    previousDate: isCorrection ? null : params.lastReadingDate,
+  };
+}

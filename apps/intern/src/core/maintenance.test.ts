@@ -8,6 +8,7 @@ import {
   computeLaneOverview,
   computeMaintenanceStatus,
   needsCounterResetDialog,
+  readingBaseline,
   summarize,
   toCumulative,
   validateReading,
@@ -272,6 +273,33 @@ describe('Fall 8 – falsche Frame-Eingabe korrigiert', () => {
     const corrected = status(lane({ currentFrames: 86_310 }), T25, anchor('t25', 68_550));
     expect(corrected.kind).toBe('ok');
     expect(corrected.framesSince).toBe(17_760);
+  });
+
+  it('nimmt bei einer Korrektur desselben Tages den ersetzten Wert nicht als Massstab', () => {
+    const same = readingBaseline({
+      selectedDate: '2026-08-16',
+      lastReadingDate: '2026-08-16',
+      lastCumulative: 282_958,
+    });
+    expect(same).toEqual({ isCorrection: true, previousCumulative: null, previousDate: null });
+
+    const newDay = readingBaseline({
+      selectedDate: '2026-08-23',
+      lastReadingDate: '2026-08-16',
+      lastCumulative: 282_958,
+    });
+    expect(newDay).toEqual({
+      isCorrection: false,
+      previousCumulative: 282_958,
+      previousDate: '2026-08-16',
+    });
+
+    const first = readingBaseline({
+      selectedDate: '2026-08-16',
+      lastReadingDate: null,
+      lastCumulative: null,
+    });
+    expect(first.isCorrection).toBe(false);
   });
 
   it('meldet eine Korrektur nach unten nicht als Zaehler-Reset', () => {
