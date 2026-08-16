@@ -18,7 +18,8 @@ export type ReadingIssueCode =
   | 'implausible_jump'
   | 'above_absolute_max'
   | 'no_change'
-  | 'future_date';
+  | 'future_date'
+  | 'large_correction';
 
 export interface ReadingIssue {
   level: ReadingIssueLevel;
@@ -35,6 +36,12 @@ export interface ReadingCandidate {
   previousCumulative: number | null;
   previousDate: ISODate | null;
   framesPerWeek: number | null;
+  /**
+   * Der Wert, der überschrieben wird, falls für diesen Tag bereits eine Ablesung
+   * existiert. Dient nicht als Maßstab für die Monotonie, wohl aber für die
+   * Frage, ob die Korrektur selbst plausibel ist.
+   */
+  replacedCumulative?: number | null;
   settings: MaintenanceSettings;
 }
 
@@ -74,8 +81,26 @@ export function validateReading(c: ReadingCandidate): ReadingIssue[] {
 
   const cumulative = c.epoch.cumulativeOffset + (c.rawValue - c.epoch.counterStart);
 
+  // Auch ohne Vorgänger lässt sich eine Korrektur beurteilen: weicht der neue
+  // Wert massiv von dem ab, der ersetzt wird, ist meist einer von beiden ein
+  // Tippfehler. Ohne diese Prüfung bliebe die erste Ablesung einer Bahn
+  // vollständig ungeprüft — genau dort passieren die Zahlendreher.
+  if (c.replacedCumulative !== null && c.replacedCumulative !== undefined) {
+    const change = cumulative - c.replacedCumulative;
+    if (Math.abs(change) > c.settings.plausibilityAbsMax) {
+      issues.push({
+        level: 'warning',
+        code: 'large_correction',
+        message:
+          `Änderung um ${change >= 0 ? '+' : '−'}${formatFrames(Math.abs(change))} ${unit} ` +
+          `gegenüber dem bisherigen Eintrag (${formatFrames(c.replacedCumulative)}). ` +
+          `Ist die neue Zahl richtig?`,
+      });
+    }
+  }
+
   if (c.previousCumulative === null) {
-    return issues; // Erste Ablesung: nichts zu vergleichen.
+    return issues; // Kein Vorgänger: Zuwachs lässt sich nicht beurteilen.
   }
 
   if (cumulative < c.previousCumulative) {

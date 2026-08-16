@@ -64,6 +64,7 @@ export function FrameEntryPage() {
       today,
       previousCumulative: baseline.previousCumulative,
       previousDate: baseline.previousDate,
+      replacedCumulative: baseline.replacedCumulative,
       framesPerWeek: lane.framesPerWeek,
       settings: snapshot.settings,
     });

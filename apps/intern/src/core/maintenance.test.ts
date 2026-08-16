@@ -314,6 +314,39 @@ describe('Fall 8 – falsche Frame-Eingabe korrigiert', () => {
     });
   });
 
+  it('warnt, wenn eine Korrektur den bisherigen Wert massiv veraendert', () => {
+    // Erste Ablesung einer Bahn wird korrigiert: es gibt keinen Vortag, also
+    // auch keinen Zuwachs. Trotzdem muss ein Sprung von 27.000 auffallen.
+    const issues = validateReading({
+      rawValue: 310_000,
+      epoch: { id: 'e1', laneId: 'l1', effectiveFrom: '2024-01-01', counterStart: 0, cumulativeOffset: 0, reason: 'initial' },
+      readingDate: TODAY,
+      today: TODAY,
+      previousCumulative: null,
+      previousDate: null,
+      replacedCumulative: 282_958,
+      framesPerWeek: null,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(issues.map((i) => i.code)).toContain('large_correction');
+    expect(issues[0].level).toBe('warning');
+  });
+
+  it('schweigt bei einer kleinen Korrektur', () => {
+    const issues = validateReading({
+      rawValue: 282_900,
+      epoch: { id: 'e1', laneId: 'l1', effectiveFrom: '2024-01-01', counterStart: 0, cumulativeOffset: 0, reason: 'initial' },
+      readingDate: TODAY,
+      today: TODAY,
+      previousCumulative: null,
+      previousDate: null,
+      replacedCumulative: 282_958,
+      framesPerWeek: null,
+      settings: DEFAULT_SETTINGS,
+    });
+    expect(issues).toHaveLength(0);
+  });
+
   it('warnt bei einer Korrektur weiterhin, wenn der Wert unter den Vortag faellt', () => {
     const readings = [
       { readingDate: '2026-08-09', cumulativeFrames: 280_100, supersededById: null },
