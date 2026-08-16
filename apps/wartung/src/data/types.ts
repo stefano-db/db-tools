@@ -129,6 +129,8 @@ export interface Repository {
   getSession(): Promise<SessionInfo | null>;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Anzeigename des eigenen Kontos ändern — er steht in jedem Wartungseintrag. */
+  updateDisplayName(name: string): Promise<void>;
   /** Meldet Anmeldung, Abmeldung und Ablauf der Sitzung. Gibt eine Abmeldefunktion zurück. */
   onAuthChange(callback: () => void): () => void;
 

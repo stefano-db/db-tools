@@ -78,6 +78,16 @@ export class SupabaseRepository implements Repository {
     await this.client.auth.signOut();
   }
 
+  async updateDisplayName(name: string): Promise<void> {
+    const id = await this.userId();
+    if (!id) throw new Error('Nicht angemeldet.');
+    const { error } = await this.client
+      .from('profiles')
+      .update({ display_name: name, updated_at: new Date().toISOString() })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   onAuthChange(callback: () => void): () => void {
     const { data } = this.client.auth.onAuthStateChange(() => callback());
     return () => data.subscription.unsubscribe();

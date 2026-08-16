@@ -9,7 +9,9 @@ const NAV = [
   { to: '/', label: 'Dashboard', end: true, adminOnly: false },
   { to: '/eingabe', label: 'Frame-Stände', adminOnly: false },
   { to: '/historie', label: 'Historie', adminOnly: false },
-  { to: '/einstellungen', label: 'Einstellungen', adminOnly: true },
+  // Für Mechaniker sichtbar, weil dort der eigene Anzeigename gepflegt wird;
+  // die Konfigurationsbereiche darin sind Administratoren vorbehalten.
+  { to: '/einstellungen', label: 'Einstellungen', adminOnly: false },
 ];
 
 export function AppShell() {

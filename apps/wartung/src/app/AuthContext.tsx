@@ -7,6 +7,8 @@ interface AuthContextValue {
   requiresLogin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Sitzung neu einlesen, z. B. nach Änderung des Anzeigenamens. */
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ session, loading, requiresLogin: repository.requiresLogin, signIn, signOut }}
+      value={{ session, loading, requiresLogin: repository.requiresLogin, signIn, signOut, refresh }}
     >
       {children}
     </AuthContext.Provider>

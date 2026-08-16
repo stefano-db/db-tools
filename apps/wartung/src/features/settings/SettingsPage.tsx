@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { formatFrames } from '../../core';
+import { useAuth } from '../../app/AuthContext';
 import { useData } from '../../app/DataContext';
 import { DemoRepository } from '../../data';
 
 export function SettingsPage() {
-  const { snapshot, repo, reload } = useData();
+  const { snapshot, repo, reload, isAdmin } = useData();
   const [saving, setSaving] = useState(false);
 
   if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
@@ -24,6 +25,17 @@ export function SettingsPage() {
     <div className="max-w-3xl space-y-6">
       <h1 className="text-2xl font-bold">Einstellungen</h1>
 
+      <AccountCard />
+
+      {!isAdmin && (
+        <p className="rounded border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600">
+          Weitere Einstellungen — Wartungsintervalle, Aufgaben, Vorwarnzeiten — können nur
+          Administratoren ändern.
+        </p>
+      )}
+
+      {isAdmin && (
+        <>
       <Card title="Anzeige und Vorwarnung">
         <Field
           label="Vorwarnzeit"
@@ -143,9 +155,67 @@ export function SettingsPage() {
           </button>
         </Card>
       )}
+        </>
+      )}
 
       {saving && <p className="text-sm text-slate-500">Wird gespeichert…</p>}
     </div>
+  );
+}
+
+/** Eigenes Konto: der Anzeigename steht in jedem Wartungseintrag der Historie. */
+function AccountCard() {
+  const { session, refresh } = useAuth();
+  const { repo } = useData();
+  const [name, setName] = useState(session?.displayName ?? '');
+  const [state, setState] = useState<'idle' | 'saving' | 'done' | 'error'>('idle');
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function save() {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === session?.displayName) return;
+    setState('saving');
+    try {
+      await repo.updateDisplayName(trimmed);
+      await refresh();
+      setState('done');
+      setMessage(null);
+    } catch (e) {
+      setState('error');
+      setMessage(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  return (
+    <Card title="Mein Konto">
+      <Field
+        label="Anzeigename"
+        hint="Dieser Name wird bei jeder abgeschlossenen Wartung und jeder Defektmeldung mitgeschrieben."
+      >
+        <input
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setState('idle');
+          }}
+          className="w-56 rounded border border-slate-300 px-3 py-2"
+        />
+        <button
+          onClick={save}
+          disabled={state === 'saving' || !name.trim() || name.trim() === session?.displayName}
+          className="ml-2 rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+        >
+          {state === 'saving' ? 'Speichern…' : 'Speichern'}
+        </button>
+        {state === 'done' && <span className="ml-2 text-sm text-emerald-700">● gespeichert</span>}
+        {state === 'error' && <span className="ml-2 text-sm text-red-700">■ {message}</span>}
+      </Field>
+
+      <div className="text-sm text-slate-600">
+        Angemeldet als {session?.email ?? 'Demo-Betrieb'} · Rolle{' '}
+        {session?.role === 'admin' ? 'Administrator' : session?.role === 'counter' ? 'Counter' : 'Mechaniker'}
+      </div>
+    </Card>
   );
 }
 

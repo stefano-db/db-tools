@@ -61,6 +61,10 @@ export class DemoRepository implements Repository {
     /* keine Anmeldung nötig */
   }
 
+  async updateDisplayName(name: string): Promise<void> {
+    localStorage.setItem('bw.employee', name);
+  }
+
   onAuthChange(): () => void {
     return () => {};
   }
