@@ -149,6 +149,8 @@ export interface ModuleInfo {
   nameDe: string;
   /** Route innerhalb der Plattform, z. B. '/wartung'. */
   path: string;
+  /** Gesetzt, wenn das Modul ausserhalb der Plattform liegt. */
+  externalUrl: string | null;
   icon: string | null;
   sortOrder: number;
   canRead: boolean;

@@ -103,6 +103,7 @@ export class SupabaseRepository implements Repository {
           key: m.key,
           nameDe: m.name_de,
           path: m.path,
+          externalUrl: m.external_url ?? null,
           icon: m.icon,
           sortOrder: m.sort_order,
           canRead: canRead.data === true,

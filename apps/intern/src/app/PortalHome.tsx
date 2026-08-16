@@ -7,6 +7,12 @@ import { Header } from './Header';
 const ICONS: Record<string, string> = {
   wrench: '🔧',
   monitor: '🖥️',
+  trophy: '🏆',
+};
+
+const BESCHREIBUNG: Record<string, string> = {
+  maintenance: 'Frame-Stände eintragen, fällige Wartungen sehen und dokumentieren',
+  urkunden: 'Events anlegen, Ergebnisse auswerten und Urkunden drucken',
 };
 
 /**
@@ -54,31 +60,57 @@ export function PortalHome() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           {(modules ?? []).map((m) => (
-            <Link
-              key={m.key}
-              to={m.path.replace(/\/+$/, '') || '/'}
-              className="flex items-start gap-4 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-slate-400 hover:shadow-sm"
-            >
-              <span className="text-3xl" aria-hidden="true">
-                {ICONS[m.icon ?? ''] ?? '📋'}
-              </span>
-              <span>
-                <span className="block text-lg font-semibold">{m.nameDe}</span>
-                <span className="mt-0.5 block text-sm text-slate-600">
-                  {m.key === 'maintenance'
-                    ? 'Frame-Stände eintragen, fällige Wartungen sehen und dokumentieren'
-                    : 'Öffnen'}
-                </span>
-                {!m.canWrite && (
-                  <span className="mt-2 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                    nur ansehen
-                  </span>
-                )}
-              </span>
-            </Link>
+            <ModuleTile key={m.key} module={m} />
           ))}
         </div>
       </main>
     </div>
+  );
+}
+
+function ModuleTile({ module: m }: { module: ModuleInfo }) {
+  const inner = (
+    <>
+      <span className="text-3xl" aria-hidden="true">
+        {ICONS[m.icon ?? ''] ?? '📋'}
+      </span>
+      <span>
+        <span className="block text-lg font-semibold">
+          {m.nameDe}
+          {m.externalUrl && (
+            <span className="ml-2 align-middle text-xs font-normal text-slate-500">
+              eigenes Werkzeug ↗
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 block text-sm text-slate-600">
+          {BESCHREIBUNG[m.key] ?? 'Öffnen'}
+        </span>
+        {!m.canWrite && (
+          <span className="mt-2 inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+            nur ansehen
+          </span>
+        )}
+      </span>
+    </>
+  );
+
+  const cls =
+    'flex items-start gap-4 rounded-lg border border-slate-200 bg-white p-5 transition hover:border-slate-400 hover:shadow-sm';
+
+  // Externe Werkzeuge liegen ausserhalb der Plattform und oeffnen in einem
+  // neuen Tab — sonst verliert der Mitarbeiter seine Sitzung aus den Augen.
+  if (m.externalUrl) {
+    return (
+      <a href={m.externalUrl} target="_blank" rel="noopener noreferrer" className={cls}>
+        {inner}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={m.path.replace(/\/+$/, '') || '/'} className={cls}>
+      {inner}
+    </Link>
   );
 }

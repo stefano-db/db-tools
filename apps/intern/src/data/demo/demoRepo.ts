@@ -73,6 +73,7 @@ export class DemoRepository implements Repository {
         key: 'maintenance',
         nameDe: 'Bahnwartung',
         path: '/wartung',
+        externalUrl: null,
         icon: 'wrench',
         sortOrder: 10,
         canRead: true,
