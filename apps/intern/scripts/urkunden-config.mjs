@@ -29,15 +29,18 @@ if (existsSync(envPath)) {
 const url = process.env.VITE_SUPABASE_URL || fromEnvFile.VITE_SUPABASE_URL || '';
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || fromEnvFile.VITE_SUPABASE_ANON_KEY || '';
 
-const target = resolve(root, 'public/urkunden/config.json');
-mkdirSync(dirname(target), { recursive: true });
-writeFileSync(target, JSON.stringify({ url, anonKey }, null, 2) + '\n');
+// Beide eigenstaendigen Seiten brauchen dieselben Werte.
+for (const dir of ['public/urkunden', 'public/dienstplan']) {
+  const target = resolve(root, dir, 'config.json');
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, JSON.stringify({ url, anonKey }, null, 2) + '\n');
+}
 
 if (!url || !anonKey) {
   console.warn(
-    '[urkunden] Warnung: VITE_SUPABASE_URL oder VITE_SUPABASE_ANON_KEY fehlt — ' +
+    '[statische Seiten] Warnung: VITE_SUPABASE_URL oder VITE_SUPABASE_ANON_KEY fehlt — ' +
       'das Urkundensystem kann sich nicht mit der Datenbank verbinden.',
   );
 } else {
-  console.log('[urkunden] config.json geschrieben.');
+  console.log('[statische Seiten] config.json geschrieben.');
 }

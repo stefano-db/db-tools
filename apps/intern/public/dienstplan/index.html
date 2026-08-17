@@ -746,6 +746,20 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
   }
   body.print-empty table tbody tr.sep td { background: #e8ecf8 !important; }
 }
+
+/* ── NUR ANSICHT ── */
+body.readonly #btnUndo,
+body.readonly .copy-bar,
+body.readonly #navEinstellungen,
+body.readonly #saveDot { display:none !important; }
+body.readonly #tbody { pointer-events:none; }
+body.readonly .ro-hint { display:flex; }
+.ro-hint {
+  display:none; align-items:center; gap:8px;
+  margin:8px 0; padding:8px 12px; border-radius:8px;
+  background:var(--surface2); color:var(--text2);
+  font-size:12px; font-weight:600;
+}
 </style>
 </head>
 <body>
@@ -781,6 +795,7 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
       <button onclick="changeWeek(1)">›</button>
     </div>
   </div>
+  <div class="ro-hint">👁 Nur Ansicht — Änderungen am Dienstplan nimmt die Leitung vor.</div>
   <div class="wrap">
     <table id="tbl">
       <thead id="thead"></thead>
@@ -862,6 +877,8 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
 
 <div class="toast" id="toast"></div>
 
+<script src="supabase.js"></script>
+<script src="db.js"></script>
 <script>
 const DAYS7 = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
 const BASE_MON = new Date(2026,2,2);
@@ -935,6 +952,7 @@ function calcS(b,e){
 }
 
 // status: 'dienst' | 'frei' | 'urlaub' | 'krank'
+window.mkS=mkS;
 function mkS(status, b, e){
   if(status==='dienst'){
     const s=calcS(b,e);
@@ -1264,31 +1282,13 @@ function changeWeek(dir){ pushUndo(); weekOff+=dir; loadWeek(); render(); }
 const STORE_KEY = 'dienstplan_v2';
 
 function saveData(){
-  const data = {
-    emps: emps.map(e=>({...e, d:[...e.d]})),
-    GRP_NAMES: {...GRP_NAMES},
-    GRP_COLORS: {...GRP_COLORS},
-    weekOff,
-    weeks: {...weeks}
-  };
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }catch(err){}
+  saveWeek();
+  DB.save({emps, weeks});
   const dot = document.getElementById('saveDot');
   if(dot){ dot.classList.remove('unsaved'); dot.title='Gespeichert'; }
 }
 
-function loadData(){
-  try{
-    const raw = localStorage.getItem(STORE_KEY);
-    if(!raw) return false;
-    const data = JSON.parse(raw);
-    if(data.emps) emps = data.emps;
-    if(data.GRP_NAMES) Object.assign(GRP_NAMES, data.GRP_NAMES);
-    if(data.GRP_COLORS) Object.assign(GRP_COLORS, data.GRP_COLORS);
-    if(data.weekOff !== undefined) weekOff = data.weekOff;
-    if(data.weeks) Object.assign(weeks, data.weeks);
-    return true;
-  }catch(e){ return false; }
-}
+function loadData(){ /* wird von DB.boot() befuellt */ return true; }
 
 function markUnsaved(){
   const dot = document.getElementById('saveDot');
@@ -1460,7 +1460,7 @@ function renderPageMA(){
 function deleteEmp(i){
   if(!confirm(`"${emps[i].n}" wirklich löschen?`))return;
   pushUndo();
-  emps.splice(i,1); renderPageMA(); render(); saveData(); toast('🗑 Gelöscht');
+  emps.splice(i,1); renderPageMA(); render(); saveData(); DB.saveEmployees({emps}); toast('🗑 Gelöscht');
 }
 
 function addEmpPage(){
@@ -1474,7 +1474,7 @@ function addEmpPage(){
   emps.push({n,nc,grp,vtg,d:Array.from({length:7},(_,di)=>defaultDay(di)),tot:'0:00'});
   document.getElementById('newName').value='';
   document.getElementById('newVtg').value='';
-  renderPageMA(); render(); saveData(); toast('👤 '+n+' hinzugefügt');
+  renderPageMA(); render(); saveData(); DB.saveEmployees({emps}); toast('👤 '+n+' hinzugefügt');
 }
 
 // ── PAGE: STATISTIK ──
@@ -1675,9 +1675,31 @@ function printEmpty() {
 }
 
 // ── INIT ──
-loadData();
-saveWeek(); // snapshot current week on load
-render();
+(async () => {
+  window.GRP_NAMES = GRP_NAMES;
+  window.GRP_COLORS = GRP_COLORS;
+  window.getWeek = getWeek;
+
+  const state = {emps, weeks};
+  try{
+    if(!(await DB.boot(state))) return;
+  }catch(err){
+    document.body.innerHTML='<div style="padding:48px;font-family:Inter,system-ui">'+
+      '<h1>Dienstplan konnte nicht geladen werden</h1><p>'+String(err&&err.message||err)+'</p>'+
+      '<p><a href="/">Zurück zur Übersicht</a></p></div>';
+    return;
+  }
+  emps = state.emps; weeks = state.weeks;
+
+  loadWeek();
+  render();
+
+  // Ohne Leitungsfunktion ist der Plan nur zum Ansehen da.
+  if(!DB.canEdit) document.body.classList.add('readonly');
+
+  // Änderungen anderer sofort übernehmen.
+  DB.watch(() => { location.reload(); });
+})();
 </script>
 </body>
 </html>

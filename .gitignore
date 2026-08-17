@@ -6,3 +6,4 @@ dist/
 *.log
 .claude/settings.local.json
 public/urkunden/config.json
+public/dienstplan/config.json
