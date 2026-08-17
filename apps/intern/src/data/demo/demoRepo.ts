@@ -137,6 +137,18 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb nicht möglich.');
   }
 
+  async listRosterEmployees() {
+    return [];
+  }
+
+  async linkRosterEmployee(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keinen Dienstplan.');
+  }
+
+  async myWeek() {
+    return null;
+  }
+
   async archiveDocument(): Promise<void> {
     throw new Error('Im Demo-Betrieb gibt es keine Dateiablage.');
   }

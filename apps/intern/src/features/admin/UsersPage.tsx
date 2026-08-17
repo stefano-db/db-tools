@@ -5,6 +5,7 @@ import {
   DEPARTMENT_LABEL,
   repository,
   type Department,
+  type RosterEmployeeRow,
   type UserRow,
 } from '../../data';
 
@@ -21,6 +22,7 @@ const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service', 'kueche'];
 export function UsersPage() {
   const { session } = useAuth();
   const [users, setUsers] = useState<UserRow[] | null>(null);
+  const [roster, setRoster] = useState<RosterEmployeeRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
 
@@ -29,7 +31,12 @@ export function UsersPage() {
 
   const reload = useCallback(async () => {
     try {
-      setUsers(await repository.listUsers());
+      const [u, r] = await Promise.all([
+        repository.listUsers(),
+        repository.listRosterEmployees().catch(() => []),
+      ]);
+      setUsers(u);
+      setRoster(r);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -93,6 +100,7 @@ export function UsersPage() {
                 <th className="px-4 py-2 font-semibold">Benutzername</th>
                 <th className="px-4 py-2 font-semibold">E-Mail</th>
                 <th className="px-4 py-2 font-semibold">Bereich</th>
+                <th className="px-4 py-2 font-semibold">Name im Dienstplan</th>
                 <th className="px-4 py-2 font-semibold">Leitung</th>
                 {isAdmin && <th className="px-4 py-2 font-semibold">Admin</th>}
                 <th className="px-4 py-2 font-semibold">Status</th>
@@ -104,6 +112,7 @@ export function UsersPage() {
                 <UserRowView
                   key={u.id}
                   user={u}
+                  roster={roster}
                   isAdmin={isAdmin}
                   isSelf={u.id === session?.userId}
                   onChange={async (patch) => {
@@ -145,12 +154,14 @@ export function UsersPage() {
 
 function UserRowView({
   user,
+  roster,
   isAdmin,
   isSelf,
   onChange,
   onError,
 }: {
   user: UserRow;
+  roster: RosterEmployeeRow[];
   isAdmin: boolean;
   isSelf: boolean;
   onChange: (patch: Partial<UserRow>) => Promise<void>;
@@ -158,6 +169,9 @@ function UserRowView({
 }) {
   const [busy, setBusy] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const onChanged = async () => {
+    await onChange({});
+  };
 
   async function apply(patch: Partial<UserRow>) {
     setBusy(true);
@@ -194,6 +208,9 @@ function UserRowView({
             </option>
           ))}
         </select>
+      </td>
+      <td className="px-4 py-2">
+        <RosterCell user={user} roster={roster} onChanged={onChanged} onError={onError} />
       </td>
       <td className="px-4 py-2">
         <input
@@ -580,5 +597,68 @@ function EmailCell({
       placeholder="keine"
       className="w-52 rounded border border-slate-200 px-2 py-1 text-sm"
     />
+  );
+}
+
+/**
+ * Zuordnung Konto ↔ Name im Dienstplan.
+ *
+ * Von Hand, weil ein automatischer Abgleich über den Namen bei zwei Personen
+ * mit gleichem Vornamen still das Falsche verbindet — und dann sieht jemand die
+ * Schichten eines Kollegen als seine eigenen.
+ */
+function RosterCell({
+  user,
+  roster,
+  onChanged,
+  onError,
+}: {
+  user: UserRow;
+  roster: RosterEmployeeRow[];
+  onChanged: () => Promise<void>;
+  onError: (m: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const linked = roster.find((r) => r.profileId === user.id);
+
+  if (roster.length === 0) {
+    return <span className="text-xs text-slate-400">Dienstplan noch leer</span>;
+  }
+
+  return (
+    <select
+      value={linked?.id ?? ''}
+      disabled={busy}
+      onChange={async (e) => {
+        setBusy(true);
+        try {
+          // Zuerst eine bestehende Verbindung loesen, sonst haenge das Konto an
+          // zwei Namen.
+          if (linked && linked.id !== e.target.value) {
+            await repository.linkRosterEmployee(linked.id, null);
+          }
+          if (e.target.value) {
+            await repository.linkRosterEmployee(e.target.value, user.id);
+          }
+          await onChanged();
+        } catch (err) {
+          onError(err instanceof Error ? err.message : String(err));
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="rounded border border-slate-300 px-2 py-1"
+    >
+      <option value="">— nicht zugeordnet —</option>
+      {roster.map((r) => {
+        const takenBy = r.profileId && r.profileId !== user.id;
+        return (
+          <option key={r.id} value={r.id} disabled={!!takenBy}>
+            {r.name}
+            {takenBy ? ' (vergeben)' : ''}
+          </option>
+        );
+      })}
+    </select>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
-import { DEPARTMENT_LABEL, repository, type ModuleInfo } from '../../data';
+import { DEPARTMENT_LABEL, repository, type ModuleInfo, type MyWeek, type ShiftDay } from '../../data';
 import { Mascot, type MascotName } from '../../ui/Mascot';
 
 /**
@@ -14,6 +14,7 @@ import { Mascot, type MascotName } from '../../ui/Mascot';
 export function OverviewPage() {
   const { session } = useAuth();
   const [modules, setModules] = useState<ModuleInfo[] | null>(null);
+  const [week, setWeek] = useState<MyWeek | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,6 +23,10 @@ export function OverviewPage() {
       .listModules()
       .then((m) => active && setModules(m))
       .catch((e) => active && setError(e instanceof Error ? e.message : String(e)));
+    repository
+      .myWeek()
+      .then((w) => active && setWeek(w))
+      .catch(() => {});
     return () => {
       active = false;
     };
@@ -34,8 +39,8 @@ export function OverviewPage() {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <NextShiftCard />
-        <WeekCard />
+        <NextShiftCard week={week} />
+        <WeekCard week={week} />
       </div>
 
       <section>
@@ -71,8 +76,9 @@ export function OverviewPage() {
  * Solange das Konto keinem Namen im Dienstplan zugeordnet ist, kann hier nichts
  * stehen — und das wird gesagt, statt die Karte leer zu lassen.
  */
-function NextShiftCard() {
+function NextShiftCard({ week }: { week: MyWeek | null }) {
   const { session } = useAuth();
+  const next = week ? findNextShift(week) : null;
 
   return (
     <article className="db-card p-5">
@@ -80,14 +86,35 @@ function NextShiftCard() {
         Nächste Schicht
       </h2>
 
-      <div className="mt-4 rounded-xl border border-db-line bg-db-card2 p-4 text-center">
-        <p className="text-db-text2">Noch keine Schicht hinterlegt.</p>
-        <p className="mt-2 text-sm text-db-text3">
-          Sobald dein Konto <strong className="text-db-text2">{session?.displayName}</strong> mit
-          einem Namen im Dienstplan verbunden ist, steht hier deine nächste Schicht mit Datum,
-          Uhrzeit und Bereich.
-        </p>
-      </div>
+      {next ? (
+        <div className="mt-4">
+          <div className="text-db-text2">{next.label}</div>
+          <div className="db-num mt-1 text-3xl font-extrabold text-db-gold">
+            {next.day.b} – {next.day.e}
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-sm text-db-text2">
+            <span aria-hidden="true">👤</span>
+            {session?.department ? DEPARTMENT_LABEL[session.department] : 'Kein Bereich'}
+            {next.day.std && <span className="text-db-text3">· {next.day.std} Std.</span>}
+          </div>
+        </div>
+      ) : week ? (
+        <div className="mt-4 rounded-xl border border-db-line bg-db-card2 p-4 text-center">
+          <p className="text-db-text2">Diese Woche keine Schicht mehr.</p>
+          <p className="mt-1 text-sm text-db-text3">
+            Der Plan für <strong className="text-db-text2">{week.employeeName}</strong> ist bis
+            Sonntag ohne weitere Dienste.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-xl border border-db-line bg-db-card2 p-4 text-center">
+          <p className="text-db-text2">Noch keine Schicht hinterlegt.</p>
+          <p className="mt-2 text-sm text-db-text3">
+            Dein Konto ist noch keinem Namen im Dienstplan zugeordnet. Deine Bereichsleitung kann
+            das in der Verwaltung erledigen.
+          </p>
+        </div>
+      )}
 
       <a
         href="/dienstplan/index.html"
@@ -99,8 +126,25 @@ function NextShiftCard() {
   );
 }
 
+const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+/**
+ * Der nächste Dienst ab heute. Vergangene Tage werden übersprungen — wer um 18
+ * Uhr nachsieht, will nicht die Schicht von heute Morgen lesen.
+ */
+function findNextShift(week: MyWeek): { day: ShiftDay; label: string } | null {
+  const todayIndex = (new Date().getDay() + 6) % 7;
+  for (let i = todayIndex; i < 7; i++) {
+    const day = week.days[i];
+    if (day && day.status === 'dienst' && day.b) {
+      return { day, label: i === todayIndex ? `Heute, ${WEEKDAYS[i]}` : WEEKDAYS[i] };
+    }
+  }
+  return null;
+}
+
 /** Die laufende Woche als Streifen — sieben Tage auf einen Blick. */
-function WeekCard() {
+function WeekCard({ week }: { week: MyWeek | null }) {
   const days = currentWeek();
   const today = new Date().toDateString();
 
@@ -116,7 +160,7 @@ function WeekCard() {
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-2">
-        {days.map((d) => {
+        {days.map((d, i) => {
           const isToday = d.toDateString() === today;
           return (
             <div
@@ -131,14 +175,16 @@ function WeekCard() {
               <div className={`db-num text-lg font-bold ${isToday ? 'text-db-gold' : ''}`}>
                 {d.getDate()}
               </div>
-              <div className="mt-2 h-1 rounded-full bg-db-line" />
+              <DayBar day={week?.days[i]} />
             </div>
           );
         })}
       </div>
 
       <p className="mt-3 text-xs text-db-text3">
-        Die farbigen Balken zeigen deine Schichten, sobald dein Konto im Dienstplan zugeordnet ist.
+        {week
+          ? `Deine Woche als ${week.employeeName}.`
+          : 'Die farbigen Balken zeigen deine Schichten, sobald dein Konto im Dienstplan zugeordnet ist.'}
       </p>
     </article>
   );
@@ -211,4 +257,29 @@ function currentWeek(): Date[] {
     d.setDate(monday.getDate() + i);
     return d;
   });
+}
+
+/** Farbe und Zeiten eines Tages. Ohne Zuordnung bleibt der Balken grau. */
+function DayBar({ day }: { day?: ShiftDay }) {
+  const color =
+    day?.status === 'dienst'
+      ? 'bg-db-gold'
+      : day?.status === 'urlaub'
+        ? 'bg-db-ok'
+        : day?.status === 'krank'
+          ? 'bg-db-bad'
+          : 'bg-db-line';
+
+  return (
+    <>
+      <div className={`mt-2 h-1 rounded-full ${color}`} />
+      {day?.status === 'dienst' && day.b && (
+        <div className="db-num mt-1 text-[10px] leading-tight text-db-text2">
+          {day.b}
+          <br />
+          {day.e}
+        </div>
+      )}
+    </>
+  );
 }

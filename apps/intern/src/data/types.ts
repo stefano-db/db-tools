@@ -211,6 +211,35 @@ export interface DocumentRow {
   previewUrl: string | null;
 }
 
+/** Ein Name im Dienstplan. Nicht jeder hat ein Konto, nicht jedes Konto steht im Plan. */
+export interface RosterEmployeeRow {
+  id: string;
+  name: string;
+  groupNo: number;
+  /** Verbundenes Konto, falls zugeordnet. */
+  profileId: string | null;
+}
+
+/** Ein Tag im Dienstplan, wie ihn der Editor speichert. */
+export interface ShiftDay {
+  /** 'dienst' | 'frei' | 'urlaub' | 'krank' | 'nein' */
+  status: string;
+  /** Beginn, z. B. "15:00". Leer, wenn kein Dienst. */
+  b: string;
+  /** Ende. */
+  e: string;
+  /** Dauer, z. B. "7:00". */
+  std: string;
+}
+
+/** Die eigene Woche — Grundlage für „nächste Schicht" und den Wochenstreifen. */
+export interface MyWeek {
+  employeeName: string;
+  weekStart: ISODate;
+  days: ShiftDay[];
+  updatedAt: string | null;
+}
+
 /** Tabellenname -> Zeilen, wie sie in der Datenbank stehen. */
 export type BackupBundle = Record<string, unknown[]>;
 
@@ -259,6 +288,13 @@ export interface Repository {
    * Ausnahme für Probeeingaben aus der Einrichtungsphase; nur für Admins.
    */
   resetLane(laneId: string): Promise<{ readings: number; records: number; epochs: number }>;
+
+  // --- Dienstplan ---
+  listRosterEmployees(): Promise<RosterEmployeeRow[]>;
+  /** Namen im Plan mit einem Konto verbinden; null löst die Verbindung. */
+  linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void>;
+  /** Die eigene laufende Woche. null, wenn das Konto keinem Namen zugeordnet ist. */
+  myWeek(): Promise<MyWeek | null>;
   archiveDocument(id: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie

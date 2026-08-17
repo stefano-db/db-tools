@@ -14,7 +14,19 @@ import type {
   UserRow,
   CreateUserInput,
   DocumentRow,
+  RosterEmployeeRow,
+  MyWeek,
 } from '../types';
+
+/** Montag der laufenden Woche als YYYY-MM-DD. */
+function mondayOfCurrentWeek(): string {
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  return `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(
+    monday.getDate(),
+  ).padStart(2, '0')}`;
+}
 
 /**
  * Supabase-Umsetzung der Datenschicht.
@@ -401,6 +413,73 @@ export class SupabaseRepository implements Repository {
       .update({ archived_at: new Date().toISOString(), archived_by: await this.userId() })
       .eq('id', id);
     if (error) throw new Error(error.message);
+  }
+
+  // --- Dienstplan -----------------------------------------------------------
+
+  async listRosterEmployees(): Promise<RosterEmployeeRow[]> {
+    const { data, error } = await this.client
+      .from('roster_employees')
+      .select('id, name, group_no, profile_id')
+      .eq('active', true)
+      .order('group_no')
+      .order('sort_order');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      groupNo: r.group_no,
+      profileId: r.profile_id,
+    }));
+  }
+
+  /**
+   * Ein Konto darf nur an einem Namen hängen. Deshalb wird eine bestehende
+   * Verbindung desselben Kontos zuerst gelöst — sonst stünde jemand doppelt im
+   * Plan und „meine Schicht" wäre nicht mehr eindeutig.
+   */
+  async linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void> {
+    if (profileId) {
+      const { error: clearError } = await this.client
+        .from('roster_employees')
+        .update({ profile_id: null })
+        .eq('profile_id', profileId);
+      if (clearError) throw new Error(clearError.message);
+    }
+
+    const { error } = await this.client
+      .from('roster_employees')
+      .update({ profile_id: profileId })
+      .eq('id', rosterEmployeeId);
+    if (error) throw new Error(error.message);
+  }
+
+  async myWeek(): Promise<MyWeek | null> {
+    const userId = await this.userId();
+    if (!userId) return null;
+
+    const { data: emp } = await this.client
+      .from('roster_employees')
+      .select('id, name')
+      .eq('profile_id', userId)
+      .eq('active', true)
+      .maybeSingle();
+    if (!emp) return null;
+
+    const monday = mondayOfCurrentWeek();
+    const { data: week } = await this.client
+      .from('roster_weeks')
+      .select('data, updated_at')
+      .eq('week_start', monday)
+      .maybeSingle();
+
+    const entry = week?.data?.[emp.id];
+    return {
+      employeeName: emp.name,
+      weekStart: monday,
+      days: entry?.d ?? [],
+      updatedAt: week?.updated_at ?? null,
+    };
   }
 
   async setUserPassword(id: string, password: string): Promise<void> {
