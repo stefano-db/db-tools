@@ -40,7 +40,7 @@ export function HistoryPage() {
     });
   }, [snapshot, lane, type, employee, from, to]);
 
-  if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
+  if (!snapshot) return <p className="text-db-text3">Wird geladen…</p>;
 
   const readingRows = snapshot.readings.filter((r) => {
     if (lane && String(r.laneNumber) !== lane) return false;
@@ -55,7 +55,7 @@ export function HistoryPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Historie</h1>
 
-      <div className="flex gap-1 rounded-lg border border-slate-200 bg-white p-1">
+      <div className="flex gap-1 db-card p-1">
         {[
           { key: 'wartungen', label: 'Wartungen' },
           { key: 'ablesungen', label: 'Frame-Eingaben' },
@@ -64,7 +64,7 @@ export function HistoryPage() {
             key={t.key}
             onClick={() => setFilter('art', t.key === 'wartungen' ? '' : t.key)}
             className={`rounded px-4 py-2 text-sm font-medium ${
-              tab === t.key ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+              tab === t.key ? 'db-btn-gold' : 'text-db-text2 hover:bg-db-card2'
             }`}
           >
             {t.label}
@@ -72,7 +72,7 @@ export function HistoryPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-3 rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex flex-wrap gap-3 db-card p-3">
         <Select label="Bahn" value={lane} onChange={(v) => setFilter('bahn', v)}
           options={snapshot.lanes.map((l) => ({ value: String(l.laneNumber), label: `Bahn ${l.laneNumber}` }))} />
         {tab === 'wartungen' && (
@@ -86,16 +86,16 @@ export function HistoryPage() {
         <label className="text-sm font-medium">
           Von
           <input type="date" value={from} onChange={(e) => setFilter('von', e.target.value)}
-            className="ml-2 rounded border border-slate-300 px-2 py-1.5" />
+            className="ml-2 rounded border border-db-line px-2 py-1.5" />
         </label>
         <label className="text-sm font-medium">
           Bis
           <input type="date" value={to} onChange={(e) => setFilter('bis', e.target.value)}
-            className="ml-2 rounded border border-slate-300 px-2 py-1.5" />
+            className="ml-2 rounded border border-db-line px-2 py-1.5" />
         </label>
         {[...params.keys()].length > 0 && (
           <button onClick={() => setParams(new URLSearchParams(), { replace: true })}
-            className="ml-auto text-sm font-medium text-slate-600 hover:underline">
+            className="ml-auto text-sm font-medium text-db-text2 hover:underline">
             Filter zurücksetzen
           </button>
         )}
@@ -103,12 +103,12 @@ export function HistoryPage() {
 
       {tab === 'ablesungen' ? (
         <>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-db-text2">
             {readingRows.length} Eingaben · ersetzte Werte bleiben durchgestrichen stehen
           </p>
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-hidden db-card">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
+              <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
                 <tr>
                   <th className="px-4 py-2 font-semibold">Ablesedatum</th>
                   <th className="px-4 py-2 font-semibold">Bahn</th>
@@ -121,7 +121,7 @@ export function HistoryPage() {
                 {readingRows.map((r) => (
                   <tr
                     key={r.id}
-                    className={`border-t border-slate-100 ${r.supersededById ? 'text-slate-400' : ''}`}
+                    className={`border-t border-db-line ${r.supersededById ? 'text-db-text3' : ''}`}
                   >
                     <td className="tabular px-4 py-2">{formatDateDe(r.readingDate)}</td>
                     <td className="px-4 py-2">Bahn {r.laneNumber}</td>
@@ -137,7 +137,7 @@ export function HistoryPage() {
                           : r.source === 'initial'
                             ? 'Ersteinrichtung'
                             : 'Wocheneingabe'}
-                      {r.correctionReason && <span className="ml-2 text-slate-500">{r.correctionReason}</span>}
+                      {r.correctionReason && <span className="ml-2 text-db-text3">{r.correctionReason}</span>}
                     </td>
                   </tr>
                 ))}
@@ -147,11 +147,11 @@ export function HistoryPage() {
         </>
       ) : (
         <>
-      <p className="text-sm text-slate-600">{rows.length} Einträge</p>
+      <p className="text-sm text-db-text2">{rows.length} Einträge</p>
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div className="overflow-hidden db-card">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
+          <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
             <tr>
               <th className="px-4 py-2 font-semibold">Datum</th>
               <th className="px-4 py-2 font-semibold">Bahn</th>
@@ -170,12 +170,12 @@ export function HistoryPage() {
                   <tr
                     key={r.id}
                     onClick={() => setExpanded(isOpen ? null : r.id)}
-                    className={`cursor-pointer border-t border-slate-100 hover:bg-slate-50 ${
-                      r.voidedAt ? 'text-slate-400 line-through' : ''
+                    className={`cursor-pointer border-t border-db-line hover:bg-db-card2 ${
+                      r.voidedAt ? 'text-db-text3 line-through' : ''
                     }`}
                   >
                     <td className="tabular px-4 py-2">{formatDateDe(r.performedOn)}</td>
-                    <td className={`px-4 py-2 ${r.source === 'cascade' ? 'pl-8 text-slate-500' : ''}`}>
+                    <td className={`px-4 py-2 ${r.source === 'cascade' ? 'pl-8 text-db-text3' : ''}`}>
                       {r.source === 'cascade' && <span className="mr-1">↳</span>}
                       Bahn {r.laneNumber}
                     </td>
@@ -183,21 +183,21 @@ export function HistoryPage() {
                     <td className="px-4 py-2 font-semibold">{r.typeCode}</td>
                     <td className="px-4 py-2">{r.employeeName}</td>
                     <td className="px-4 py-2 text-right text-xs">
-                      {r.source === 'initial_import' && <span className="text-slate-400">Erstaufnahme</span>}
-                      {r.source === 'cascade' && <span className="text-slate-400">mitkaskadiert</span>}
-                      {r.hasDeviation && <span className="font-semibold text-amber-700">▲ Abweichung</span>}
+                      {r.source === 'initial_import' && <span className="text-db-text3">Erstaufnahme</span>}
+                      {r.source === 'cascade' && <span className="text-db-text3">mitkaskadiert</span>}
+                      {r.hasDeviation && <span className="font-semibold text-db-warn">▲ Abweichung</span>}
                     </td>
                   </tr>
                   {isOpen && (
-                    <tr key={`${r.id}-detail`} className="border-t border-slate-100 bg-slate-50">
+                    <tr key={`${r.id}-detail`} className="border-t border-db-line bg-db-card2">
                       <td colSpan={6} className="px-4 py-3">
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
-                            <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            <h3 className="text-xs font-semibold tracking-wide text-db-text3 uppercase">
                               Erledigte Aufgaben
                             </h3>
                             {tasks.length === 0 ? (
-                              <p className="mt-1 text-slate-500">
+                              <p className="mt-1 text-db-text3">
                                 Keine Aufgaben erfasst (Erstaufnahme des Wartungsstandes).
                               </p>
                             ) : (
@@ -212,12 +212,12 @@ export function HistoryPage() {
                             )}
                           </div>
                           <div>
-                            <h3 className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            <h3 className="text-xs font-semibold tracking-wide text-db-text3 uppercase">
                               Notiz
                             </h3>
-                            <p className="mt-1 text-slate-700">{r.notes || '—'}</p>
+                            <p className="mt-1 text-db-text2">{r.notes || '—'}</p>
                             {r.voidedAt && (
-                              <p className="mt-2 text-red-700">■ Storniert: {r.voidReason}</p>
+                              <p className="mt-2 text-db-bad">■ Storniert: {r.voidReason}</p>
                             )}
                             {isAdmin && !r.voidedAt && r.source !== 'cascade' && (
                               <VoidForm
@@ -258,7 +258,7 @@ function VoidForm({ onVoid }: { onVoid: (reason: string) => Promise<void> }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-3 rounded border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-white"
+        className="mt-3 rounded border border-db-line px-3 py-1.5 text-sm font-medium hover:bg-db-card"
       >
         Eintrag stornieren
       </button>
@@ -266,8 +266,8 @@ function VoidForm({ onVoid }: { onVoid: (reason: string) => Promise<void> }) {
   }
 
   return (
-    <div className="mt-3 rounded border border-red-300 bg-red-50 p-3">
-      <p className="text-sm text-red-900">
+    <div className="mt-3 rounded border border-db-bad bg-db-bad/10 p-3">
+      <p className="text-sm text-db-bad">
         Der Eintrag bleibt in der Historie stehen und wird durchgestrichen. Der Wartungsstand faellt
         auf den vorherigen Wert zurueck — mitkaskadierte Eintraege werden ebenfalls storniert.
       </p>
@@ -276,12 +276,12 @@ function VoidForm({ onVoid }: { onVoid: (reason: string) => Promise<void> }) {
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="Grund, z. B. versehentlich abgeschlossen"
-        className="mt-2 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="mt-2 w-full db-input text-sm"
       />
       <div className="mt-2 flex gap-2">
         <button
           onClick={() => setOpen(false)}
-          className="rounded px-3 py-1.5 text-sm font-medium hover:bg-white"
+          className="rounded px-3 py-1.5 text-sm font-medium hover:bg-db-card"
         >
           Abbrechen
         </button>
@@ -295,7 +295,7 @@ function VoidForm({ onVoid }: { onVoid: (reason: string) => Promise<void> }) {
               setBusy(false);
             }
           }}
-          className="rounded bg-red-700 px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+          className="rounded bg-db-bad px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
         >
           {busy ? 'Wird storniert…' : 'Stornieren'}
         </button>
@@ -321,7 +321,7 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="ml-2 rounded border border-slate-300 px-2 py-1.5"
+        className="ml-2 rounded border border-db-line px-2 py-1.5"
       >
         <option value="">Alle</option>
         {options.map((o) => (

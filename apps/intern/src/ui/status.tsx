@@ -1,11 +1,14 @@
 import type { MaintenanceStatusKind } from '../core';
 
 /**
- * Statusdarstellung.
+ * Statusdarstellung der Wartung.
  *
  * Grundregel aus der Spezifikation: niemals allein über Farbe. Jeder Status
  * trägt zusätzlich ein eigenes Symbol und einen Text, damit er auch bei
  * Farbsehschwäche, grellem Hallenlicht oder auf einem Ausdruck eindeutig bleibt.
+ *
+ * Auf dunklem Grund brauchen die Farben mehr Leuchtkraft als auf hellem —
+ * gedeckte Töne verschwinden sonst im Untergrund.
  */
 
 export const STATUS_STYLE: Record<
@@ -14,38 +17,38 @@ export const STATUS_STYLE: Record<
 > = {
   ok: {
     symbol: '●',
-    text: 'text-emerald-700',
-    chip: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
-    dot: 'text-emerald-600',
-    border: 'border-l-emerald-500',
+    text: 'text-db-ok',
+    chip: 'bg-db-ok/15 text-db-ok ring-db-ok/40',
+    dot: 'text-db-ok',
+    border: 'border-l-db-ok',
   },
   due_soon: {
     symbol: '▲',
-    text: 'text-amber-700',
-    chip: 'bg-amber-50 text-amber-900 ring-amber-300',
-    dot: 'text-amber-600',
-    border: 'border-l-amber-500',
+    text: 'text-db-warn',
+    chip: 'bg-db-warn/15 text-db-warn ring-db-warn/40',
+    dot: 'text-db-warn',
+    border: 'border-l-db-warn',
   },
   due: {
     symbol: '■',
-    text: 'text-red-700',
-    chip: 'bg-red-50 text-red-800 ring-red-300',
-    dot: 'text-red-600',
-    border: 'border-l-red-600',
+    text: 'text-db-bad',
+    chip: 'bg-db-bad/15 text-db-bad ring-db-bad/50',
+    dot: 'text-db-bad',
+    border: 'border-l-db-bad',
   },
   unknown: {
     symbol: '?',
-    text: 'text-slate-600',
-    chip: 'bg-slate-100 text-slate-700 ring-slate-300',
-    dot: 'text-slate-500',
-    border: 'border-l-slate-400',
+    text: 'text-db-text2',
+    chip: 'bg-db-card2 text-db-text2 ring-db-line',
+    dot: 'text-db-text3',
+    border: 'border-l-db-text3',
   },
   no_data: {
     symbol: '–',
-    text: 'text-slate-600',
-    chip: 'bg-slate-100 text-slate-700 ring-slate-300',
-    dot: 'text-slate-500',
-    border: 'border-l-slate-400',
+    text: 'text-db-text2',
+    chip: 'bg-db-card2 text-db-text2 ring-db-line',
+    dot: 'text-db-text3',
+    border: 'border-l-db-text3',
   },
 };
 

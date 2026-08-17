@@ -100,6 +100,16 @@ body.db {
   color: var(--color-db-text);
 }
 
+/* Waagerecht scrollbare Leisten ohne sichtbaren Balken — der helle Streifen
+   des Systems passt nicht auf dunklen Grund und stiehlt Platz. */
+.db-scroll-x {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.db-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
 /* Zahl mit Bedeutung: Uhrzeiten, Stunden, Frame-Stände. */
 .db-num {
   font-variant-numeric: tabular-nums;

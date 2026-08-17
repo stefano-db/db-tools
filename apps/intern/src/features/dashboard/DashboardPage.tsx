@@ -12,7 +12,7 @@ import { StatusChip, StatusDot, STATUS_STYLE } from '../../ui/status';
 export function DashboardPage() {
   const { overviews, summary, snapshot, today, loading } = useData();
 
-  if (loading && !snapshot) return <p className="text-slate-500">Wird geladen…</p>;
+  if (loading && !snapshot) return <p className="text-db-text3">Wird geladen…</p>;
   if (!snapshot) return null;
 
   const openIssues = snapshot.issues.filter((i) => i.status !== 'resolved');
@@ -42,14 +42,14 @@ export function DashboardPage() {
         <section className="space-y-2">
           {stale.length > 0 && (
             <Banner
-              tone="amber"
+              tone="warn"
               text={`${stale.length} ${stale.length === 1 ? 'Bahn hat' : 'Bahnen haben'} seit über einer Woche keine Ablesung`}
               action={{ to: '/wartung/eingabe', label: 'Frame-Stände eintragen' }}
             />
           )}
           {openIssues.length > 0 && (
             <Banner
-              tone="slate"
+              tone="neutral"
               text={`${openIssues.length} offene ${openIssues.length === 1 ? 'Defektmeldung' : 'Defektmeldungen'}: ${openIssues
                 .slice(0, 2)
                 .map((i) => `Bahn ${i.laneNumber ?? '–'} – ${i.title}`)
@@ -60,11 +60,11 @@ export function DashboardPage() {
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500 uppercase">
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">
           Diese Woche relevant
         </h2>
         {actionable.length === 0 ? (
-          <p className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
+          <p className="rounded border border-db-ok bg-db-ok/10 px-4 py-3 text-db-ok">
             ● Keine Wartung fällig oder in Vorbereitung.
           </p>
         ) : (
@@ -78,10 +78,10 @@ export function DashboardPage() {
 
       {rest.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-slate-500 uppercase">
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">
             Übrige Bahnen
           </h2>
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <div className="overflow-hidden db-card">
             {rest.map((o) => (
               <CompactRow key={o.lane.laneId} overview={o} />
             ))}
@@ -102,19 +102,19 @@ function Tile({
   tone: 'neutral' | 'ok' | 'due_soon' | 'due' | 'unknown';
 }) {
   const accent =
-    tone === 'due' ? 'text-red-700' :
-    tone === 'due_soon' ? 'text-amber-700' :
-    tone === 'ok' ? 'text-emerald-700' :
-    'text-slate-700';
+    tone === 'due' ? 'text-db-bad' :
+    tone === 'due_soon' ? 'text-db-warn' :
+    tone === 'ok' ? 'text-db-ok' :
+    'text-db-text2';
   const symbol = tone === 'neutral' ? '' : STATUS_STYLE[tone === 'unknown' ? 'unknown' : tone].symbol;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
+    <div className="db-card px-4 py-3">
       <div className={`tabular text-3xl font-bold ${accent}`}>
         {symbol && <span className="mr-1.5 align-middle text-lg">{symbol}</span>}
         {value}
       </div>
-      <div className="mt-0.5 text-sm text-slate-600">{label}</div>
+      <div className="mt-0.5 text-sm text-db-text2">{label}</div>
     </div>
   );
 }
@@ -124,16 +124,16 @@ function Banner({
   text,
   action,
 }: {
-  tone: 'amber' | 'slate';
+  tone: 'warn' | 'neutral';
   text: string;
   action?: { to: string; label: string };
 }) {
   const cls =
-    tone === 'amber'
-      ? 'border-amber-300 bg-amber-50 text-amber-900'
-      : 'border-slate-300 bg-slate-50 text-slate-800';
+    tone === 'warn'
+      ? 'border-db-warn bg-db-warn/10 text-db-warn'
+      : 'border-db-line bg-db-card2 text-db-text2';
   return (
-    <div className={`flex flex-wrap items-center gap-3 rounded border px-4 py-2.5 text-sm ${cls}`}>
+    <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-2.5 text-sm ${cls}`}>
       <span>{text}</span>
       {action && (
         <Link to={action.to} className="ml-auto font-semibold underline underline-offset-2">
@@ -159,7 +159,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
   return (
     <Link
       to={`/wartung/bahn/${lane.laneNumber}`}
-      className={`block rounded-lg border border-l-4 border-slate-200 bg-white p-4 transition hover:border-slate-400 ${STATUS_STYLE[worst].border}`}
+      className={`block rounded-lg border border-l-4 border-db-line bg-db-card p-4 transition hover:border-db-gold-dim ${STATUS_STYLE[worst].border}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -167,7 +167,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
             <StatusDot kind={worst} />
             <span className="text-xl font-bold">Bahn {lane.laneNumber}</span>
             {lane.status !== 'active' && (
-              <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+              <span className="rounded bg-db-card2 px-2 py-0.5 text-xs font-semibold text-db-text2">
                 {lane.status === 'renovation' ? 'Renovierung' : 'Außer Betrieb'}
               </span>
             )}
@@ -175,10 +175,10 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
           <div className={`mt-0.5 text-sm font-semibold ${STATUS_STYLE[worst].text}`}>{headline}</div>
         </div>
         <div className="text-right">
-          <div className="tabular text-2xl font-bold text-slate-900">
+          <div className="tabular text-2xl font-bold text-db-text">
             {lane.currentFrames === null ? '—' : formatFrames(lane.currentFrames)}
           </div>
-          <div className="text-xs text-slate-500">
+          <div className="text-xs text-db-text3">
             {lane.lastReadingDate ? `abgelesen ${formatDateDe(lane.lastReadingDate)}` : 'keine Ablesung'}
           </div>
         </div>
@@ -189,11 +189,11 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
           <li key={s.maintenanceTypeId} className="flex flex-wrap items-baseline gap-2 text-sm">
             <StatusChip kind={s.kind} label={s.code} />
             <span className={`font-medium ${STATUS_STYLE[s.kind].text}`}>{s.label}</span>
-            <span className="text-slate-600">— {s.detail}</span>
+            <span className="text-db-text2">— {s.detail}</span>
           </li>
         ))}
         {calm.length > 0 && (
-          <li className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-slate-500">
+          <li className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-db-text3">
             {calm.map((s) => (
               <span key={s.maintenanceTypeId}>
                 <StatusDot kind={s.kind} /> {s.code} — {s.detail}
@@ -211,16 +211,16 @@ function CompactRow({ overview }: { overview: LaneOverview }) {
   return (
     <Link
       to={`/wartung/bahn/${lane.laneNumber}`}
-      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-slate-100 px-4 py-2.5 last:border-0 hover:bg-slate-50"
+      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-db-line px-4 py-2.5 last:border-0 hover:bg-db-card2"
     >
       <span className="flex w-24 items-center gap-2 font-semibold">
         <StatusDot kind={worst} />
         Bahn {lane.laneNumber}
       </span>
-      <span className="tabular w-24 text-right text-slate-700">
+      <span className="tabular w-24 text-right text-db-text2">
         {lane.currentFrames === null ? '—' : formatFrames(lane.currentFrames)}
       </span>
-      <span className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
+      <span className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-xs text-db-text3">
         {statuses.map((s) => (
           <span key={s.maintenanceTypeId}>
             <StatusDot kind={s.kind} /> {s.code}
@@ -229,7 +229,7 @@ function CompactRow({ overview }: { overview: LaneOverview }) {
         ))}
       </span>
       {lane.status !== 'active' && (
-        <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+        <span className="rounded bg-db-card2 px-2 py-0.5 text-xs font-semibold text-db-text2">
           {lane.status === 'renovation' ? 'Renovierung' : 'Außer Betrieb'}
         </span>
       )}

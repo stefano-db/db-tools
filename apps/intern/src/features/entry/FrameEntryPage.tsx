@@ -31,7 +31,7 @@ export function FrameEntryPage() {
     [snapshot],
   );
 
-  if (!snapshot) return <p className="text-slate-500">Wird geladen…</p>;
+  if (!snapshot) return <p className="text-db-text3">Wird geladen…</p>;
 
   const checks: Record<
     string,
@@ -160,7 +160,7 @@ export function FrameEntryPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Wöchentliche Frame-Stände</h1>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-db-text2">
             Zählerstand eintragen — Enter springt zur nächsten Bahn. Leere Felder werden übersprungen.
           </p>
         </div>
@@ -171,13 +171,13 @@ export function FrameEntryPage() {
             value={readingDate}
             max={today}
             onChange={(e) => setReadingDate(e.target.value)}
-            className="ml-2 rounded border border-slate-300 px-3 py-2"
+            className="ml-2 db-input"
           />
         </label>
       </div>
 
       {saveError && (
-        <div className="rounded border border-red-300 bg-red-50 px-4 py-3 text-red-800">
+        <div className="rounded border border-db-bad bg-db-bad/10 px-4 py-3 text-db-bad">
           <strong className="font-semibold">■ Nicht gespeichert.</strong> {saveError}
           <div className="mt-1 text-sm">
             Deine Eingaben stehen noch im Formular — korrigiere sie und versuche es erneut.
@@ -186,7 +186,7 @@ export function FrameEntryPage() {
       )}
 
       {lanes.every((l) => l.currentFrames === null) && (
-        <div className="rounded border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+        <div className="rounded-lg border border-db-gold-dim bg-db-gold/10 px-4 py-3 text-sm text-db-gold-soft">
           <strong className="font-semibold">Erste Eingabe.</strong> Trage für jede Bahn den Wert
           ein, den der Maschinenzähler jetzt anzeigt. Ab hier zählt die App weiter — auch wenn der
           Zähler später getauscht wird. Die Wartungsstände bleiben zunächst unbekannt und setzen
@@ -194,9 +194,10 @@ export function FrameEntryPage() {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
+      <div className="db-card overflow-hidden">
+        <div className="db-scroll-x overflow-x-auto">
+        <table className="w-full min-w-[34rem] text-left">
+          <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
             <tr>
               <th className="px-4 py-2 font-semibold">Bahn</th>
               <th className="px-4 py-2 text-right font-semibold">Letzter Stand</th>
@@ -211,18 +212,18 @@ export function FrameEntryPage() {
               const warning = check?.issues.find((i) => i.level === 'warning');
               const info = check?.issues.find((i) => i.level === 'info');
               return (
-                <tr key={lane.laneId} className="border-t border-slate-100">
+                <tr key={lane.laneId} className="border-t border-db-line">
                   <td className="px-4 py-2 font-semibold whitespace-nowrap">
                     Bahn {lane.laneNumber}
                     {lane.status !== 'active' && (
-                      <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-xs font-medium text-slate-600">
+                      <span className="ml-2 rounded bg-db-card2 px-1.5 py-0.5 text-xs font-medium text-db-text2">
                         {lane.status === 'renovation' ? 'Renovierung' : 'außer Betrieb'}
                       </span>
                     )}
                   </td>
-                  <td className="tabular px-4 py-2 text-right text-slate-600">
+                  <td className="tabular px-4 py-2 text-right text-db-text2">
                     {lane.lastRawValue === null ? '—' : formatFrames(lane.lastRawValue)}
-                    <span className="ml-2 hidden text-xs text-slate-400 sm:inline">
+                    <span className="ml-2 hidden text-xs text-db-text3 sm:inline">
                       {lane.lastReadingDate ? formatDateDe(lane.lastReadingDate) : ''}
                     </span>
                   </td>
@@ -244,42 +245,43 @@ export function FrameEntryPage() {
                         }
                       }}
                       className={`tabular w-36 rounded border px-3 py-2 text-right text-lg ${
-                        error ? 'border-red-400 bg-red-50' : warning ? 'border-amber-400 bg-amber-50' : 'border-slate-300'
+                        error ? 'border-db-bad bg-db-bad/10' : warning ? 'border-db-warn bg-db-warn/10' : 'border-db-line'
                       }`}
                       placeholder="—"
                     />
                   </td>
                   <td className="px-4 py-2 text-sm">
                     {check?.delta !== null && check?.delta !== undefined && (
-                      <span className="tabular font-semibold text-slate-800">
+                      <span className="tabular font-semibold text-db-text">
                         {check.delta >= 0 ? '+' : ''}
                         {formatFrames(check.delta)}
                       </span>
                     )}
                     {check?.corrects && check.replaced !== null && (
-                      <div className="text-xs text-slate-500">
+                      <div className="text-xs text-db-text3">
                         ersetzt {formatFrames(check.replaced)}
                       </div>
                     )}
-                    {error && <div className="text-red-700">■ {error.message}</div>}
-                    {!error && warning && <div className="text-amber-700">▲ {warning.message}</div>}
-                    {!error && !warning && info && <div className="text-slate-500">– {info.message}</div>}
+                    {error && <div className="text-db-bad">■ {error.message}</div>}
+                    {!error && warning && <div className="text-db-warn">▲ {warning.message}</div>}
+                    {!error && !warning && info && <div className="text-db-text3">– {info.message}</div>}
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
-      <div className="sticky bottom-0 flex flex-wrap items-center gap-4 border-t border-slate-200 bg-slate-100/95 py-3">
-        <span className="text-sm text-slate-600">
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-4 border-t border-db-line bg-db-card2/95 py-3">
+        <span className="text-sm text-db-text2">
           {filled.length} von {lanes.length} Bahnen ausgefüllt
         </span>
         <button
           onClick={() => persist()}
           disabled={filled.length === 0 || otherErrors || saving}
-          className="ml-auto rounded bg-slate-900 px-5 py-3 font-semibold text-white disabled:opacity-40"
+          className="ml-auto db-btn-gold px-5 py-3 font-semibold disabled:opacity-40"
         >
           {saving ? 'Wird gespeichert…' : `${filled.length} Stände speichern`}
         </button>
@@ -315,9 +317,9 @@ function ResetDialog({
   const [starts, setStarts] = useState<Record<string, string>>({});
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4">
-      <div className="w-full max-w-xl rounded-lg bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-semibold text-red-800">■ Zählerstand niedriger als bisher</h2>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+      <div className="w-full max-w-xl db-card p-5 shadow-xl">
+        <h2 className="text-lg font-semibold text-db-bad">■ Zählerstand niedriger als bisher</h2>
 
         <ul className="mt-3 space-y-2 text-sm">
           {candidates.map((c) => {
@@ -325,7 +327,7 @@ function ResetDialog({
             const start = Number((starts[c.laneId] ?? '0').replace(/[^\d]/g, ''));
             const gained = c.rawValue - start;
             return (
-              <li key={c.laneId} className="rounded bg-slate-50 px-3 py-2">
+              <li key={c.laneId} className="rounded bg-db-card2 px-3 py-2">
                 <div className="tabular">
                   <strong>Bahn {c.laneNumber}:</strong> abgelesen {formatFrames(c.rawValue)}, bisheriger
                   Gesamtstand{' '}
@@ -341,16 +343,16 @@ function ResetDialog({
                     onChange={(e) =>
                       setStarts((s) => ({ ...s, [c.laneId]: e.target.value.replace(/[^\d]/g, '') }))
                     }
-                    className="tabular w-24 rounded border border-slate-300 px-2 py-1 text-right"
+                    className="tabular w-24 rounded border border-db-line px-2 py-1 text-right"
                   />
                 </label>
                 {gained >= 0 ? (
-                  <div className="tabular mt-1 text-xs text-slate-600">
+                  <div className="tabular mt-1 text-xs text-db-text2">
                     Seit dem Wechsel gelaufen: {formatFrames(gained)} — neuer Gesamtstand{' '}
                     {formatFrames((lane?.currentFrames ?? 0) + gained)}
                   </div>
                 ) : (
-                  <div className="mt-1 text-xs text-red-700">
+                  <div className="mt-1 text-xs text-db-bad">
                     ■ Der Startwert darf nicht über dem abgelesenen Wert liegen.
                   </div>
                 )}
@@ -359,11 +361,11 @@ function ResetDialog({
           })}
         </ul>
 
-        <p className="mt-4 text-sm text-slate-700">
+        <p className="mt-4 text-sm text-db-text2">
           Der neue Frame-Stand ist niedriger als der bisherige Stand. Wurde der Zähler zurückgesetzt oder
           ausgetauscht?
         </p>
-        <p className="mt-2 rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+        <p className="mt-2 rounded border border-db-ok bg-db-ok/10 px-3 py-2 text-sm text-db-ok">
           ● Die Wartungshistorie bleibt dabei vollständig erhalten. Intern zählt die App auf einem
           fortlaufenden Gesamtwert weiter, der vom Zähler unabhängig ist.
         </p>
@@ -390,7 +392,7 @@ function ResetDialog({
         </fieldset>
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
-          <button onClick={onCancel} className="rounded px-4 py-2 text-sm font-medium hover:bg-slate-100">
+          <button onClick={onCancel} className="rounded px-4 py-2 text-sm font-medium hover:bg-db-card2">
             Abbrechen und korrigieren
           </button>
           <button
@@ -405,7 +407,7 @@ function ResetDialog({
             disabled={candidates.some(
               (c) => c.rawValue - Number((starts[c.laneId] ?? '0').replace(/[^\d]/g, '')) < 0,
             )}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
           >
             Übernehmen und speichern
           </button>

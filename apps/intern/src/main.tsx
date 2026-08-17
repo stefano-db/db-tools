@@ -37,17 +37,17 @@ const router = createBrowserRouter([
           { path: 'profil', element: <ProfilePage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
-        ],
-      },
-      {
-        path: 'wartung',
-        element: <MaintenanceShell />,
-        children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'eingabe', element: <FrameEntryPage /> },
-          { path: 'bahn/:laneNumber', element: <LanePage /> },
-          { path: 'historie', element: <HistoryPage /> },
-          { path: 'einstellungen', element: <SettingsPage /> },
+          {
+            path: 'wartung',
+            element: <MaintenanceShell />,
+            children: [
+              { index: true, element: <DashboardPage /> },
+              { path: 'eingabe', element: <FrameEntryPage /> },
+              { path: 'bahn/:laneNumber', element: <LanePage /> },
+              { path: 'historie', element: <HistoryPage /> },
+              { path: 'einstellungen', element: <SettingsPage /> },
+            ],
+          },
         ],
       },
       { path: '*', element: <Navigate to="/" replace /> },
