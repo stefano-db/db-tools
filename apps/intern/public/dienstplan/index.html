@@ -768,7 +768,7 @@ body.readonly .ro-hint { display:flex; }
 <!-- TOP NAV -->
 <div class="topbar">
   <div class="tb-left">
-    <span class="tb-title">Dienstplan</span>
+    <a href="/" class="tb-title" title="Zurück zur Übersicht" style="text-decoration:none;color:inherit">Dienstplan</a>
     <span class="kw-pill" id="kwPill">KW 10</span>
     <span class="save-dot" id="saveDot" title="Gespeichert"></span>
   </div>
@@ -782,6 +782,7 @@ body.readonly .ro-hint { display:flex; }
 
 <!-- TAB BAR -->
 <div class="nav-tabs">
+  <a class="nav-tab" href="/" title="Zurück zur Übersicht">← Übersicht</a>
   <button class="nav-tab active" id="navPlan"      onclick="showPage('plan')">📅 Wochenplan</button>
   <button class="nav-tab"        id="navEinstellungen" onclick="showPage('einstellungen')">⚙️ Mitarbeiter & Abteilungen</button>
 </div>

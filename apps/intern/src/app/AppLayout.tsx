@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { DEPARTMENT_LABEL } from '../data';
 import { Logo, Mascot } from '../ui/Mascot';
@@ -122,6 +122,16 @@ export function AppLayout() {
         </header>
 
         <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 sm:px-8 lg:pb-10" key={location.pathname}>
+          {/* Auf jeder Unterseite ein sichtbarer Rueckweg — nicht jeder findet
+              ihn in der Seitenleiste, und am Handy gibt es keine. */}
+          {location.pathname !== '/' && (
+            <Link
+              to="/"
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-db-text2 hover:text-db-gold"
+            >
+              ← Übersicht
+            </Link>
+          )}
           <Outlet />
         </main>
       </div>

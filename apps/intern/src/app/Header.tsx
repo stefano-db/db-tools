@@ -38,7 +38,7 @@ export function Header({
           <div className="leading-tight">
             <div className="font-semibold">{moduleName ?? 'Interne Werkzeuge'}</div>
             <div className="text-xs text-slate-400">
-              {moduleName ? '← Übersicht' : 'Bowlingcenter'}
+              {moduleName ? '← Zurück zur Übersicht' : 'Bowlingcenter'}
             </div>
           </div>
         </Link>
