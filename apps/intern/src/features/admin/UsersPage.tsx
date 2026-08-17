@@ -8,7 +8,7 @@ import {
   type UserRow,
 } from '../../data';
 
-const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service'];
+const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service', 'kueche'];
 
 /**
  * Benutzerverwaltung.

@@ -130,12 +130,13 @@ export interface CompleteMaintenanceInput {
  * can_write_module() — es gibt also keine zweite Rechtelogik im Frontend,
  * die von der RLS abweichen könnte.
  */
-export type Department = 'mechanik' | 'counter' | 'service';
+export type Department = 'mechanik' | 'counter' | 'service' | 'kueche';
 
 export const DEPARTMENT_LABEL: Record<Department, string> = {
   mechanik: 'Mechanik',
   counter: 'Counter',
   service: 'Service',
+  kueche: 'Küche',
 };
 
 export interface SessionInfo {
