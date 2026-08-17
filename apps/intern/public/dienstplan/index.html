@@ -6,33 +6,35 @@
 <title>Dienstplan KW 10 – März 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+/* Farben der Plattform. Nur die Werte sind ausgetauscht — saemtliche Regeln
+   und Funktionen des Editors bleiben unveraendert. */
 :root {
-  --bg:       #f0f2f8;
-  --surface:  #ffffff;
-  --surface2: #f5f7fc;
-  --surface3: #eaecf5;
-  --border:   #d0d5e8;
-  --border2:  #b0b8d8;
-  --text:     #1a1e2e;
-  --text2:    #4a5278;
-  --text3:    #8890b8;
-  --accent:   #3a6ee8;
-  --radius:   11px;
-  --rsm:      7px;
+  --bg:       #0e0d0b;
+  --surface:  #1c1a17;
+  --surface2: #23201c;
+  --surface3: #2e2a25;
+  --border:   #2e2a25;
+  --border2:  #3d3831;
+  --text:     #f2ede4;
+  --text2:    #b6ada0;
+  --text3:    #7d766c;
+  --accent:   #e0b050;
+  --radius:   12px;
+  --rsm:      8px;
 
-  /* Group accent colours */
-  --g1: #3a6ee8;   /* blue   */
-  --g2: #e08020;   /* orange */
-  --g3: #7850d0;   /* purple */
-  --g4: #20a860;   /* green  */
-  --g5: #10a0b0;   /* teal   */
+  /* Abteilungen — auf dunklem Grund heller als zuvor, sonst verschwinden sie */
+  --g1: #e0b050;   /* Kueche   — Gold */
+  --g2: #e88a3c;   /* Service  — Orange */
+  --g3: #a082e8;   /* Aushilfen— Violett */
+  --g4: #3fb27a;   /* Counter  — Gruen */
+  --g5: #45b8c8;   /* Mechanik — Tuerkis */
 
-  /* Cell shift colours */
-  --sh-green:   #d0f0e0;
-  --sh-green2:  #b8e8d0;
-  --sh-yellow:  #fdf3c0;
-  --sh-orange:  #fde0b0;
-  --sh-black:   #e8eaf4;
+  /* Schichtfelder: gedeckte Flaechen, auf denen die Zeiten noch lesbar sind */
+  --sh-green:   #1e3a2c;
+  --sh-green2:  #24452f;
+  --sh-yellow:  #3a3320;
+  --sh-orange:  #3d2f1c;
+  --sh-black:   #26221d;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -104,10 +106,10 @@ body {
 }
 .btn:hover { border-color: var(--text2); color: var(--text); }
 .btn-accent {
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: #241c08;
   border-color: var(--accent);
 }
-.btn-accent:hover { background: #3d6de0; border-color: #3d6de0; color: #fff; }
+.btn-accent:hover { background: #3d6de0; border-color: #3d6de0; color: #241c08; }
 
 /* ── TABLE WRAP ── */
 .wrap {
@@ -183,12 +185,12 @@ th, td { border: 1px solid var(--border); }
 .c-std:hover { filter: brightness(1.2); }
 
 /* Daily std cell — neutral (Dienst) */
-.bg-dienst.c-std { color: #c02020 !important; background: rgba(200,40,40,0.06) !important; border-left: 1px solid rgba(200,40,40,0.15) !important; }
+.bg-dienst.c-std { color: var(--accent) !important; background: rgba(224,176,80,0.08) !important; border-left: 1px solid rgba(224,176,80,0.20) !important; }
 
 /* Status cells keep their own colour for std */
-.bg-frei.c-std   { color: #4dc87a !important; }
-.bg-urlaub.c-std { color: #c8a020 !important; }
-.bg-krank.c-std  { color: #d05050 !important; }
+.bg-frei.c-std   { color: #6fd8a0 !important; }
+.bg-urlaub.c-std { color: #e8c880 !important; }
+.bg-krank.c-std  { color: #f08a86 !important; }
 
 .c-total {
   width: 58px; min-width: 58px;
@@ -219,13 +221,13 @@ tr.sep td { height: 7px; background: var(--bg); border: none; padding: 0; }
 
 /* ── CELL BACKGROUNDS ── */
 /* Dienst (Zeit eingetragen) → kein Farbhintergrund */
-.bg-dienst { background: #ffffff; color: var(--text) !important; }
+.bg-dienst { background: var(--surface2); color: var(--text) !important; }
 
 /* Nicht eingeteilt → Dunkelgrau/Schwarz */
-.bg-frei   { background: #d4f5e4; color: #0a6630 !important; }
-.bg-urlaub { background: #fef7cc; color: #7a5500 !important; }
-.bg-krank  { background: #fde0e0; color: #a01010 !important; }
-.bg-nein   { background: #eceef8; color: #8890b8 !important; }
+.bg-frei   { background: rgba(63,178,122,0.16); color: #6fd8a0 !important; }
+.bg-urlaub { background: rgba(224,176,80,0.16); color: #e8c880 !important; }
+.bg-krank  { background: rgba(220,90,84,0.16); color: #f08a86 !important; }
+.bg-nein   { background: rgba(255,255,255,0.03); color: var(--text3) !important; }
 
 /* ── NAME PILL COLOURS ── */
 .nc-red    { background: rgba(220,50,50,0.10);  color: #c02020; border-left: 3px solid #e04040 !important; }
@@ -317,16 +319,16 @@ tr.sep td { height: 7px; background: var(--bg); border: none; padding: 0; }
   transition: all 0.15s; opacity: 0.5;
 }
 .sbtn.active { opacity: 1; }
-.sbtn-dienst { background: rgba(58,110,232,0.10); color: #3a6ee8; border-color: transparent; }
-.sbtn-dienst.active { border-color: #3a6ee8; background: rgba(58,110,232,0.20); }
-.sbtn-frei   { background: rgba(20,160,80,0.12);  color: #0a7830; border-color: transparent; }
-.sbtn-frei.active   { border-color: #20a860; background: rgba(20,160,80,0.25); }
-.sbtn-urlaub { background: rgba(180,140,0,0.12);  color: #8a6000; border-color: transparent; }
-.sbtn-urlaub.active { border-color: #c8a020; background: rgba(180,140,0,0.25); }
-.sbtn-krank  { background: rgba(180,40,40,0.10);  color: #b02020; border-color: transparent; }
-.sbtn-krank.active  { border-color: #c03030; background: rgba(180,40,40,0.22); }
+.sbtn-dienst { background: rgba(224,176,80,0.12); color: #e0b050; border-color: transparent; }
+.sbtn-dienst.active { border-color: #e0b050; background: rgba(224,176,80,0.24); }
+.sbtn-frei   { background: rgba(63,178,122,0.14); color: #6fd8a0; border-color: transparent; }
+.sbtn-frei.active   { border-color: #3fb27a; background: rgba(63,178,122,0.26); }
+.sbtn-urlaub { background: rgba(224,176,80,0.12); color: #e8c880; border-color: transparent; }
+.sbtn-urlaub.active { border-color: #e0b050; background: rgba(224,176,80,0.26); }
+.sbtn-krank  { background: rgba(220,90,84,0.12); color: #f08a86; border-color: transparent; }
+.sbtn-krank.active  { border-color: #dc5a54; background: rgba(220,90,84,0.24); }
 .sbtn-nein   { background: rgba(180,185,210,0.3); color: #6870a0; border-color: transparent; }
-.sbtn-nein.active   { border-color: #8890b8; background: rgba(180,185,210,0.5); color: #4a5278; }
+.sbtn-nein.active   { border-color: #8890b8; background: rgba(180,185,210,0.5); color: var(--text2); }
 
 /* ── PAGE TABS ── */
 .nav-tabs {
@@ -564,7 +566,7 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
 
 .toast {
   position: fixed; bottom: 18px; right: 18px;
-  background: #ffffff; color: var(--text);
+  background: var(--surface); color: var(--text);
   border: 1px solid var(--border2);
   font-size: 12px; font-weight: 600;
   padding: 9px 15px; border-radius: var(--rsm);

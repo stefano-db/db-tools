@@ -110,6 +110,12 @@ body.db {
   display: none;
 }
 
+/* Kontrollkästchen und Auswahlfelder in der Leitfarbe statt im Systemblau. */
+body.db input[type='checkbox'],
+body.db input[type='radio'] {
+  accent-color: var(--color-db-gold);
+}
+
 /* Zahl mit Bedeutung: Uhrzeiten, Stunden, Frame-Stände. */
 .db-num {
   font-variant-numeric: tabular-nums;
