@@ -79,6 +79,27 @@ body.db {
   color: var(--color-db-text);
 }
 
+/* Eingabefelder — überall gleich, damit sie auf dunklem Grund lesbar bleiben. */
+.db-input {
+  width: 100%;
+  background: var(--color-db-card2);
+  border: 1px solid var(--color-db-line);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-db-text);
+}
+.db-input:focus {
+  outline: none;
+  border-color: var(--color-db-gold-dim);
+}
+.db-input::placeholder {
+  color: var(--color-db-text3);
+}
+.db-input option {
+  background: var(--color-db-card2);
+  color: var(--color-db-text);
+}
+
 /* Zahl mit Bedeutung: Uhrzeiten, Stunden, Frame-Stände. */
 .db-num {
   font-variant-numeric: tabular-nums;

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Header } from '../../app/Header';
 import { useAuth } from '../../app/AuthContext';
 import { formatDateDe } from '../../core';
 import { repository, type DocumentRow } from '../../data';
@@ -60,21 +59,19 @@ export function DocumentsPage() {
   );
 
   return (
-    <div className="min-h-screen">
-      <Header moduleName="Dokumente" busy={docs === null} />
-
-      <main className="mx-auto max-w-5xl px-4 py-6">
+    <div className="space-y-5">
+      <div>
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold">Dokumente</h1>
-            <p className="text-sm text-slate-600">
+            <h1 className="text-2xl font-extrabold">Dokumente</h1>
+            <p className="text-sm text-db-text2">
               Unterlagen zum Ausdrucken — Formulare, Preislisten, Aushänge.
             </p>
           </div>
           {canWrite && (
             <button
               onClick={() => setShowUpload(true)}
-              className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              className="db-btn-gold px-4 py-2.5 text-sm"
             >
               + Datei hochladen
             </button>
@@ -85,18 +82,18 @@ export function DocumentsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Suchen…"
-          className="mt-4 w-full rounded border border-slate-300 px-3 py-2"
+          className="db-input mt-4"
         />
 
         {error && (
-          <p className="mt-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-red-800">
+          <p className="mt-4 db-card border-db-bad px-4 py-3 text-db-bad">
             ■ {error}
           </p>
         )}
 
         {recent.length > 0 && !search && (
           <section className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500 uppercase">
+            <h2 className="mb-2 text-sm font-semibold tracking-wide text-db-text3 uppercase">
               Zuletzt gedruckt
             </h2>
             <div className="flex flex-wrap gap-2">
@@ -108,7 +105,7 @@ export function DocumentsPage() {
         )}
 
         {docs !== null && docs.length === 0 && (
-          <p className="mt-6 rounded border border-slate-300 bg-white px-4 py-6 text-slate-700">
+          <p className="mt-6 db-card px-4 py-6 text-db-text2">
             Noch keine Dokumente abgelegt.
             {canWrite && ' Lade die erste Datei hoch — JPG, PDF, Word oder Excel.'}
           </p>
@@ -116,7 +113,7 @@ export function DocumentsPage() {
 
         {groups.map(([category, list]) => (
           <section key={category} className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500 uppercase">
+            <h2 className="mb-2 text-sm font-semibold tracking-wide text-db-text3 uppercase">
               {category}
             </h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -133,12 +130,12 @@ export function DocumentsPage() {
           </section>
         ))}
 
-        <p className="mt-6 text-xs text-slate-500">
+        <p className="mt-6 text-xs text-db-text3">
           PDF und Bilder öffnen sich direkt zum Drucken. Word- und Excel-Dateien kann der Browser
           nicht anzeigen — sie werden heruntergeladen und im jeweiligen Programm gedruckt. Wenn
           etwas immer gleich aussehen soll, ist eine PDF-Datei die verlässlichere Wahl.
         </p>
-      </main>
+      </div>
 
       {showUpload && (
         <UploadDialog
@@ -181,7 +178,7 @@ function QuickPrint({
           onError(e instanceof Error ? e.message : String(e));
         }
       }}
-      className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:border-slate-500"
+      className="db-btn-ghost rounded-full px-4 py-2 text-sm"
     >
       🖨 {doc.title}
     </button>
@@ -238,12 +235,12 @@ function DocumentCard({
   const isPdf = doc.mimeType === 'application/pdf';
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+    <div className="flex flex-col overflow-hidden db-card">
       <div
         ref={ref}
         onClick={() => run(() => openForPrint(doc))}
         title="Öffnen und drucken"
-        className="relative grid h-44 cursor-pointer place-items-center overflow-hidden bg-slate-100"
+        className="relative grid h-44 cursor-pointer place-items-center overflow-hidden bg-db-card2"
       >
         {visible && doc.previewUrl && isImage && (
           <img
@@ -269,7 +266,7 @@ function DocumentCard({
           <div className="text-center">
             <div className="text-5xl">{icon(doc.mimeType)}</div>
             {!isImage && !isPdf && (
-              <div className="mt-1 text-xs text-slate-500">keine Vorschau möglich</div>
+              <div className="mt-1 text-xs text-db-text3">keine Vorschau möglich</div>
             )}
           </div>
         )}
@@ -277,11 +274,11 @@ function DocumentCard({
 
       <div className="flex flex-1 flex-col p-3">
         <div className="font-medium">{doc.title}</div>
-        <div className="text-xs text-slate-500">
+        <div className="text-xs text-db-text3">
           {doc.fileName} · {formatSize(doc.sizeBytes)}
         </div>
-        {doc.description && <div className="mt-1 text-sm text-slate-600">{doc.description}</div>}
-        <div className="mt-1 text-xs text-slate-500">
+        {doc.description && <div className="mt-1 text-sm text-db-text2">{doc.description}</div>}
+        <div className="mt-1 text-xs text-db-text3">
           {doc.lastPrintedAt ? (
             <>
               zuletzt gedruckt {formatDateDe(doc.lastPrintedAt.slice(0, 10))} · {doc.printCount}×
@@ -295,7 +292,7 @@ function DocumentCard({
           <button
             disabled={busy}
             onClick={() => run(() => openForPrint(doc))}
-            className="flex-1 rounded bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="flex-1 db-btn-gold px-3 py-2 text-sm disabled:opacity-40"
           >
             🖨 Drucken
           </button>
@@ -307,7 +304,7 @@ function DocumentCard({
                 window.open(url, '_blank', 'noopener,noreferrer');
               })
             }
-            className="rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"
+            className="db-btn-ghost px-3 py-2 text-sm"
             title="Herunterladen"
           >
             ⭳
@@ -320,7 +317,7 @@ function DocumentCard({
                   void run(() => repository.archiveDocument(doc.id));
                 }
               }}
-              className="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              className="db-btn-ghost px-3 py-2 text-sm"
               title="Entfernen"
             >
               ✕
@@ -378,8 +375,8 @@ function UploadDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4">
-      <form onSubmit={submit} className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4">
+      <form onSubmit={submit} className="db-card w-full max-w-md p-5">
         <h2 className="text-lg font-semibold">Datei hochladen</h2>
 
         <div
@@ -389,18 +386,18 @@ function UploadDialog({
             pick(e.dataTransfer.files[0] ?? null);
           }}
           onClick={() => inputRef.current?.click()}
-          className="mt-4 cursor-pointer rounded border-2 border-dashed border-slate-300 px-4 py-8 text-center hover:border-slate-400"
+          className="mt-4 cursor-pointer rounded-xl border-2 border-dashed border-db-line px-4 py-8 text-center hover:border-db-gold-dim"
         >
           {file ? (
             <>
               <div className="text-2xl">{icon(file.type)}</div>
               <div className="mt-1 font-medium">{file.name}</div>
-              <div className="text-xs text-slate-500">{formatSize(file.size)}</div>
+              <div className="text-xs text-db-text3">{formatSize(file.size)}</div>
             </>
           ) : (
-            <div className="text-sm text-slate-600">
+            <div className="text-sm text-db-text2">
               Datei hierher ziehen oder klicken
-              <div className="mt-1 text-xs text-slate-500">JPG, PNG, PDF, Word, Excel · max. 25 MB</div>
+              <div className="mt-1 text-xs text-db-text3">JPG, PNG, PDF, Word, Excel · max. 25 MB</div>
             </div>
           )}
         </div>
@@ -419,7 +416,7 @@ function UploadDialog({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="z. B. Preisliste Bahnen"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className="db-input mt-1"
           />
         </label>
 
@@ -430,7 +427,7 @@ function UploadDialog({
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             placeholder="z. B. Preislisten"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className="db-input mt-1"
           />
           <datalist id="kategorien">
             {knownCategories.map((c) => (
@@ -445,24 +442,24 @@ function UploadDialog({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="z. B. immer beidseitig drucken"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
+            className="db-input mt-1"
           />
         </label>
 
         {error && (
-          <p className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p className="mt-4 rounded-lg border border-db-bad px-3 py-2 text-sm text-db-bad">
             ■ {error}
           </p>
         )}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded px-4 py-2 text-sm font-medium">
+          <button type="button" onClick={onClose} className="db-btn-ghost px-4 py-2 text-sm">
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={busy || !file}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="db-btn-gold px-4 py-2.5 text-sm disabled:opacity-40"
           >
             {busy ? 'Wird hochgeladen…' : 'Hochladen'}
           </button>

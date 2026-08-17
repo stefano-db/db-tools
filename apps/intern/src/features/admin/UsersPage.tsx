@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Header } from '../../app/Header';
 import { useAuth } from '../../app/AuthContext';
 import {
   DEPARTMENT_LABEL,
@@ -8,16 +7,21 @@ import {
   type RosterEmployeeRow,
   type UserRow,
 } from '../../data';
+import { Mascot } from '../../ui/Mascot';
 
 const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service', 'kueche'];
 
 /**
  * Benutzerverwaltung.
  *
+ * Bewusst Karten statt einer Tabelle: acht Angaben je Person passen in keine
+ * Zeile, die auf einem Tablet noch lesbar wäre — die alte Tabelle war rechts
+ * abgeschnitten, „Status" und „Passwort" waren gar nicht erreichbar. Eine Karte
+ * je Mitarbeiter bleibt auf jeder Breite vollständig sichtbar.
+ *
  * Administratoren verwalten alle Konten, eine Bereichsleitung nur die des
- * eigenen Bereichs — und niemand kann sich selbst Rechte wegnehmen oder einen
- * Administrator anlegen, ohne selbst einer zu sein. Durchgesetzt wird das in der
- * Datenbank; die Oberfläche blendet nur aus, was ohnehin abgelehnt würde.
+ * eigenen Bereichs. Durchgesetzt wird das in der Datenbank; die Oberfläche
+ * blendet nur aus, was ohnehin abgelehnt würde.
  */
 export function UsersPage() {
   const { session } = useAuth();
@@ -49,14 +53,9 @@ export function UsersPage() {
 
   if (!isAdmin && !isLead) {
     return (
-      <div className="min-h-screen">
-        <Header moduleName="Verwaltung" />
-        <main className="mx-auto max-w-4xl px-4 py-10">
-          <p className="rounded border border-slate-300 bg-white px-4 py-6 text-slate-700">
-            Die Benutzerverwaltung ist Administratoren und Bereichsleitungen vorbehalten.
-          </p>
-        </main>
-      </div>
+      <p className="db-card px-4 py-6 text-db-text2">
+        Die Benutzerverwaltung ist Administratoren und Bereichsleitungen vorbehalten.
+      </p>
     );
   }
 
@@ -65,77 +64,46 @@ export function UsersPage() {
   );
 
   return (
-    <div className="min-h-screen">
-      <Header moduleName="Verwaltung" busy={users === null} />
-
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Mitarbeiter</h1>
-            <p className="text-sm text-slate-600">
-              {isAdmin
-                ? 'Alle Konten des Centers.'
-                : `Konten im Bereich ${session?.department ? DEPARTMENT_LABEL[session.department] : ''}.`}
-            </p>
-          </div>
-          <button
-            onClick={() => setShowNew(true)}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-          >
-            + Mitarbeiter anlegen
-          </button>
-        </div>
-
-        {error && (
-          <p className="mt-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-red-800">
-            ■ {error}
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold">Mitarbeiter</h1>
+          <p className="text-sm text-db-text2">
+            {isAdmin
+              ? 'Alle Konten des Centers.'
+              : `Konten im Bereich ${session?.department ? DEPARTMENT_LABEL[session.department] : ''}.`}
           </p>
-        )}
-
-        <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs tracking-wide text-slate-600 uppercase">
-              <tr>
-                <th className="px-4 py-2 font-semibold">Name</th>
-                <th className="px-4 py-2 font-semibold">Benutzername</th>
-                <th className="px-4 py-2 font-semibold">E-Mail</th>
-                <th className="px-4 py-2 font-semibold">Bereich</th>
-                <th className="px-4 py-2 font-semibold">Name im Dienstplan</th>
-                <th className="px-4 py-2 font-semibold">Leitung</th>
-                {isAdmin && <th className="px-4 py-2 font-semibold">Admin</th>}
-                <th className="px-4 py-2 font-semibold">Status</th>
-                <th className="px-4 py-2 font-semibold">Passwort</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((u) => (
-                <UserRowView
-                  key={u.id}
-                  user={u}
-                  roster={roster}
-                  isAdmin={isAdmin}
-                  isSelf={u.id === session?.userId}
-                  onChange={async (patch) => {
-                    await repository.updateUser(u.id, patch);
-                    await reload();
-                  }}
-                  onError={setError}
-                />
-              ))}
-            </tbody>
-          </table>
-          {users !== null && visible.length === 0 && (
-            <p className="px-4 py-6 text-sm text-slate-500">Noch keine Mitarbeiter angelegt.</p>
-          )}
         </div>
+        <button onClick={() => setShowNew(true)} className="db-btn-gold px-4 py-2.5 text-sm">
+          + Mitarbeiter anlegen
+        </button>
+      </div>
 
-        <p className="mt-4 text-sm text-slate-600">
-          Mitarbeiter melden sich mit ihrem <strong>Benutzernamen</strong> an, nicht mit einer
-          E-Mail-Adresse. Angezeigt wird überall der Klarname — auch in der Wartungshistorie.
-          Administratoren behalten ihre E-Mail-Anmeldung, damit sie ihr Passwort selbst
-          zurücksetzen können.
-        </p>
-      </main>
+      {error && <p className="db-card border-db-bad px-4 py-3 text-sm text-db-bad">■ {error}</p>}
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {visible.map((u) => (
+          <UserCard
+            key={u.id}
+            user={u}
+            roster={roster}
+            isAdmin={isAdmin}
+            isSelf={u.id === session?.userId}
+            onChanged={reload}
+            onError={setError}
+          />
+        ))}
+      </div>
+
+      {users !== null && visible.length === 0 && (
+        <p className="db-card px-4 py-6 text-db-text2">Noch keine Mitarbeiter angelegt.</p>
+      )}
+
+      <p className="text-sm text-db-text3">
+        Mitarbeiter melden sich mit ihrem <strong className="text-db-text2">Benutzernamen</strong>{' '}
+        an. Angezeigt wird überall der Klarname — auch im Dienstplan und in der Wartungshistorie.
+        Wer eine E-Mail-Adresse hinterlegt hat, kann sein Passwort selbst zurücksetzen.
+      </p>
 
       {showNew && (
         <NewUserDialog
@@ -152,31 +120,30 @@ export function UsersPage() {
   );
 }
 
-function UserRowView({
+function UserCard({
   user,
   roster,
   isAdmin,
   isSelf,
-  onChange,
+  onChanged,
   onError,
 }: {
   user: UserRow;
   roster: RosterEmployeeRow[];
   isAdmin: boolean;
   isSelf: boolean;
-  onChange: (patch: Partial<UserRow>) => Promise<void>;
-  onError: (message: string) => void;
+  onChanged: () => Promise<void>;
+  onError: (m: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [resetting, setResetting] = useState(false);
-  const onChanged = async () => {
-    await onChange({});
-  };
+  const linked = roster.find((r) => r.profileId === user.id);
 
   async function apply(patch: Partial<UserRow>) {
     setBusy(true);
     try {
-      await onChange(patch);
+      await repository.updateUser(user.id, patch);
+      await onChanged();
     } catch (e) {
       onError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -185,82 +152,182 @@ function UserRowView({
   }
 
   return (
-    <tr className={`border-t border-slate-100 ${user.active ? '' : 'text-slate-400'}`}>
-      <td className="px-4 py-2 font-medium">
-        {user.displayName}
-        {isSelf && <span className="ml-2 text-xs text-slate-500">(du)</span>}
-      </td>
-      <td className="px-4 py-2 text-slate-600">{user.username ?? '—'}</td>
-      <td className="px-4 py-2">
-        <EmailCell user={user} onError={onError} onSaved={() => apply({})} />
-      </td>
-      <td className="px-4 py-2">
-        <select
-          value={user.department ?? ''}
-          disabled={busy || !isAdmin}
-          onChange={(e) => apply({ department: (e.target.value || null) as Department | null })}
-          className="rounded border border-slate-300 px-2 py-1"
-        >
-          <option value="">kein Bereich</option>
-          {DEPARTMENTS.map((d) => (
-            <option key={d} value={d}>
-              {DEPARTMENT_LABEL[d]}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td className="px-4 py-2">
-        <RosterCell user={user} roster={roster} onChanged={onChanged} onError={onError} />
-      </td>
-      <td className="px-4 py-2">
-        <input
-          type="checkbox"
-          checked={user.isLead}
-          disabled={busy}
-          onChange={(e) => apply({ isLead: e.target.checked })}
-          className="h-4 w-4"
-        />
-      </td>
-      {isAdmin && (
-        <td className="px-4 py-2">
-          <input
-            type="checkbox"
-            checked={user.isAdmin}
-            // Sich selbst die Administratorrechte zu entziehen wuerde bedeuten,
-            // sich aus der Verwaltung auszusperren.
-            disabled={busy || isSelf}
-            title={isSelf ? 'Eigene Administratorrechte lassen sich hier nicht entfernen.' : undefined}
-            onChange={(e) => apply({ isAdmin: e.target.checked })}
-            className="h-4 w-4"
-          />
-        </td>
-      )}
-      <td className="px-4 py-2">
+    <article className={`db-card p-4 ${user.active ? '' : 'opacity-60'}`}>
+      <header className="flex items-center gap-3">
+        <Mascot name="profil" size={40} className="rounded-full" />
+        <div className="min-w-0 flex-1">
+          <h2 className="truncate font-bold">
+            {user.displayName}
+            {isSelf && <span className="ml-2 text-xs font-normal text-db-text3">(du)</span>}
+          </h2>
+          <p className="truncate text-xs text-db-text3">
+            {user.username ?? 'nur E-Mail'}
+            {!user.active && ' · deaktiviert'}
+          </p>
+        </div>
         <button
           disabled={busy || isSelf}
           onClick={() => apply({ active: !user.active })}
-          className="rounded border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-50 disabled:opacity-40"
+          className="db-btn-ghost px-3 py-1.5 text-xs disabled:opacity-40"
         >
           {user.active ? 'Deaktivieren' : 'Aktivieren'}
         </button>
-      </td>
-      <td className="px-4 py-2">
-        <button
-          disabled={busy}
-          onClick={() => setResetting(true)}
-          className="rounded border border-slate-300 px-3 py-1 text-xs font-medium hover:bg-slate-50 disabled:opacity-40"
-        >
-          Zurücksetzen
-        </button>
-        {resetting && (
-          <PasswordDialog
-            user={user}
-            onClose={() => setResetting(false)}
-            onError={onError}
-          />
-        )}
-      </td>
-    </tr>
+      </header>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <Field label="Bereich">
+          <select
+            value={user.department ?? ''}
+            disabled={busy || !isAdmin}
+            onChange={(e) => apply({ department: (e.target.value || null) as Department | null })}
+            className="db-input"
+          >
+            <option value="">kein Bereich</option>
+            {DEPARTMENTS.map((d) => (
+              <option key={d} value={d}>
+                {DEPARTMENT_LABEL[d]}
+              </option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Name im Dienstplan">
+          {roster.length === 0 ? (
+            <span className="block pt-2 text-sm text-db-text3">Dienstplan noch leer</span>
+          ) : (
+            <select
+              value={linked?.id ?? ''}
+              disabled={busy}
+              onChange={async (e) => {
+                setBusy(true);
+                try {
+                  // Bestehende Verbindung zuerst lösen — ein Konto darf nur an
+                  // einem Namen hängen, sonst ist „meine Schicht" nicht eindeutig.
+                  if (linked && linked.id !== e.target.value) {
+                    await repository.linkRosterEmployee(linked.id, null);
+                  }
+                  if (e.target.value) {
+                    await repository.linkRosterEmployee(e.target.value, user.id);
+                  }
+                  await onChanged();
+                } catch (err) {
+                  onError(err instanceof Error ? err.message : String(err));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="db-input"
+            >
+              <option value="">— nicht zugeordnet —</option>
+              {roster.map((r) => {
+                const takenByOther = r.profileId && r.profileId !== user.id;
+                return (
+                  <option key={r.id} value={r.id} disabled={!!takenByOther}>
+                    {r.name}
+                    {takenByOther ? ' (vergeben)' : ''}
+                  </option>
+                );
+              })}
+            </select>
+          )}
+        </Field>
+
+        <Field label="E-Mail">
+          <EmailInput user={user} onError={onError} onSaved={onChanged} />
+        </Field>
+
+        <Field label="Rechte">
+          <div className="flex flex-wrap gap-4 pt-2">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={user.isLead}
+                disabled={busy}
+                onChange={(e) => apply({ isLead: e.target.checked })}
+                className="h-4 w-4"
+              />
+              Leitung
+            </label>
+            {isAdmin && (
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={user.isAdmin}
+                  // Sich selbst die Rechte zu entziehen hiesse, sich aus der
+                  // Verwaltung auszusperren.
+                  disabled={busy || isSelf}
+                  onChange={(e) => apply({ isAdmin: e.target.checked })}
+                  className="h-4 w-4"
+                />
+                Administrator
+              </label>
+            )}
+          </div>
+        </Field>
+      </div>
+
+      <button
+        disabled={busy}
+        onClick={() => setResetting(true)}
+        className="db-btn-ghost mt-4 px-3 py-2 text-xs"
+      >
+        Passwort zurücksetzen
+      </button>
+
+      {resetting && (
+        <PasswordDialog user={user} onClose={() => setResetting(false)} onError={onError} />
+      )}
+    </article>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[11px] font-semibold tracking-wide text-db-text3 uppercase">
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+/** Adresse ändern — erst beim Verlassen des Feldes, weil es die Anmeldung betrifft. */
+function EmailInput({
+  user,
+  onError,
+  onSaved,
+}: {
+  user: UserRow;
+  onError: (m: string) => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [value, setValue] = useState(user.email ?? '');
+  const [busy, setBusy] = useState(false);
+
+  return (
+    <input
+      type="email"
+      value={value}
+      disabled={busy}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={async () => {
+        const next = value.trim();
+        if (next === (user.email ?? '')) return;
+        setBusy(true);
+        try {
+          await repository.setUserEmail(user.id, next);
+          await onSaved();
+        } catch (e) {
+          setValue(user.email ?? '');
+          onError(e instanceof Error ? e.message : String(e));
+        } finally {
+          setBusy(false);
+        }
+      }}
+      placeholder="keine"
+      className="db-input"
+    />
   );
 }
 
@@ -284,7 +351,6 @@ function NewUserDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Vorschlag aus dem Klarnamen: "Marko Weber" -> "marko.weber"
   function suggest(name: string) {
     return name
       .toLowerCase()
@@ -318,128 +384,119 @@ function NewUserDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4">
-      <form onSubmit={submit} className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-semibold">Mitarbeiter anlegen</h2>
+    <Dialog onClose={onClose}>
+      <form onSubmit={submit}>
+        <h2 className="text-lg font-bold">Mitarbeiter anlegen</h2>
 
-        <label className="mt-4 block text-sm font-medium">
-          Klarname
-          <input
-            autoFocus
-            required
-            value={displayName}
-            onChange={(e) => {
-              setDisplayName(e.target.value);
-              if (!username) return;
-            }}
-            onBlur={() => !username && setUsername(suggest(displayName))}
-            placeholder="z. B. Marko Weber"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <span className="mt-1 block text-xs text-slate-500">
-            Dieser Name erscheint überall — auch in der Wartungshistorie.
-          </span>
-        </label>
+        <div className="mt-4 space-y-3">
+          <div>
+            <Field label="Klarname">
+              <input
+                autoFocus
+                required
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                onBlur={() => !username && setUsername(suggest(displayName))}
+                placeholder="z. B. Marko Weber"
+                className="db-input"
+              />
+            </Field>
+            <p className="mt-1 text-xs text-db-text3">
+              Erscheint überall — im Dienstplan, in der Historie, bei Meldungen.
+            </p>
+          </div>
 
-        <label className="mt-4 block text-sm font-medium">
-          Benutzername für die Anmeldung
-          <input
-            required
-            value={username}
-            onChange={(e) => setUsername(e.target.value.toLowerCase())}
-            placeholder={suggest(displayName) || 'marko.weber'}
-            autoCapitalize="none"
-            autoCorrect="off"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <span className="mt-1 block text-xs text-slate-500">
-            Kleinbuchstaben, Ziffern, Punkt, Bindestrich. Keine E-Mail nötig.
-          </span>
-        </label>
+          <Field label="Benutzername für die Anmeldung">
+            <input
+              required
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
+              placeholder={suggest(displayName) || 'marko.weber'}
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="db-input"
+            />
+          </Field>
 
-        <label className="mt-4 block text-sm font-medium">
-          E-Mail (optional)
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="leer lassen, wenn keine vorhanden"
-            autoCapitalize="none"
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <span className="mt-1 block text-xs text-slate-500">
-            Mit Adresse kann sich die Person ihr Passwort selbst zurücksetzen. Ohne Adresse
-            machst du das in dieser Liste.
-          </span>
-        </label>
+          <div>
+            <Field label="E-Mail (optional)">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="leer lassen, wenn keine vorhanden"
+                autoCapitalize="none"
+                className="db-input"
+              />
+            </Field>
+            <p className="mt-1 text-xs text-db-text3">
+              Mit Adresse kann die Person ihr Passwort selbst zurücksetzen.
+            </p>
+          </div>
 
-        <label className="mt-4 block text-sm font-medium">
-          Passwort
-          <input
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          />
-          <span className="mt-1 block text-xs text-slate-500">
-            Mindestens 8 Zeichen. Sag es dem Mitarbeiter persönlich — es gibt keine E-Mail,
-            über die es zugestellt werden könnte.
-          </span>
-        </label>
+          <div>
+            <Field label="Passwort">
+              <input
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="db-input"
+              />
+            </Field>
+            <p className="mt-1 text-xs text-db-text3">
+              Mindestens 8 Zeichen. Sag es der Person persönlich — es gibt keinen Zustellweg.
+            </p>
+          </div>
 
-        <label className="mt-4 block text-sm font-medium">
-          Bereich
-          <select
-            value={department}
-            disabled={!isAdmin}
-            onChange={(e) => setDepartment(e.target.value as Department | '')}
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2"
-          >
-            <option value="">kein Bereich</option>
-            {DEPARTMENTS.map((d) => (
-              <option key={d} value={d}>
-                {DEPARTMENT_LABEL[d]}
-              </option>
-            ))}
-          </select>
-        </label>
+          <Field label="Bereich">
+            <select
+              value={department}
+              disabled={!isAdmin}
+              onChange={(e) => setDepartment(e.target.value as Department | '')}
+              className="db-input"
+            >
+              <option value="">kein Bereich</option>
+              {DEPARTMENTS.map((d) => (
+                <option key={d} value={d}>
+                  {DEPARTMENT_LABEL[d]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <label className="mt-3 flex items-center gap-2 text-sm font-medium">
-          <input type="checkbox" checked={isLead} onChange={(e) => setIsLead(e.target.checked)} />
-          Bereichsleitung — darf Mitarbeiter des eigenen Bereichs verwalten
-        </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isLead} onChange={(e) => setIsLead(e.target.checked)} />
+            Bereichsleitung — darf Mitarbeiter des eigenen Bereichs verwalten
+          </label>
+        </div>
 
         {error && (
-          <p className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+          <p className="mt-4 rounded-lg border border-db-bad px-3 py-2 text-sm text-db-bad">
             ■ {error}
           </p>
         )}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded px-4 py-2 text-sm font-medium">
+          <button type="button" onClick={onClose} className="db-btn-ghost px-4 py-2 text-sm">
             Abbrechen
           </button>
           <button
             type="submit"
             disabled={busy}
-            className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            className="db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
           >
             {busy ? 'Wird angelegt…' : 'Anlegen'}
           </button>
         </div>
       </form>
-    </div>
+    </Dialog>
   );
 }
 
 /**
- * Neues Passwort setzen.
- *
- * Es gibt keine E-Mail, über die ein Zurücksetz-Link laufen könnte — der Zugang
- * wird persönlich übergeben. Deshalb wird das Passwort hier im Klartext
- * angezeigt: man muss es weitersagen können, und ein verstecktes Feld hilft
- * niemandem.
+ * Neues Passwort setzen. Es wird im Klartext angezeigt, weil es persönlich
+ * übergeben wird — ein verstecktes Feld hülfe hier niemandem.
  */
 function PasswordDialog({
   user,
@@ -448,217 +505,100 @@ function PasswordDialog({
 }: {
   user: UserRow;
   onClose: () => void;
-  onError: (message: string) => void;
+  onError: (m: string) => void;
 }) {
   const [password, setPassword] = useState(() => suggestPassword());
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await repository.setUserPassword(user.id, password);
-      setDone(true);
-    } catch (err) {
-      onError(err instanceof Error ? err.message : String(err));
-      onClose();
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/50 p-4">
-      <form onSubmit={submit} className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-semibold">Passwort zurücksetzen</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Für <strong>{user.displayName}</strong>
-          {user.username && <> (Anmeldung: {user.username})</>}
-        </p>
+    <Dialog onClose={onClose}>
+      <h2 className="text-lg font-bold">Passwort zurücksetzen</h2>
+      <p className="mt-1 text-sm text-db-text2">
+        Für <strong className="text-db-text">{user.displayName}</strong>
+        {user.username && <> (Anmeldung: {user.username})</>}
+      </p>
 
-        {done ? (
-          <>
-            <div className="mt-4 rounded border border-emerald-300 bg-emerald-50 p-4">
-              <p className="text-sm text-emerald-900">● Neues Passwort gesetzt:</p>
-              <p className="tabular mt-2 text-center text-xl font-bold tracking-wider">{password}</p>
-            </div>
-            <p className="mt-3 text-sm text-slate-600">
-              Gib es persönlich weiter. Nach dem Schließen wird es nicht noch einmal angezeigt —
-              dann bleibt nur, es erneut zurückzusetzen.
-            </p>
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-              >
-                Fertig
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <label className="mt-4 block text-sm font-medium">
-              Neues Passwort
+      {done ? (
+        <>
+          <div className="mt-4 rounded-xl border border-db-gold-dim bg-db-card2 p-4 text-center">
+            <p className="text-sm text-db-text2">Neues Passwort:</p>
+            <p className="db-num mt-2 text-2xl font-bold tracking-wide text-db-gold">{password}</p>
+          </div>
+          <p className="mt-3 text-sm text-db-text3">
+            Gib es persönlich weiter. Nach dem Schließen wird es nicht noch einmal angezeigt.
+          </p>
+          <div className="mt-5 flex justify-end">
+            <button onClick={onClose} className="db-btn-gold px-4 py-2 text-sm">
+              Fertig
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="mt-4">
+            <Field label="Neues Passwort">
               <input
                 autoFocus
-                required
-                minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="tabular mt-1 w-full rounded border border-slate-300 px-3 py-2 text-lg"
+                className="db-input text-lg"
               />
-              <span className="mt-1 block text-xs text-slate-500">
-                Vorgeschlagen und leicht vorlesbar. Du kannst es überschreiben; mindestens
-                8 Zeichen.
-              </span>
-            </label>
+            </Field>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPassword(suggestPassword())}
+            className="mt-2 text-sm text-db-text2 hover:text-db-gold"
+          >
+            Anderen Vorschlag
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setPassword(suggestPassword())}
-              className="mt-2 text-sm font-medium text-slate-600 hover:underline"
-            >
-              Anderen Vorschlag
+          <div className="mt-5 flex justify-end gap-2">
+            <button onClick={onClose} className="db-btn-ghost px-4 py-2 text-sm">
+              Abbrechen
             </button>
+            <button
+              disabled={busy || password.length < 8}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  await repository.setUserPassword(user.id, password);
+                  setDone(true);
+                } catch (err) {
+                  onError(err instanceof Error ? err.message : String(err));
+                  onClose();
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
+            >
+              {busy ? 'Wird gesetzt…' : 'Passwort setzen'}
+            </button>
+          </div>
+        </>
+      )}
+    </Dialog>
+  );
+}
 
-            <div className="mt-5 flex justify-end gap-2">
-              <button type="button" onClick={onClose} className="rounded px-4 py-2 text-sm font-medium">
-                Abbrechen
-              </button>
-              <button
-                type="submit"
-                disabled={busy}
-                className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-              >
-                {busy ? 'Wird gesetzt…' : 'Passwort setzen'}
-              </button>
-            </div>
-          </>
-        )}
-      </form>
+function Dialog({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="db-card max-h-[90vh] w-full max-w-md overflow-y-auto p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
     </div>
   );
 }
 
-/**
- * Vorschlag, der sich am Telefon vorlesen lässt: keine Zeichen, die man
- * verwechseln kann (0/O, 1/l/I), dafür zwei Wörter und Ziffern.
- */
+/** Vorschlag, der sich am Telefon vorlesen lässt. */
 function suggestPassword(): string {
   const words = ['Bahn', 'Pin', 'Kugel', 'Strike', 'Spare', 'Gasse', 'Wurf', 'Kegel'];
   const pick = () => words[Math.floor(Math.random() * words.length)];
-  const digits = String(Math.floor(Math.random() * 9000) + 1000);
-  return `${pick()}-${pick()}-${digits}`;
-}
-
-/**
- * E-Mail eines Kontos ändern.
- *
- * Leer bedeutet: zurück auf die Anmeldung per Benutzername. Der Wechsel betrifft
- * die Anmeldung selbst — deshalb wird er erst beim Verlassen des Feldes wirksam
- * und nicht bei jedem Tastendruck.
- */
-function EmailCell({
-  user,
-  onError,
-  onSaved,
-}: {
-  user: UserRow;
-  onError: (message: string) => void;
-  onSaved: () => void;
-}) {
-  const [value, setValue] = useState(user.email ?? '');
-  const [busy, setBusy] = useState(false);
-
-  async function commit() {
-    const next = value.trim();
-    if (next === (user.email ?? '')) return;
-    setBusy(true);
-    try {
-      await repository.setUserEmail(user.id, next);
-      onSaved();
-    } catch (e) {
-      setValue(user.email ?? '');
-      onError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <input
-      type="email"
-      value={value}
-      disabled={busy}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={commit}
-      placeholder="keine"
-      className="w-52 rounded border border-slate-200 px-2 py-1 text-sm"
-    />
-  );
-}
-
-/**
- * Zuordnung Konto ↔ Name im Dienstplan.
- *
- * Von Hand, weil ein automatischer Abgleich über den Namen bei zwei Personen
- * mit gleichem Vornamen still das Falsche verbindet — und dann sieht jemand die
- * Schichten eines Kollegen als seine eigenen.
- */
-function RosterCell({
-  user,
-  roster,
-  onChanged,
-  onError,
-}: {
-  user: UserRow;
-  roster: RosterEmployeeRow[];
-  onChanged: () => Promise<void>;
-  onError: (m: string) => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const linked = roster.find((r) => r.profileId === user.id);
-
-  if (roster.length === 0) {
-    return <span className="text-xs text-slate-400">Dienstplan noch leer</span>;
-  }
-
-  return (
-    <select
-      value={linked?.id ?? ''}
-      disabled={busy}
-      onChange={async (e) => {
-        setBusy(true);
-        try {
-          // Zuerst eine bestehende Verbindung loesen, sonst haenge das Konto an
-          // zwei Namen.
-          if (linked && linked.id !== e.target.value) {
-            await repository.linkRosterEmployee(linked.id, null);
-          }
-          if (e.target.value) {
-            await repository.linkRosterEmployee(e.target.value, user.id);
-          }
-          await onChanged();
-        } catch (err) {
-          onError(err instanceof Error ? err.message : String(err));
-        } finally {
-          setBusy(false);
-        }
-      }}
-      className="rounded border border-slate-300 px-2 py-1"
-    >
-      <option value="">— nicht zugeordnet —</option>
-      {roster.map((r) => {
-        const takenBy = r.profileId && r.profileId !== user.id;
-        return (
-          <option key={r.id} value={r.id} disabled={!!takenBy}>
-            {r.name}
-            {takenBy ? ' (vergeben)' : ''}
-          </option>
-        );
-      })}
-    </select>
-  );
+  return `${pick()}-${pick()}-${Math.floor(Math.random() * 9000) + 1000}`;
 }
