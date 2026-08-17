@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    document.body.classList.add('db');
     void refresh();
     // Reagiert auch auf abgelaufene Sitzungen — der Mechaniker soll dann eine
     // Anmeldemaske sehen und keine leeren Listen.

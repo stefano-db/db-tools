@@ -5,7 +5,9 @@ import './index.css';
 import { MaintenanceShell, RequireAuth } from './app/AppShell';
 import { AuthProvider } from './app/AuthContext';
 import { DataProvider } from './app/DataContext';
-import { PortalHome } from './app/PortalHome';
+import { AppLayout } from './app/AppLayout';
+import { OverviewPage } from './features/portal/OverviewPage';
+import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
@@ -27,7 +29,14 @@ const router = createBrowserRouter([
     path: '/',
     element: <RequireAuth />,
     children: [
-      { index: true, element: <PortalHome /> },
+      {
+        // Neuer Rahmen: Seitenleiste, Kopfzeile, Reiterleiste am Handy.
+        element: <AppLayout />,
+        children: [
+          { index: true, element: <OverviewPage /> },
+          { path: 'profil', element: <ProfilePage /> },
+        ],
+      },
       { path: 'verwaltung', element: <UsersPage /> },
       { path: 'dokumente', element: <DocumentsPage /> },
       {

@@ -1,0 +1,94 @@
+/**
+ * Gestaltungsgrundlage der Plattform.
+ *
+ * Alle Farben, Abstände und Bausteine stehen hier an einer Stelle. Neue Module
+ * greifen darauf zu und sehen dadurch automatisch richtig aus — ohne dass
+ * jemand Farbwerte abschreiben muss.
+ *
+ * Dunkel mit Gold, nach der Vorlage des Centers. Bewusst kein heller Modus:
+ * ein Werkzeug, das im Center auf Fernsehern und Tablets läuft, soll überall
+ * gleich aussehen, und zwei Fassungen zu pflegen kostet mehr, als es einbringt.
+ */
+
+@theme {
+  /* Untergrund, von tief nach hell */
+  --color-db-bg: #0e0d0b;
+  --color-db-surface: #16151300;
+  --color-db-card: #1c1a17;
+  --color-db-card2: #23201c;
+  --color-db-line: #2e2a25;
+
+  /* Gold — die Leitfarbe */
+  --color-db-gold: #e0b050;
+  --color-db-gold-soft: #f0cd86;
+  --color-db-gold-dim: #8a6c2e;
+
+  /* Schrift */
+  --color-db-text: #f2ede4;
+  --color-db-text2: #b6ada0;
+  --color-db-text3: #7d766c;
+
+  /* Status — dieselben Bedeutungen wie in der Wartung */
+  --color-db-ok: #3fb27a;
+  --color-db-warn: #e0a038;
+  --color-db-bad: #dc5a54;
+}
+
+/* Die Plattform selbst ist dunkel. Module, die noch ihr altes Aussehen haben,
+   setzen ihren eigenen Hintergrund und bleiben davon unberührt. */
+body.db {
+  background: var(--color-db-bg);
+  color: var(--color-db-text);
+}
+
+/* Sanfter Verlauf im Kopfbereich, wie auf der Vorlage. */
+.db-hero {
+  background:
+    radial-gradient(120% 140% at 85% 0%, rgba(224, 176, 80, 0.16) 0%, transparent 55%),
+    var(--color-db-card);
+}
+
+.db-card {
+  background: var(--color-db-card);
+  border: 1px solid var(--color-db-line);
+  border-radius: 14px;
+}
+
+.db-card-hover:hover {
+  border-color: var(--color-db-gold-dim);
+}
+
+/* Goldener Knopf für die jeweils wichtigste Handlung einer Karte. */
+.db-btn-gold {
+  background: linear-gradient(180deg, var(--color-db-gold-soft), var(--color-db-gold));
+  color: #241c08;
+  font-weight: 700;
+  border-radius: 10px;
+}
+.db-btn-gold:hover {
+  filter: brightness(1.06);
+}
+
+.db-btn-ghost {
+  border: 1px solid var(--color-db-line);
+  color: var(--color-db-text2);
+  border-radius: 10px;
+}
+.db-btn-ghost:hover {
+  border-color: var(--color-db-gold-dim);
+  color: var(--color-db-text);
+}
+
+/* Zahl mit Bedeutung: Uhrzeiten, Stunden, Frame-Stände. */
+.db-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Platzhalter für die Maskottchen, solange die echten Bilder fehlen.
+   Sobald sie in public/marke/ liegen, greift stattdessen das Bild. */
+.db-mascot-fallback {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(224, 176, 80, 0.28), transparent 60%),
+    var(--color-db-card2);
+}
