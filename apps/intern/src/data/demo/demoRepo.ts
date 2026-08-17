@@ -133,6 +133,10 @@ export class DemoRepository implements Repository {
 
   async markDocumentPrinted(): Promise<void> {}
 
+  async resetLane(): Promise<{ readings: number; records: number; epochs: number }> {
+    throw new Error('Im Demo-Betrieb nicht möglich.');
+  }
+
   async archiveDocument(): Promise<void> {
     throw new Error('Im Demo-Betrieb gibt es keine Dateiablage.');
   }

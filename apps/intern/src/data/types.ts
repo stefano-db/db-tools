@@ -253,6 +253,11 @@ export interface Repository {
   /** Zeitlich begrenzte Adresse zum Ansehen, Drucken oder Herunterladen. */
   documentUrl(id: string, forDownload?: boolean): Promise<string>;
   markDocumentPrinted(id: string): Promise<void>;
+  /**
+   * Alle Ablesungen, Wartungen und Zähler-Epochen einer Bahn entfernen.
+   * Ausnahme für Probeeingaben aus der Einrichtungsphase; nur für Admins.
+   */
+  resetLane(laneId: string): Promise<{ readings: number; records: number; epochs: number }>;
   archiveDocument(id: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie

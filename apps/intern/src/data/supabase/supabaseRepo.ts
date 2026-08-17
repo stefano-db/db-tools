@@ -380,6 +380,16 @@ export class SupabaseRepository implements Repository {
     return data.signedUrl;
   }
 
+  async resetLane(laneId: string) {
+    const { data, error } = await this.client.rpc('admin_reset_lane', { p_lane_id: laneId });
+    if (error) throw new Error(error.message);
+    return {
+      readings: data?.readings ?? 0,
+      records: data?.records ?? 0,
+      epochs: data?.epochs ?? 0,
+    };
+  }
+
   async markDocumentPrinted(id: string): Promise<void> {
     const { error } = await this.client.rpc('document_printed', { p_id: id });
     if (error) throw new Error(error.message);

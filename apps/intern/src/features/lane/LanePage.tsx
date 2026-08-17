@@ -17,7 +17,7 @@ import { IssueDialog } from '../issues/IssueDialog';
 export function LanePage() {
   const { laneNumber } = useParams();
   const navigate = useNavigate();
-  const { snapshot, overviews, repo, reload, employee, today } = useData();
+  const { snapshot, overviews, repo, reload, employee, today, isAdmin } = useData();
   const [openTypeId, setOpenTypeId] = useState<string | null>(null);
   const [issueOpen, setIssueOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<string[] | null>(null);
@@ -226,6 +226,21 @@ export function LanePage() {
           ))
         )}
       </Section>
+
+      {isAdmin && (
+        <ResetLaneSection
+          laneNumber={lane.laneNumber}
+          hasData={
+            lane.currentFrames !== null ||
+            snapshot.records.some((r) => r.laneId === lane.laneId)
+          }
+          onReset={async () => {
+            const result = await repo.resetLane(lane.laneId);
+            await reload();
+            return result;
+          }}
+        />
+      )}
 
       {issueOpen && <IssueDialog laneId={lane.laneId} onClose={() => setIssueOpen(false)} />}
     </div>
@@ -531,3 +546,107 @@ function TaskList({
 }
 
 export { formatWeeks };
+
+/**
+ * Zurücksetzen einer Bahn — bewusst am Ende der Seite, hinter einer Tippbestätigung.
+ *
+ * Das System löscht sonst nichts: Ablesungen werden ersetzt, Wartungen storniert.
+ * Für Probeeingaben aus der Einrichtungsphase braucht es trotzdem einen Weg,
+ * sonst verfälschen sie die Anzeige dauerhaft. Der vorherige Stand bleibt im
+ * Protokoll der Datenbank erhalten.
+ */
+function ResetLaneSection({
+  laneNumber,
+  hasData,
+  onReset,
+}: {
+  laneNumber: number;
+  hasData: boolean;
+  onReset: () => Promise<{ readings: number; records: number; epochs: number }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState<{ readings: number; records: number } | null>(null);
+
+  const expected = `Bahn ${laneNumber}`;
+
+  if (done) {
+    return (
+      <div className="rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        ● Zurückgesetzt: {done.readings} Ablesungen und {done.records} Wartungseinträge entfernt.
+        Die Bahn steht wieder auf „keine Ablesung".
+      </div>
+    );
+  }
+
+  if (!hasData) return null;
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="text-sm font-medium text-slate-500 hover:text-red-700 hover:underline"
+        >
+          Bahn zurücksetzen (Probeeingaben entfernen)
+        </button>
+      ) : (
+        <>
+          <h2 className="font-semibold text-red-800">■ Bahn {laneNumber} zurücksetzen</h2>
+          <p className="mt-1 text-sm text-slate-700">
+            Entfernt <strong>alle</strong> Ablesungen, Wartungseinträge und Zähler-Epochen dieser
+            Bahn. Danach steht sie wieder auf „keine Ablesung", als wäre sie nie benutzt worden.
+          </p>
+          <p className="mt-2 text-sm text-slate-600">
+            Gedacht für Probeeingaben aus der Einrichtung. Für einen einzelnen Fehler ist die
+            Korrektur der Ablesung oder das Stornieren der Wartung der richtige Weg — dabei bleibt
+            nachvollziehbar, was passiert ist.
+          </p>
+
+          <label className="mt-3 block text-sm font-medium">
+            Zum Bestätigen <strong>{expected}</strong> eintippen
+            <input
+              autoFocus
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              className="mt-1 w-48 rounded border border-slate-300 px-3 py-2"
+            />
+          </label>
+
+          {error && <p className="mt-2 text-sm text-red-700">■ {error}</p>}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              onClick={() => {
+                setOpen(false);
+                setConfirmText('');
+              }}
+              className="rounded px-4 py-2 text-sm font-medium hover:bg-slate-100"
+            >
+              Abbrechen
+            </button>
+            <button
+              disabled={busy || confirmText.trim() !== expected}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  setDone(await onReset());
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              className="rounded bg-red-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              {busy ? 'Wird zurückgesetzt…' : 'Endgültig zurücksetzen'}
+            </button>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
