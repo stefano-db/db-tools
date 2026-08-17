@@ -12,7 +12,7 @@ import { StatusChip, StatusDot, STATUS_STYLE } from '../../ui/status';
 export function DashboardPage() {
   const { overviews, summary, snapshot, today, loading } = useData();
 
-  if (loading && !snapshot) return <p className="text-db-text3">Wird geladen…</p>;
+  if (loading && !snapshot) return <p className="text-lw-text3">Wird geladen…</p>;
   if (!snapshot) return null;
 
   const openIssues = snapshot.issues.filter((i) => i.status !== 'resolved');
@@ -60,11 +60,11 @@ export function DashboardPage() {
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-lw-text3 uppercase">
           Diese Woche relevant
         </h2>
         {actionable.length === 0 ? (
-          <p className="rounded border border-db-ok bg-db-ok/10 px-4 py-3 text-db-ok">
+          <p className="rounded border border-lw-ok bg-lw-ok/10 px-4 py-3 text-lw-ok">
             ● Keine Wartung fällig oder in Vorbereitung.
           </p>
         ) : (
@@ -78,10 +78,10 @@ export function DashboardPage() {
 
       {rest.length > 0 && (
         <section>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-lw-text3 uppercase">
             Übrige Bahnen
           </h2>
-          <div className="db-panel overflow-hidden">
+          <div className="lw-card overflow-hidden">
             {rest.map((o) => (
               <CompactRow key={o.lane.laneId} overview={o} />
             ))}
@@ -106,23 +106,23 @@ function Tile({
   // wie schwarze Schrift auf weiss.
   const shell =
     tone === 'due' && value > 0
-      ? 'db-tile db-tile-bad'
+      ? 'lw-tile lw-tile-bad'
       : tone === 'due_soon' && value > 0
-        ? 'db-tile db-tile-warn'
+        ? 'lw-tile lw-tile-warn'
         : tone === 'ok' && value > 0
-          ? 'db-tile db-tile-ok'
-          : 'db-tile';
+          ? 'lw-tile lw-tile-ok'
+          : 'lw-tile';
 
   const accent =
     value === 0
-      ? 'text-db-text3'
+      ? 'text-lw-text3'
       : tone === 'due'
-        ? 'text-db-bad'
+        ? 'text-lw-bad'
         : tone === 'due_soon'
-          ? 'text-db-warn'
+          ? 'text-lw-warn'
           : tone === 'ok'
-            ? 'text-db-ok'
-            : 'text-db-text';
+            ? 'text-lw-ok'
+            : 'text-lw-text';
   const symbol = tone === 'neutral' ? '' : STATUS_STYLE[tone === 'unknown' ? 'unknown' : tone].symbol;
 
   return (
@@ -131,7 +131,7 @@ function Tile({
         {symbol && <span className="mr-2 align-middle text-xl">{symbol}</span>}
         {value}
       </div>
-      <div className="mt-1 text-sm font-medium text-db-text2">{label}</div>
+      <div className="mt-1 text-sm font-medium text-lw-text2">{label}</div>
     </div>
   );
 }
@@ -147,8 +147,8 @@ function Banner({
 }) {
   const cls =
     tone === 'warn'
-      ? 'border-db-warn bg-db-warn/10 text-db-warn'
-      : 'border-db-line bg-db-card2 text-db-text2';
+      ? 'border-lw-warn bg-lw-warn/10 text-lw-warn'
+      : 'border-lw-line bg-lw-card2 text-lw-text2';
   return (
     <div className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-2.5 text-sm ${cls}`}>
       <span>{text}</span>
@@ -176,7 +176,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
   return (
     <Link
       to={`/wartung/bahn/${lane.laneNumber}`}
-      className={`db-panel block border-l-4 p-4 transition hover:border-db-gold-dim ${STATUS_STYLE[worst].border}`}
+      className={`lw-card block border-l-4 p-4 transition hover:border-lw-line2 ${STATUS_STYLE[worst].border}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -184,7 +184,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
             <StatusDot kind={worst} />
             <span className="text-xl font-bold">Bahn {lane.laneNumber}</span>
             {lane.status !== 'active' && (
-              <span className="rounded bg-db-card2 px-2 py-0.5 text-xs font-semibold text-db-text2">
+              <span className="rounded bg-lw-card2 px-2 py-0.5 text-xs font-semibold text-lw-text2">
                 {lane.status === 'renovation' ? 'Renovierung' : 'Außer Betrieb'}
               </span>
             )}
@@ -192,10 +192,10 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
           <div className={`mt-0.5 text-sm font-semibold ${STATUS_STYLE[worst].text}`}>{headline}</div>
         </div>
         <div className="text-right">
-          <div className="tabular text-2xl font-bold text-db-text">
+          <div className="tabular text-2xl font-bold text-lw-text">
             {lane.currentFrames === null ? '—' : formatFrames(lane.currentFrames)}
           </div>
-          <div className="text-xs text-db-text3">
+          <div className="text-xs text-lw-text3">
             {lane.lastReadingDate ? `abgelesen ${formatDateDe(lane.lastReadingDate)}` : 'keine Ablesung'}
           </div>
         </div>
@@ -206,11 +206,11 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
           <li key={s.maintenanceTypeId} className="flex flex-wrap items-baseline gap-2 text-sm">
             <StatusChip kind={s.kind} label={s.code} />
             <span className={`font-medium ${STATUS_STYLE[s.kind].text}`}>{s.label}</span>
-            <span className="text-db-text2">— {s.detail}</span>
+            <span className="text-lw-text2">— {s.detail}</span>
           </li>
         ))}
         {calm.length > 0 && (
-          <li className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-db-text3">
+          <li className="flex flex-wrap gap-x-4 gap-y-1 pt-1 text-xs text-lw-text3">
             {calm.map((s) => (
               <span key={s.maintenanceTypeId}>
                 <StatusDot kind={s.kind} /> {s.code} — {s.detail}
@@ -228,16 +228,16 @@ function CompactRow({ overview }: { overview: LaneOverview }) {
   return (
     <Link
       to={`/wartung/bahn/${lane.laneNumber}`}
-      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-db-line px-4 py-2.5 last:border-0 hover:bg-db-card2"
+      className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-lw-line px-4 py-2.5 last:border-0 hover:bg-lw-card2"
     >
       <span className="flex w-24 items-center gap-2 font-semibold">
         <StatusDot kind={worst} />
         Bahn {lane.laneNumber}
       </span>
-      <span className="tabular w-24 text-right text-db-text2">
+      <span className="tabular w-24 text-right text-lw-text2">
         {lane.currentFrames === null ? '—' : formatFrames(lane.currentFrames)}
       </span>
-      <span className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-xs text-db-text3">
+      <span className="flex flex-1 flex-wrap gap-x-4 gap-y-1 text-xs text-lw-text3">
         {statuses.map((s) => (
           <span key={s.maintenanceTypeId}>
             <StatusDot kind={s.kind} /> {s.code}
@@ -246,7 +246,7 @@ function CompactRow({ overview }: { overview: LaneOverview }) {
         ))}
       </span>
       {lane.status !== 'active' && (
-        <span className="rounded bg-db-card2 px-2 py-0.5 text-xs font-semibold text-db-text2">
+        <span className="rounded bg-lw-card2 px-2 py-0.5 text-xs font-semibold text-lw-text2">
           {lane.status === 'renovation' ? 'Renovierung' : 'Außer Betrieb'}
         </span>
       )}

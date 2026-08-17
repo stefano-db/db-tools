@@ -26,11 +26,11 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-lg db-card p-5 shadow-xl"
+        className="w-full max-w-lg lw-card p-5 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-semibold">Defekt melden</h2>
-        <p className="mt-1 text-sm text-db-text2">
+        <p className="mt-1 text-sm text-lw-text2">
           Unabhängig von der regulären Wartung. Erscheint sofort auf dem Dashboard.
         </p>
 
@@ -40,7 +40,7 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
             <select
               value={laneId}
               onChange={(e) => setLaneId(e.target.value)}
-              className="db-input mt-1"
+              className="lw-input mt-1"
             >
               <option value="">Keine bestimmte Bahn</option>
               {snapshot?.lanes.map((l) => (
@@ -58,7 +58,7 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="z. B. Ball Elevator macht Geräusche"
-              className="db-input mt-1"
+              className="lw-input mt-1"
             />
           </label>
 
@@ -68,7 +68,7 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="db-input mt-1"
+              className="lw-input mt-1"
             />
           </label>
 
@@ -80,7 +80,7 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
                   key={s}
                   onClick={() => setSeverity(s)}
                   className={`flex-1 rounded border px-3 py-2 text-sm font-medium ${
-                    severity === s ? 'border-db-gold-dim db-btn-gold' : 'border-db-line'
+                    severity === s ? 'border-lw-line2 lw-btn-primary' : 'border-lw-line'
                   }`}
                 >
                   {s === 'low' ? 'Gering' : s === 'medium' ? 'Mittel' : 'Hoch'}
@@ -91,13 +91,13 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded px-4 py-2 text-sm font-medium hover:bg-db-card2">
+          <button onClick={onClose} className="rounded px-4 py-2 text-sm font-medium hover:bg-lw-card2">
             Abbrechen
           </button>
           <button
             onClick={save}
             disabled={!title.trim() || saving}
-            className="db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
+            className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
           >
             Melden
           </button>

@@ -30,8 +30,8 @@ export function LanePage() {
     return snapshot.pairs.find((p) => p.id === laneRow?.pairId)?.label ?? null;
   }, [snapshot, overview]);
 
-  if (!snapshot) return <p className="text-db-text3">Wird geladen…</p>;
-  if (!overview) return <p className="text-db-text3">Bahn nicht gefunden.</p>;
+  if (!snapshot) return <p className="text-lw-text3">Wird geladen…</p>;
+  if (!overview) return <p className="text-lw-text3">Bahn nicht gefunden.</p>;
 
   const { lane, statuses } = overview;
   const due = statuses.filter((s) => s.kind === 'due');
@@ -48,7 +48,7 @@ export function LanePage() {
   return (
     <div className="space-y-6">
       <div>
-        <button onClick={() => navigate(-1)} className="text-sm font-medium text-db-text2 hover:underline">
+        <button onClick={() => navigate(-1)} className="text-sm font-medium text-lw-text2 hover:underline">
           ← Zurück
         </button>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
@@ -57,13 +57,13 @@ export function LanePage() {
               <StatusDot kind={overview.worst} />
               Bahn {lane.laneNumber}
             </h1>
-            {pairLabel && <p className="text-sm text-db-text3">Bahnpaar {pairLabel}</p>}
+            {pairLabel && <p className="text-sm text-lw-text3">Bahnpaar {pairLabel}</p>}
           </div>
           <div className="text-right">
             <div className="tabular text-3xl font-bold">
               {lane.currentFrames === null ? '—' : formatFrames(lane.currentFrames)}
             </div>
-            <div className="text-sm text-db-text3">
+            <div className="text-sm text-lw-text3">
               {lane.lastReadingDate ? `abgelesen ${formatDateDe(lane.lastReadingDate)}` : 'keine Ablesung'}
               {lane.framesPerWeek ? ` · ca. ${formatFrames(lane.framesPerWeek)} Frames/Woche` : ''}
             </div>
@@ -72,7 +72,7 @@ export function LanePage() {
       </div>
 
       {confirmation && (
-        <div className="rounded-lg border border-db-ok bg-db-ok/10 p-4 text-db-ok">
+        <div className="rounded-lg border border-lw-ok bg-lw-ok/10 p-4 text-lw-ok">
           <div className="font-semibold">● Wartung gespeichert</div>
           <ul className="mt-1 space-y-0.5 text-sm">
             {confirmation.map((line) => (
@@ -96,7 +96,7 @@ export function LanePage() {
       )}
 
       {statuses.some((s) => s.kind === 'unknown') && (
-        <div className="rounded border border-db-line bg-db-card2 px-4 py-3 text-sm text-db-text2">
+        <div className="rounded border border-lw-line bg-lw-card2 px-4 py-3 text-sm text-lw-text2">
           <strong className="font-semibold">? Wartungsstand unbekannt.</strong> Für diese Intervalle
           ist nicht hinterlegt, bei welchem Frame-Stand zuletzt gewartet wurde. Die App rät bewusst
           nicht und meldet deshalb weder „fällig" noch „in Ordnung". Sobald du die Wartung einmal
@@ -150,18 +150,18 @@ export function LanePage() {
       <Section
         title="Offene Defekte"
         action={
-          <button onClick={() => setIssueOpen(true)} className="text-sm font-semibold text-db-text2 hover:underline">
+          <button onClick={() => setIssueOpen(true)} className="text-sm font-semibold text-lw-text2 hover:underline">
             + Defekt melden
           </button>
         }
       >
         {issues.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-db-text3">Keine offenen Meldungen.</p>
+          <p className="px-4 py-3 text-sm text-lw-text3">Keine offenen Meldungen.</p>
         ) : (
           issues.map((i) => (
             <div key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <span className="font-medium">🔧 {i.title}</span>
-              <span className="text-sm text-db-text3">
+              <span className="text-sm text-lw-text3">
                 gemeldet {formatDateDe(i.reportedAt.slice(0, 10))} von {i.reportedBy}
               </span>
               <button
@@ -169,7 +169,7 @@ export function LanePage() {
                   await repo.updateIssueStatus(i.id, 'resolved');
                   await reload();
                 }}
-                className="ml-auto rounded border border-db-line px-3 py-1 text-sm font-medium hover:bg-db-card2"
+                className="ml-auto rounded border border-lw-line px-3 py-1 text-sm font-medium hover:bg-lw-card2"
               >
                 Erledigt
               </button>
@@ -181,22 +181,22 @@ export function LanePage() {
       <Section
         title="Letzte Wartungen"
         action={
-          <Link to={`/wartung/historie?bahn=${lane.laneNumber}`} className="text-sm font-semibold text-db-text2 hover:underline">
+          <Link to={`/wartung/historie?bahn=${lane.laneNumber}`} className="text-sm font-semibold text-lw-text2 hover:underline">
             Gesamte Historie →
           </Link>
         }
       >
         {history.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-db-text3">Noch keine Wartung dokumentiert.</p>
+          <p className="px-4 py-3 text-sm text-lw-text3">Noch keine Wartung dokumentiert.</p>
         ) : (
           history.map((r) => (
             <div key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm">
-              <span className="tabular w-24 text-db-text2">{formatDateDe(r.performedOn)}</span>
+              <span className="tabular w-24 text-lw-text2">{formatDateDe(r.performedOn)}</span>
               <span className="font-semibold">{r.typeCode}</span>
-              <span className="tabular text-db-text2">{formatFrames(r.cumulativeFrames)}</span>
-              <span className="text-db-text3">{r.employeeName}</span>
-              {r.source === 'cascade' && <span className="text-xs text-db-text3">↳ mitkaskadiert</span>}
-              {r.hasDeviation && <span className="text-xs font-semibold text-db-warn">▲ Abweichung</span>}
+              <span className="tabular text-lw-text2">{formatFrames(r.cumulativeFrames)}</span>
+              <span className="text-lw-text3">{r.employeeName}</span>
+              {r.source === 'cascade' && <span className="text-xs text-lw-text3">↳ mitkaskadiert</span>}
+              {r.hasDeviation && <span className="text-xs font-semibold text-lw-warn">▲ Abweichung</span>}
             </div>
           ))
         )}
@@ -204,24 +204,24 @@ export function LanePage() {
 
       <Section title="Frame-Eingaben">
         {readings.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-db-text3">Noch keine Ablesung erfasst.</p>
+          <p className="px-4 py-3 text-sm text-lw-text3">Noch keine Ablesung erfasst.</p>
         ) : (
           readings.map((r) => (
             <div
               key={r.id}
               className={`flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm ${
-                r.supersededById ? 'text-db-text3' : ''
+                r.supersededById ? 'text-lw-text3' : ''
               }`}
             >
               <span className="tabular w-24">{formatDateDe(r.readingDate)}</span>
               <span className={`tabular w-28 text-right font-semibold ${r.supersededById ? 'line-through' : ''}`}>
                 {formatFrames(r.rawValue)}
               </span>
-              <span className="tabular text-db-text3">
+              <span className="tabular text-lw-text3">
                 = {formatFrames(r.cumulativeFrames)} gesamt
               </span>
               {r.supersededById && <span className="text-xs">ersetzt</span>}
-              {r.correctionReason && <span className="text-xs text-db-text3">{r.correctionReason}</span>}
+              {r.correctionReason && <span className="text-xs text-lw-text3">{r.correctionReason}</span>}
             </div>
           ))
         )}
@@ -259,10 +259,10 @@ function Section({
   return (
     <section>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">{title}</h2>
+        <h2 className="text-sm font-semibold tracking-wide text-lw-text3 uppercase">{title}</h2>
         {action}
       </div>
-      <div className="db-panel divide-y divide-db-line overflow-hidden">
+      <div className="lw-card divide-y divide-lw-line overflow-hidden">
         {children}
       </div>
     </section>
@@ -284,9 +284,9 @@ function StatusRow({
     <div className="flex flex-wrap items-center gap-3 px-4 py-3">
       <StatusChip kind={status.kind} label={status.code} />
       <span className={`font-semibold ${STATUS_STYLE[status.kind].text}`}>{status.label}</span>
-      <span className="text-sm text-db-text2">{status.detail}</span>
+      <span className="text-sm text-lw-text2">{status.detail}</span>
       {status.kind === 'due_soon' && status.estimatedDueDate && (
-        <span className="text-sm text-db-text3">voraussichtlich {formatDateDe(status.estimatedDueDate)}</span>
+        <span className="text-sm text-lw-text3">voraussichtlich {formatDateDe(status.estimatedDueDate)}</span>
       )}
       <button
         onClick={onOpen}
@@ -298,10 +298,10 @@ function StatusRow({
         }
         className={`ml-auto rounded px-3 py-2 text-sm font-semibold disabled:opacity-40 ${
           open
-            ? 'bg-db-card2 text-db-text2'
+            ? 'bg-lw-card2 text-lw-text2'
             : early && status.kind !== 'unknown'
-              ? 'border border-db-line text-db-text2 hover:bg-db-card2'
-              : 'db-btn-gold'
+              ? 'border border-lw-line text-lw-text2 hover:bg-lw-card2'
+              : 'lw-btn-primary'
         }`}
       >
         {open
@@ -381,16 +381,16 @@ function ChecklistForm({
   const early = status?.kind !== 'due';
 
   return (
-    <section className="rounded-lg border-2 border-db-gold-dim bg-db-card p-4">
+    <section className="rounded-lg border-2 border-lw-line2 bg-lw-card p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-xl font-bold">{type.nameDe} — Wartung durchführen</h2>
-        <button onClick={onCancel} className="text-sm text-db-text2 hover:underline">
+        <button onClick={onCancel} className="text-sm text-lw-text2 hover:underline">
           Abbrechen
         </button>
       </div>
 
       {early && (
-        <p className="mt-2 rounded border border-db-line bg-db-card2 px-3 py-2 text-sm text-db-text2">
+        <p className="mt-2 rounded border border-lw-line bg-lw-card2 px-3 py-2 text-sm text-lw-text2">
           Diese Wartung ist noch nicht fällig. Beim Abschluss wird der aktuelle Stand
           {lane.currentFrames !== null && <> ({formatFrames(lane.currentFrames)})</>} als neuer Ausgangspunkt
           gesetzt.
@@ -406,7 +406,7 @@ function ChecklistForm({
       />
 
       {cascade.length > 0 && (
-        <div className="mt-4 rounded border border-db-line bg-db-card2 p-3">
+        <div className="mt-4 rounded border border-lw-line bg-lw-card2 p-3">
           <label className="flex items-start gap-2 text-sm font-semibold">
             <input
               type="checkbox"
@@ -416,7 +416,7 @@ function ChecklistForm({
             />
             <span>
               Kleinere Intervalle mit erledigen
-              <span className="block font-normal text-db-text2">
+              <span className="block font-normal text-lw-text2">
                 Wird üblicherweise mitgemacht, weil du ohnehin an der Maschine bist. Einzeln abwählbar.
               </span>
             </span>
@@ -424,7 +424,7 @@ function ChecklistForm({
 
           {cascadeOn &&
             cascade.map((c) => (
-              <div key={c.id} className="mt-3 border-t border-db-line pt-3">
+              <div key={c.id} className="mt-3 border-t border-lw-line pt-3">
                 <label className="flex items-center gap-2 text-sm font-semibold">
                   <input
                     type="checkbox"
@@ -456,18 +456,18 @@ function ChecklistForm({
       )}
 
       <label className="mt-4 block text-sm font-medium">
-        Notiz {hasDeviation && <span className="text-db-warn">(Pflicht bei offenen Aufgaben)</span>}
+        Notiz {hasDeviation && <span className="text-lw-warn">(Pflicht bei offenen Aufgaben)</span>}
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
           placeholder="z. B. String an Pin 7 beschädigt – nächste Woche tauschen."
-          className="db-input mt-1"
+          className="lw-input mt-1"
         />
       </label>
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
-        <span className="text-sm text-db-text2">
+        <span className="text-sm text-lw-text2">
           {activeTasks.length - openTasks.length} von {activeTasks.length} Aufgaben erledigt
           {openTasks.length > 0 && ` · ${openTasks.length} offen`}
         </span>
@@ -475,7 +475,7 @@ function ChecklistForm({
           onClick={submit}
           disabled={!canSubmit || saving}
           className={`ml-auto rounded px-5 py-3 font-semibold text-white disabled:opacity-40 ${
-            hasDeviation ? 'bg-db-warn text-white' : 'db-btn-gold'
+            hasDeviation ? 'bg-lw-warn text-white' : 'lw-btn-primary'
           }`}
         >
           {saving ? 'Wird gespeichert…' : hasDeviation ? 'Mit Abweichung abschließen' : 'Wartung abschließen'}
@@ -502,12 +502,12 @@ function TaskList({
 }) {
   return (
     <div className={compact ? 'mt-2' : 'mt-3'}>
-      {title && <h3 className="mb-1 text-sm font-semibold text-db-text2">{title}</h3>}
-      <ul className="divide-y divide-db-line rounded border border-db-line">
+      {title && <h3 className="mb-1 text-sm font-semibold text-lw-text2">{title}</h3>}
+      <ul className="divide-y divide-lw-line rounded border border-lw-line">
         {tasks.map((task) => {
           const result = results[task.id] ?? 'open';
           return (
-            <li key={task.id} className="flex items-center gap-3 bg-db-card px-3 py-2.5">
+            <li key={task.id} className="flex items-center gap-3 bg-lw-card px-3 py-2.5">
               <input
                 type="checkbox"
                 checked={result === 'done'}
@@ -517,11 +517,11 @@ function TaskList({
               />
               <label
                 htmlFor={`task-${task.id}`}
-                className={`flex-1 text-sm ${result === 'not_applicable' ? 'text-db-text3 line-through' : ''}`}
+                className={`flex-1 text-sm ${result === 'not_applicable' ? 'text-lw-text3 line-through' : ''}`}
               >
                 {task.titleDe}
                 {task.scope === 'lane_pair' && pairLabel && (
-                  <span className="ml-2 rounded bg-db-card2 px-1.5 py-0.5 text-xs text-db-text2">
+                  <span className="ml-2 rounded bg-lw-card2 px-1.5 py-0.5 text-xs text-lw-text2">
                     ⟨ {pairLabel} ⟩
                   </span>
                 )}
@@ -530,8 +530,8 @@ function TaskList({
                 onClick={() => setResult(task.id, result === 'not_applicable' ? 'open' : 'not_applicable')}
                 className={`shrink-0 rounded border px-2 py-1 text-xs font-medium ${
                   result === 'not_applicable'
-                    ? 'border-db-gold-dim bg-db-card2 text-db-text2'
-                    : 'border-db-line text-db-text3 hover:bg-db-card2'
+                    ? 'border-lw-line2 bg-lw-card2 text-lw-text2'
+                    : 'border-lw-line text-lw-text3 hover:bg-lw-card2'
                 }`}
                 title="Nicht zutreffend"
               >
@@ -574,7 +574,7 @@ function ResetLaneSection({
 
   if (done) {
     return (
-      <div className="rounded border border-db-ok bg-db-ok/10 px-4 py-3 text-sm text-db-ok">
+      <div className="rounded border border-lw-ok bg-lw-ok/10 px-4 py-3 text-sm text-lw-ok">
         ● Zurückgesetzt: {done.readings} Ablesungen und {done.records} Wartungseinträge entfernt.
         Die Bahn steht wieder auf „keine Ablesung".
       </div>
@@ -584,22 +584,22 @@ function ResetLaneSection({
   if (!hasData) return null;
 
   return (
-    <section className="db-panel p-4">
+    <section className="lw-card p-4">
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="text-sm font-medium text-db-text3 hover:text-db-bad hover:underline"
+          className="text-sm font-medium text-lw-text3 hover:text-lw-bad hover:underline"
         >
           Bahn zurücksetzen (Probeeingaben entfernen)
         </button>
       ) : (
         <>
-          <h2 className="font-semibold text-db-bad">■ Bahn {laneNumber} zurücksetzen</h2>
-          <p className="mt-1 text-sm text-db-text2">
+          <h2 className="font-semibold text-lw-bad">■ Bahn {laneNumber} zurücksetzen</h2>
+          <p className="mt-1 text-sm text-lw-text2">
             Entfernt <strong>alle</strong> Ablesungen, Wartungseinträge und Zähler-Epochen dieser
             Bahn. Danach steht sie wieder auf „keine Ablesung", als wäre sie nie benutzt worden.
           </p>
-          <p className="mt-2 text-sm text-db-text2">
+          <p className="mt-2 text-sm text-lw-text2">
             Gedacht für Probeeingaben aus der Einrichtung. Für einen einzelnen Fehler ist die
             Korrektur der Ablesung oder das Stornieren der Wartung der richtige Weg — dabei bleibt
             nachvollziehbar, was passiert ist.
@@ -611,11 +611,11 @@ function ResetLaneSection({
               autoFocus
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
-              className="mt-1 w-48 db-input"
+              className="mt-1 w-48 lw-input"
             />
           </label>
 
-          {error && <p className="mt-2 text-sm text-db-bad">■ {error}</p>}
+          {error && <p className="mt-2 text-sm text-lw-bad">■ {error}</p>}
 
           <div className="mt-3 flex gap-2">
             <button
@@ -623,7 +623,7 @@ function ResetLaneSection({
                 setOpen(false);
                 setConfirmText('');
               }}
-              className="rounded px-4 py-2 text-sm font-medium hover:bg-db-card2"
+              className="rounded px-4 py-2 text-sm font-medium hover:bg-lw-card2"
             >
               Abbrechen
             </button>
@@ -640,7 +640,7 @@ function ResetLaneSection({
                   setBusy(false);
                 }
               }}
-              className="rounded bg-db-bad px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+              className="rounded bg-lw-bad px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
             >
               {busy ? 'Wird zurückgesetzt…' : 'Endgültig zurücksetzen'}
             </button>

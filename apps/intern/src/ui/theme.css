@@ -33,6 +33,26 @@
   --color-db-text2: #b6ada0;
   --color-db-text3: #7d766c;
 
+  /* Heller Arbeitsbereich.
+     Module, in denen man laenger liest und viele Zahlen vergleicht — die
+     Bahnwartung — laufen auf hellem Grund. Dunkel wirkt dort flach: schwarze
+     Schrift auf Weiss wiegt schwerer als helle auf Dunkel, und weisse Karten
+     auf grauem Grund trennen sich von selbst.
+     Warme Toene, kein kaltes Blaugrau — sonst bricht es aus der Marke aus. */
+  --color-lw-bg: #f4f1ea;
+  --color-lw-card: #ffffff;
+  --color-lw-card2: #faf8f3;
+  --color-lw-line: #e0d9cc;
+  --color-lw-line2: #cdc3b2;
+  --color-lw-text: #201d18;
+  --color-lw-text2: #554e44;
+  --color-lw-text3: #8a8175;
+
+  /* Status auf hellem Grund — dunkler als im dunklen Bereich, sonst blass */
+  --color-lw-ok: #1a7a4c;
+  --color-lw-warn: #a06010;
+  --color-lw-bad: #b03028;
+
   /* Status — dieselben Bedeutungen wie in der Wartung */
   --color-db-ok: #3fb27a;
   --color-db-warn: #e0a038;
@@ -167,4 +187,105 @@ body.db input[type='radio'] {
   background:
     radial-gradient(circle at 50% 35%, rgba(224, 176, 80, 0.28), transparent 60%),
     var(--color-db-card2);
+}
+
+
+/* ── HELLER ARBEITSBEREICH ────────────────────────────────────────────────────
+   Ein Modul, das auf hellem Grund läuft, sitzt als eigene Fläche im dunklen
+   Rahmen — sichtbar abgesetzt, damit der Wechsel gewollt wirkt und nicht wie
+   ein Fehler. */
+.lw-sheet {
+  background: var(--color-lw-bg);
+  color: var(--color-lw-text);
+  border: 1px solid var(--color-db-line);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+@media (min-width: 640px) {
+  .lw-sheet {
+    padding: 1.5rem;
+  }
+}
+
+/* Jede helle Fläche bringt ihre Textfarbe selbst mit: sie kann auch ausserhalb
+   des hellen Bereichs stehen — ein Dialog etwa liegt über der dunklen Seite —
+   und würde sonst helle Schrift vom Rahmen erben. */
+.lw-card {
+  color: var(--color-lw-text);
+  background: var(--color-lw-card);
+  border: 1px solid var(--color-lw-line);
+  border-radius: 12px;
+}
+.lw-card-hover:hover {
+  border-color: var(--color-lw-line2);
+}
+
+/* Kennzahl mit Fläche: was Handlung verlangt, bekommt Farbe. */
+.lw-tile {
+  color: var(--color-lw-text);
+  background: var(--color-lw-card);
+  border: 1px solid var(--color-lw-line);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+}
+.lw-tile-ok {
+  background: color-mix(in srgb, var(--color-lw-ok) 10%, #fff);
+  border-color: color-mix(in srgb, var(--color-lw-ok) 35%, transparent);
+}
+.lw-tile-warn {
+  background: color-mix(in srgb, var(--color-lw-warn) 12%, #fff);
+  border-color: color-mix(in srgb, var(--color-lw-warn) 40%, transparent);
+}
+.lw-tile-bad {
+  background: color-mix(in srgb, var(--color-lw-bad) 12%, #fff);
+  border-color: color-mix(in srgb, var(--color-lw-bad) 45%, transparent);
+}
+
+.lw-input {
+  width: 100%;
+  background: var(--color-lw-card);
+  border: 1px solid var(--color-lw-line2);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-lw-text);
+}
+.lw-input:focus {
+  outline: none;
+  border-color: var(--color-db-gold-dim);
+}
+.lw-input::placeholder {
+  color: var(--color-lw-text3);
+}
+
+/* Die Hauptaktion bleibt golden — sie hält den Bereich mit dem Rest zusammen. */
+.lw-btn-primary {
+  background: linear-gradient(180deg, var(--color-db-gold-soft), var(--color-db-gold));
+  color: #241c08;
+  font-weight: 700;
+  border-radius: 8px;
+}
+.lw-btn-primary:hover {
+  filter: brightness(1.05);
+}
+.lw-btn-ghost {
+  border: 1px solid var(--color-lw-line2);
+  color: var(--color-lw-text2);
+  border-radius: 8px;
+  background: var(--color-lw-card);
+}
+.lw-btn-ghost:hover {
+  border-color: var(--color-db-gold-dim);
+  color: var(--color-lw-text);
+}
+
+.lw-zebra tbody tr:nth-child(even) {
+  background: var(--color-lw-card2);
+}
+
+/* Kontrollkästchen im hellen Bereich ebenfalls in der Leitfarbe. */
+.lw-sheet input[type='checkbox'],
+.lw-sheet input[type='radio'],
+.lw-card input[type='checkbox'],
+.lw-card input[type='radio'] {
+  accent-color: var(--color-db-gold-dim);
 }

@@ -8,7 +8,7 @@ export function SettingsPage() {
   const { snapshot, repo, reload, isAdmin } = useData();
   const [saving, setSaving] = useState(false);
 
-  if (!snapshot) return <p className="text-db-text3">Wird geladen…</p>;
+  if (!snapshot) return <p className="text-lw-text3">Wird geladen…</p>;
   const s = snapshot.settings;
 
   async function patch(partial: Parameters<typeof repo.updateSettings>[0]) {
@@ -30,7 +30,7 @@ export function SettingsPage() {
       {isAdmin && <BackupCard />}
 
       {!isAdmin && (
-        <p className="db-card px-4 py-3 text-sm text-db-text2">
+        <p className="lw-card px-4 py-3 text-sm text-lw-text2">
           Weitere Einstellungen — Wartungsintervalle, Aufgaben, Vorwarnzeiten — können nur
           Administratoren ändern.
         </p>
@@ -49,9 +49,9 @@ export function SettingsPage() {
             max={26}
             defaultValue={s.warningWeeks}
             onBlur={(e) => patch({ warningWeeks: Number(e.target.value) })}
-            className="w-20 db-input text-right"
+            className="w-20 lw-input text-right"
           />
-          <span className="ml-2 text-sm text-db-text2">Wochen</span>
+          <span className="ml-2 text-sm text-lw-text2">Wochen</span>
         </Field>
 
         <Field
@@ -64,9 +64,9 @@ export function SettingsPage() {
             max={50}
             defaultValue={Math.round(s.warningPercent * 100)}
             onBlur={(e) => patch({ warningPercent: Number(e.target.value) / 100 })}
-            className="w-20 db-input text-right"
+            className="w-20 lw-input text-right"
           />
-          <span className="ml-2 text-sm text-db-text2">Prozent</span>
+          <span className="ml-2 text-sm text-lw-text2">Prozent</span>
         </Field>
 
         <Field
@@ -76,7 +76,7 @@ export function SettingsPage() {
           <input
             defaultValue={s.counterUnitLabel}
             onBlur={(e) => patch({ counterUnitLabel: e.target.value })}
-            className="w-40 db-input"
+            className="w-40 lw-input"
           />
         </Field>
       </Card>
@@ -89,9 +89,9 @@ export function SettingsPage() {
             step={0.5}
             defaultValue={s.plausibilityFactor}
             onBlur={(e) => patch({ plausibilityFactor: Number(e.target.value) })}
-            className="w-20 db-input text-right"
+            className="w-20 lw-input text-right"
           />
-          <span className="ml-2 text-sm text-db-text2">×</span>
+          <span className="ml-2 text-sm text-lw-text2">×</span>
         </Field>
         <Field label="Absolute Obergrenze je Woche" hint="Harte Tippfehler-Bremse, unabhängig von der Bahn.">
           <input
@@ -100,14 +100,14 @@ export function SettingsPage() {
             step={1000}
             defaultValue={s.plausibilityAbsMax}
             onBlur={(e) => patch({ plausibilityAbsMax: Number(e.target.value) })}
-            className="w-32 db-input text-right"
+            className="w-32 lw-input text-right"
           />
         </Field>
       </Card>
 
       <Card title="Wartungstypen">
         <table className="w-full text-left text-sm">
-          <thead className="text-xs tracking-wide text-db-text3 uppercase">
+          <thead className="text-xs tracking-wide text-lw-text3 uppercase">
             <tr>
               <th className="py-1 font-semibold">Code</th>
               <th className="py-1 text-right font-semibold">Intervall</th>
@@ -118,7 +118,7 @@ export function SettingsPage() {
           </thead>
           <tbody>
             {snapshot.types.map((t) => (
-              <tr key={t.id} className="border-t border-db-line">
+              <tr key={t.id} className="border-t border-lw-line">
                 <td className="py-2 font-semibold">{t.code}</td>
                 <td className="tabular py-2 text-right">{formatFrames(t.intervalFrames)}</td>
                 <td className="tabular py-2 text-right">
@@ -132,7 +132,7 @@ export function SettingsPage() {
             ))}
           </tbody>
         </table>
-        <p className="mt-3 text-sm text-db-text3">
+        <p className="mt-3 text-sm text-lw-text3">
           Intervalle und Aufgaben werden in der Datenbank gepflegt. Aufgaben werden nie gelöscht, sondern
           deaktiviert — sonst verlieren ältere Historieneinträge ihren Bezug.
         </p>
@@ -140,10 +140,10 @@ export function SettingsPage() {
 
       {repo instanceof DemoRepository && (
         <Card title="Demo-Bestand">
-          <p className="text-sm text-db-text2">
+          <p className="text-sm text-lw-text2">
             Diese Installation läuft ohne Server auf lokal erzeugten Beispieldaten. Sobald
-            <code className="mx-1 rounded bg-db-card2 px-1">VITE_SUPABASE_URL</code> und
-            <code className="mx-1 rounded bg-db-card2 px-1">VITE_SUPABASE_ANON_KEY</code> gesetzt sind,
+            <code className="mx-1 rounded bg-lw-card2 px-1">VITE_SUPABASE_URL</code> und
+            <code className="mx-1 rounded bg-lw-card2 px-1">VITE_SUPABASE_ANON_KEY</code> gesetzt sind,
             arbeitet dieselbe Oberfläche gegen die echte Datenbank.
           </p>
           <button
@@ -151,7 +151,7 @@ export function SettingsPage() {
               repo.reset();
               await reload();
             }}
-            className="mt-3 rounded border border-db-line px-4 py-2 text-sm font-medium hover:bg-db-card2"
+            className="mt-3 rounded border border-lw-line px-4 py-2 text-sm font-medium hover:bg-lw-card2"
           >
             Beispieldaten zurücksetzen
           </button>
@@ -160,7 +160,7 @@ export function SettingsPage() {
         </>
       )}
 
-      {saving && <p className="text-sm text-db-text3">Wird gespeichert…</p>}
+      {saving && <p className="text-sm text-lw-text3">Wird gespeichert…</p>}
     </div>
   );
 }
@@ -235,7 +235,7 @@ function BackupCard() {
 
   return (
     <Card title="Datensicherung">
-      <p className="text-sm text-db-text2">
+      <p className="text-sm text-lw-text2">
         Der kostenlose Supabase-Tarif sichert <strong>nicht</strong> automatisch. Lade die Sicherung
         regelmäßig herunter — einmal im Monat genügt — und lege sie außerhalb von Supabase ab.
       </p>
@@ -244,24 +244,24 @@ function BackupCard() {
         <button
           onClick={downloadJson}
           disabled={busy}
-          className="db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
+          className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
         >
           {busy ? 'Wird erstellt…' : 'Vollständige Sicherung (JSON)'}
         </button>
         <button
           onClick={downloadCsv}
-          className="rounded border border-db-line px-4 py-2 text-sm font-medium hover:bg-db-card2"
+          className="rounded border border-lw-line px-4 py-2 text-sm font-medium hover:bg-lw-card2"
         >
           Wartungshistorie (CSV für Excel)
         </button>
       </div>
 
-      {message && <p className="mt-2 text-sm text-db-ok">● {message}</p>}
-      {error && <p className="mt-2 text-sm text-db-bad">■ {error}</p>}
+      {message && <p className="mt-2 text-sm text-lw-ok">● {message}</p>}
+      {error && <p className="mt-2 text-sm text-lw-bad">■ {error}</p>}
 
-      <p className="mt-3 text-xs text-db-text3">
+      <p className="mt-3 text-xs text-lw-text3">
         Die JSON-Datei enthält alle Tabellen im Rohformat und kann wieder eingespielt werden — die
-        Anleitung dazu steht in <code className="rounded bg-db-card2 px-1">docs/backup.md</code>.
+        Anleitung dazu steht in <code className="rounded bg-lw-card2 px-1">docs/backup.md</code>.
         Die CSV-Datei ist zum Nachlesen und Archivieren gedacht, nicht zum Wiedereinspielen.
       </p>
     </Card>
@@ -303,20 +303,20 @@ function AccountCard() {
             setName(e.target.value);
             setState('idle');
           }}
-          className="w-56 db-input"
+          className="w-56 lw-input"
         />
         <button
           onClick={save}
           disabled={state === 'saving' || !name.trim() || name.trim() === session?.displayName}
-          className="ml-2 db-btn-gold px-4 py-2 text-sm disabled:opacity-40"
+          className="ml-2 lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
         >
           {state === 'saving' ? 'Speichern…' : 'Speichern'}
         </button>
-        {state === 'done' && <span className="ml-2 text-sm text-db-ok">● gespeichert</span>}
-        {state === 'error' && <span className="ml-2 text-sm text-db-bad">■ {message}</span>}
+        {state === 'done' && <span className="ml-2 text-sm text-lw-ok">● gespeichert</span>}
+        {state === 'error' && <span className="ml-2 text-sm text-lw-bad">■ {message}</span>}
       </Field>
 
-      <div className="text-sm text-db-text2">
+      <div className="text-sm text-lw-text2">
         Angemeldet als {session?.username ?? session?.email ?? 'Demo-Betrieb'}
         {session?.department && ` · ${DEPARTMENT_LABEL[session.department]}`}
         {session?.isLead && ' · Leitung'}
@@ -328,8 +328,8 @@ function AccountCard() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="db-panel p-4">
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">{title}</h2>
+    <section className="lw-card p-4">
+      <h2 className="mb-3 text-sm font-semibold tracking-wide text-lw-text3 uppercase">{title}</h2>
       {children}
     </section>
   );
@@ -342,7 +342,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
         <span className="w-64 text-sm font-medium">{label}</span>
         <span>{children}</span>
       </div>
-      {hint && <p className="mt-1 max-w-2xl text-xs text-db-text3">{hint}</p>}
+      {hint && <p className="mt-1 max-w-2xl text-xs text-lw-text3">{hint}</p>}
     </div>
   );
 }
