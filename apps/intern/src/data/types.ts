@@ -206,6 +206,8 @@ export interface DocumentRow {
   printCount: number;
   lastPrintedAt: string | null;
   createdAt: string;
+  /** Zeitlich begrenzte Adresse für die Vorschau. Null bei Office-Dateien. */
+  previewUrl: string | null;
 }
 
 /** Tabellenname -> Zeilen, wie sie in der Datenbank stehen. */

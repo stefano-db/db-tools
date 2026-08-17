@@ -119,9 +119,9 @@ export function DocumentsPage() {
             <h2 className="mb-2 text-sm font-semibold tracking-wide text-slate-500 uppercase">
               {category}
             </h2>
-            <div className="divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((d) => (
-                <DocumentRowView
+                <DocumentCard
                   key={d.id}
                   doc={d}
                   canWrite={canWrite}
@@ -188,7 +188,15 @@ function QuickPrint({
   );
 }
 
-function DocumentRowView({
+/**
+ * Kachel mit Vorschau.
+ *
+ * Bilder werden direkt angezeigt, PDF über die eingebaute Anzeige des Browsers —
+ * das spart eine Bibliothek von rund einem Megabyte und zeigt trotzdem die echte
+ * erste Seite. Geladen wird erst, wenn die Kachel sichtbar ist; bei vierzig
+ * Vorlagen würde sonst alles auf einmal gezogen.
+ */
+function DocumentCard({
   doc,
   canWrite,
   onChanged,
@@ -200,6 +208,19 @@ function DocumentRowView({
   onError: (m: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || visible) return;
+    const observer = new IntersectionObserver(
+      (entries) => entries.some((e) => e.isIntersecting) && setVisible(true),
+      { rootMargin: '200px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [visible]);
 
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -213,55 +234,100 @@ function DocumentRowView({
     }
   }
 
+  const isImage = doc.mimeType.startsWith('image/');
+  const isPdf = doc.mimeType === 'application/pdf';
+
   return (
-    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-      <span className="text-2xl" aria-hidden="true">
-        {icon(doc.mimeType)}
-      </span>
-      <div className="min-w-48 flex-1">
+    <div className="flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <div
+        ref={ref}
+        onClick={() => run(() => openForPrint(doc))}
+        title="Öffnen und drucken"
+        className="relative grid h-44 cursor-pointer place-items-center overflow-hidden bg-slate-100"
+      >
+        {visible && doc.previewUrl && isImage && (
+          <img
+            src={doc.previewUrl}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-contain"
+          />
+        )}
+        {visible && doc.previewUrl && isPdf && (
+          <>
+            <embed
+              src={`${doc.previewUrl}#toolbar=0&navpanes=0&view=FitH`}
+              type="application/pdf"
+              className="h-full w-full"
+            />
+            {/* Deckt die eingebettete Anzeige ab, damit der Klick die Kachel
+                trifft und nicht im PDF-Betrachter versandet. */}
+            <span className="absolute inset-0" />
+          </>
+        )}
+        {(!visible || (!isImage && !isPdf)) && (
+          <div className="text-center">
+            <div className="text-5xl">{icon(doc.mimeType)}</div>
+            {!isImage && !isPdf && (
+              <div className="mt-1 text-xs text-slate-500">keine Vorschau möglich</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-1 flex-col p-3">
         <div className="font-medium">{doc.title}</div>
         <div className="text-xs text-slate-500">
           {doc.fileName} · {formatSize(doc.sizeBytes)}
-          {doc.lastPrintedAt && (
-            <> · zuletzt gedruckt {formatDateDe(doc.lastPrintedAt.slice(0, 10))}</>
-          )}
-          {doc.printCount > 0 && <> · {doc.printCount}×</>}
         </div>
-        {doc.description && <div className="mt-0.5 text-sm text-slate-600">{doc.description}</div>}
-      </div>
+        {doc.description && <div className="mt-1 text-sm text-slate-600">{doc.description}</div>}
+        <div className="mt-1 text-xs text-slate-500">
+          {doc.lastPrintedAt ? (
+            <>
+              zuletzt gedruckt {formatDateDe(doc.lastPrintedAt.slice(0, 10))} · {doc.printCount}×
+            </>
+          ) : (
+            'noch nie gedruckt'
+          )}
+        </div>
 
-      <button
-        disabled={busy}
-        onClick={() => run(() => openForPrint(doc))}
-        className="rounded bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-      >
-        🖨 Drucken
-      </button>
-      <button
-        disabled={busy}
-        onClick={() =>
-          run(async () => {
-            const url = await repository.documentUrl(doc.id, true);
-            window.open(url, '_blank', 'noopener,noreferrer');
-          })
-        }
-        className="rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"
-      >
-        Herunterladen
-      </button>
-      {canWrite && (
-        <button
-          disabled={busy}
-          onClick={() => {
-            if (confirm(`„${doc.title}" aus der Liste nehmen?`)) {
-              void run(() => repository.archiveDocument(doc.id));
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            disabled={busy}
+            onClick={() => run(() => openForPrint(doc))}
+            className="flex-1 rounded bg-slate-900 px-3 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          >
+            🖨 Drucken
+          </button>
+          <button
+            disabled={busy}
+            onClick={() =>
+              run(async () => {
+                const url = await repository.documentUrl(doc.id, true);
+                window.open(url, '_blank', 'noopener,noreferrer');
+              })
             }
-          }}
-          className="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
-        >
-          Entfernen
-        </button>
-      )}
+            className="rounded border border-slate-300 px-3 py-2 text-sm font-medium hover:bg-slate-50"
+            title="Herunterladen"
+          >
+            ⭳
+          </button>
+          {canWrite && (
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (confirm(`„${doc.title}" aus der Liste nehmen?`)) {
+                  void run(() => repository.archiveDocument(doc.id));
+                }
+              }}
+              className="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+              title="Entfernen"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

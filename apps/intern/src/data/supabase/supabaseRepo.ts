@@ -296,12 +296,30 @@ export class SupabaseRepository implements Repository {
   async listDocuments(): Promise<DocumentRow[]> {
     const { data, error } = await this.client
       .from('documents')
-      .select('*')
+      .select('*, storage_path')
       .is('archived_at', null)
       .order('category', { nullsFirst: true })
       .order('title');
     if (error) throw new Error(error.message);
-    return (data ?? []).map((d: any) => ({
+    const rows = data ?? [];
+
+    // Vorschau gibt es für das, was der Browser darstellen kann: Bilder und PDF.
+    // Alle Adressen in einem Aufruf signieren statt einzeln — sonst wären es bei
+    // 40 Vorlagen 40 Anfragen allein für die Übersicht.
+    const previewable = rows.filter(
+      (d: any) => d.mime_type === 'application/pdf' || String(d.mime_type).startsWith('image/'),
+    );
+    const urls = new Map<string, string>();
+    if (previewable.length > 0) {
+      const { data: signed } = await this.client.storage
+        .from('dokumente')
+        .createSignedUrls(previewable.map((d: any) => d.storage_path), 60 * 30);
+      for (const entry of signed ?? []) {
+        if (entry.signedUrl && entry.path) urls.set(entry.path, entry.signedUrl);
+      }
+    }
+
+    return rows.map((d: any) => ({
       id: d.id,
       title: d.title,
       description: d.description,
@@ -312,6 +330,7 @@ export class SupabaseRepository implements Repository {
       printCount: d.print_count ?? 0,
       lastPrintedAt: d.last_printed_at,
       createdAt: d.created_at,
+      previewUrl: urls.get(d.storage_path) ?? null,
     }));
   }
 
