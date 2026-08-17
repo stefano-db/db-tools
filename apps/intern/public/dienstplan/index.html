@@ -1,0 +1,1683 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dienstplan KW 10 – März 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f0f2f8;
+  --surface:  #ffffff;
+  --surface2: #f5f7fc;
+  --surface3: #eaecf5;
+  --border:   #d0d5e8;
+  --border2:  #b0b8d8;
+  --text:     #1a1e2e;
+  --text2:    #4a5278;
+  --text3:    #8890b8;
+  --accent:   #3a6ee8;
+  --radius:   11px;
+  --rsm:      7px;
+
+  /* Group accent colours */
+  --g1: #3a6ee8;   /* blue   */
+  --g2: #e08020;   /* orange */
+  --g3: #7850d0;   /* purple */
+  --g4: #20a860;   /* green  */
+  --g5: #10a0b0;   /* teal   */
+
+  /* Cell shift colours */
+  --sh-green:   #d0f0e0;
+  --sh-green2:  #b8e8d0;
+  --sh-yellow:  #fdf3c0;
+  --sh-orange:  #fde0b0;
+  --sh-black:   #e8eaf4;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 14px 18px;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.page-wrap { max-width: 1300px; margin: 0 auto; }
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 11px 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.tb-left  { display:flex; align-items:center; gap:14px; }
+.tb-title {
+  font-size: 16px; font-weight: 800; color: var(--text);
+  letter-spacing: -0.3px;
+}
+.kw-pill {
+  background: rgba(58,110,232,0.12);
+  color: var(--accent);
+  font-size: 11px; font-weight: 700;
+  padding: 3px 11px; border-radius: 20px;
+  border: 1px solid rgba(58,110,232,0.25);
+  letter-spacing: 0.4px;
+}
+
+.week-nav {
+  display: flex; align-items: center; gap: 3px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--rsm);
+  padding: 3px 7px;
+  font-size: 12px; font-weight: 500; color: var(--text2);
+}
+.week-nav span { padding: 0 6px; white-space: nowrap; }
+.week-nav button {
+  background: none; border: none;
+  width: 24px; height: 24px; border-radius: 5px;
+  cursor: pointer; font-size: 16px; color: var(--text2);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.1s, color 0.1s; line-height: 1;
+}
+.week-nav button:hover { background: var(--border2); color: var(--text); }
+
+.tb-right { display:flex; gap:8px; }
+.btn {
+  padding: 7px 15px; border-radius: var(--rsm);
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  transition: all 0.12s; border: 1px solid var(--border2);
+  background: var(--surface3); color: var(--text2);
+  display: flex; align-items: center; gap: 5px;
+}
+.btn:hover { border-color: var(--text2); color: var(--text); }
+.btn-accent {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
+}
+.btn-accent:hover { background: #3d6de0; border-color: #3d6de0; color: #fff; }
+
+/* ── TABLE WRAP ── */
+.wrap {
+  border-radius: var(--radius);
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+}
+
+table { border-collapse: collapse; width: 100%; table-layout: fixed; }
+th, td { border: 1px solid var(--border); }
+
+/* Fixed column widths */
+.col-name  { width: 80px; }
+.c-time    { width: 46px; }
+.c-std     { width: 36px; }
+.c-total   { width: 58px; }
+
+/* ── THEAD ── */
+.th-main {
+  background: var(--surface3);
+  color: var(--text2); font-weight: 700;
+  text-align: center; font-size: 12px; padding: 8px 3px;
+  border-color: var(--border2) !important;
+  letter-spacing: 0.2px;
+}
+.th-date {
+  background: var(--surface2);
+  color: var(--text2); font-weight: 500;
+  text-align: center; font-size: 11px; padding: 5px 2px;
+  border-color: var(--border) !important;
+}
+.th-sub {
+  background: var(--surface2);
+  color: var(--text3); font-weight: 500;
+  text-align: center; font-size: 10px; padding: 4px 2px;
+  white-space: nowrap;
+  border-color: var(--border) !important;
+}
+.th-mull {
+  background: var(--surface3);
+  color: var(--text3); font-weight: 700;
+  text-align: center; font-size: 11px; padding: 4px 2px;
+  border-color: var(--border2) !important;
+}
+
+/* ── NAME COL ── */
+.col-name {
+  width: 80px; min-width: 80px;
+  font-weight: 700; font-size: 12px;
+  text-align: center; padding: 4px 6px;
+  position: sticky; left: 0; z-index: 10;
+  border-right: 2px solid var(--border2) !important;
+  background: var(--surface);
+}
+
+/* ── DATA CELLS ── */
+.c-time {
+  text-align: center; font-size: 11px; padding: 3px 2px;
+  cursor: pointer; transition: filter 0.1s;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.c-time:hover { filter: brightness(1.2); }
+
+.c-std {
+  text-align: center; font-size: 11px; font-weight: 800;
+  padding: 3px 2px; cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid rgba(200,40,40,0.2) !important;
+}
+.c-std:hover { filter: brightness(1.2); }
+
+/* Daily std cell — neutral (Dienst) */
+.bg-dienst.c-std { color: #c02020 !important; background: rgba(200,40,40,0.06) !important; border-left: 1px solid rgba(200,40,40,0.15) !important; }
+
+/* Status cells keep their own colour for std */
+.bg-frei.c-std   { color: #4dc87a !important; }
+.bg-urlaub.c-std { color: #c8a020 !important; }
+.bg-krank.c-std  { color: #d05050 !important; }
+
+.c-total {
+  width: 58px; min-width: 58px;
+  text-align: center; font-size: 11px; font-weight: 800;
+  padding: 3px 5px;
+  background: rgba(58,110,232,0.08);
+  color: #2850c0;
+  border-left: 2px solid rgba(58,110,232,0.25) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+
+tbody tr td { height: 26px; }
+tbody tr:not(.sep):not(.grp-hdr):hover td { background: rgba(255,255,255,0.03) !important; }
+
+/* ── SEP ROW ── */
+tr.sep td { height: 7px; background: var(--bg); border: none; padding: 0; }
+
+/* ── GESAMT ── */
+.th-gesamt {
+  background: rgba(58,110,232,0.10);
+  color: #2850c0; font-weight: 700; font-size: 10px;
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  text-align: center; padding: 5px 3px; letter-spacing: 0.8px;
+  border-left: 2px solid rgba(58,110,232,0.25) !important;
+  border-color: rgba(58,110,232,0.15) !important;
+}
+
+/* ── CELL BACKGROUNDS ── */
+/* Dienst (Zeit eingetragen) → kein Farbhintergrund */
+.bg-dienst { background: #ffffff; color: var(--text) !important; }
+
+/* Nicht eingeteilt → Dunkelgrau/Schwarz */
+.bg-frei   { background: #d4f5e4; color: #0a6630 !important; }
+.bg-urlaub { background: #fef7cc; color: #7a5500 !important; }
+.bg-krank  { background: #fde0e0; color: #a01010 !important; }
+.bg-nein   { background: #eceef8; color: #8890b8 !important; }
+
+/* ── NAME PILL COLOURS ── */
+.nc-red    { background: rgba(220,50,50,0.10);  color: #c02020; border-left: 3px solid #e04040 !important; }
+.nc-yellow { background: rgba(200,160,0,0.12);  color: #8a6000; border-left: 3px solid #c8a800 !important; }
+.nc-white  { background: var(--surface2);        color: var(--text);  border-left: 3px solid var(--text3) !important; }
+.nc-blue   { background: rgba(58,110,232,0.12); color: #2850c0; border-left: 3px solid #3a6ee8 !important; }
+.nc-orange { background: rgba(220,120,0,0.12);  color: #a05000; border-left: 3px solid #d07000 !important; }
+
+/* ── GROUP HEADER ROWS ── */
+.grp-hdr td {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  text-transform: uppercase; padding: 5px 12px !important;
+  height: 20px !important; border: none !important;
+}
+.grp-hdr.g1 td { background: rgba(58,110,232,0.12);  color: #2850c0; border-top: 1px solid rgba(58,110,232,0.3) !important; }
+.grp-hdr.g2 td { background: rgba(220,140,20,0.12);  color: #a05800; border-top: 1px solid rgba(220,140,20,0.3) !important; }
+.grp-hdr.g3 td { background: rgba(120,80,208,0.12);  color: #5830a0; border-top: 1px solid rgba(120,80,208,0.3) !important; }
+.grp-hdr.g4 td { background: rgba(20,168,96,0.12);   color: #0a6830; border-top: 1px solid rgba(20,168,96,0.3) !important; }
+.grp-hdr.g5 td { background: rgba(16,160,176,0.12);  color: #0a7080; border-top: 1px solid rgba(16,160,176,0.3) !important; }
+
+/* Group left-border accent on name col */
+.gr1 .col-name { border-left: 3px solid var(--g1) !important; }
+.gr2 .col-name { border-left: 3px solid var(--g2) !important; }
+.gr3 .col-name { border-left: 3px solid var(--g3) !important; }
+.gr4 .col-name { border-left: 3px solid var(--g4) !important; }
+.gr5 .col-name { border-left: 3px solid var(--g5) !important; }
+
+/* ── MODAL ── */
+.modal-ov {
+  display: none; position: fixed; inset: 0;
+  background: rgba(80,90,130,0.35);
+  backdrop-filter: blur(4px);
+  z-index: 200; align-items: center; justify-content: center;
+}
+.modal-ov.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: 14px; padding: 22px;
+  width: 296px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  animation: mIn 0.2s cubic-bezier(.34,1.3,.64,1);
+}
+@keyframes mIn { from{opacity:0;transform:scale(.92) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+.modal h3 { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.modal .msub { font-size: 11px; color: var(--text2); margin-bottom: 16px; }
+.modal label {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  display: block; margin-bottom: 4px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.modal input, .modal select {
+  width: 100%; padding: 8px 10px;
+  border: 1.5px solid var(--border2);
+  border-radius: var(--rsm);
+  font-size: 12px; font-family: 'Inter', sans-serif;
+  margin-bottom: 10px; color: var(--text);
+  background: var(--surface2);
+  transition: border-color 0.15s;
+}
+.modal input:focus, .modal select:focus { outline: none; border-color: var(--accent); }
+.modal select option { background: var(--surface2); }
+.mrow { display: flex; gap: 8px; }
+.mrow > div { flex: 1; }
+.mactions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 14px; }
+
+/* Preset time chips */
+.preset-chip {
+  padding: 5px 9px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  background: rgba(58,110,232,0.10);
+  color: #2850c0;
+  border: 1px solid rgba(58,110,232,0.22);
+  transition: all 0.12s; white-space: nowrap;
+}
+.preset-chip:hover { background: rgba(58,110,232,0.20); border-color: rgba(58,110,232,0.45); color: #1a40b0; }
+
+/* Status buttons */
+.status-btns {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 7px; margin-bottom: 2px; margin-top: 6px;
+}
+.sbtn {
+  padding: 9px 6px; border-radius: 8px;
+  font-size: 12px; font-weight: 700;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  border: 2px solid transparent;
+  transition: all 0.15s; opacity: 0.5;
+}
+.sbtn.active { opacity: 1; }
+.sbtn-dienst { background: rgba(58,110,232,0.10); color: #3a6ee8; border-color: transparent; }
+.sbtn-dienst.active { border-color: #3a6ee8; background: rgba(58,110,232,0.20); }
+.sbtn-frei   { background: rgba(20,160,80,0.12);  color: #0a7830; border-color: transparent; }
+.sbtn-frei.active   { border-color: #20a860; background: rgba(20,160,80,0.25); }
+.sbtn-urlaub { background: rgba(180,140,0,0.12);  color: #8a6000; border-color: transparent; }
+.sbtn-urlaub.active { border-color: #c8a020; background: rgba(180,140,0,0.25); }
+.sbtn-krank  { background: rgba(180,40,40,0.10);  color: #b02020; border-color: transparent; }
+.sbtn-krank.active  { border-color: #c03030; background: rgba(180,40,40,0.22); }
+.sbtn-nein   { background: rgba(180,185,210,0.3); color: #6870a0; border-color: transparent; }
+.sbtn-nein.active   { border-color: #8890b8; background: rgba(180,185,210,0.5); color: #4a5278; }
+
+/* ── PAGE TABS ── */
+.nav-tabs {
+  display: flex; gap: 2px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 4px;
+  border: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.nav-tab {
+  padding: 7px 18px; border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: 'Inter', sans-serif;
+  border: none; color: var(--text2); background: none;
+  transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+}
+.nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-tab.active {
+  background: var(--surface3); color: var(--text);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+/* Pages */
+.page { display: none; }
+.page.active { display: block; }
+
+/* Settings page layout */
+.settings-wrap {
+  max-width: 900px; margin: 0 auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+}
+.settings-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+.settings-card h3 {
+  font-size: 13px; font-weight: 800; color: var(--text);
+  margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+}
+
+/* ── STATISTICS PAGE ── */
+.stat-page { max-width: 1100px; margin: 0 auto; }
+
+/* KPI summary row */
+.kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px; }
+.kpi-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px 18px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.25);
+}
+.kpi-label { font-size:10px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:0.7px; margin-bottom:6px; }
+.kpi-value { font-size:26px; font-weight:800; color:var(--text); line-height:1; }
+.kpi-sub   { font-size:11px; color:var(--text2); margin-top:4px; }
+.kpi-warn  { color:#e05050; }
+.kpi-ok    { color:#4dc87a; }
+.kpi-info  { color:#4f7ef7; }
+.kpi-muted { color:#c8a020; }
+
+/* Warnings banner */
+.warn-banner {
+  background:rgba(220,80,50,0.1); border:1px solid rgba(220,80,50,0.3);
+  border-radius:var(--rsm); padding:10px 14px; margin-bottom:16px;
+  font-size:12px; color:#e07060;
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+}
+.warn-banner b { color:#e05050; }
+.warn-chip {
+  background:rgba(220,50,50,0.15); border:1px solid rgba(220,50,50,0.3);
+  border-radius:20px; padding:3px 10px; font-size:11px; font-weight:600; color:#e07070;
+}
+
+/* Two-column layout */
+.stat-cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+
+/* Abteilung cards */
+.abt-stat-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px 18px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+}
+.abt-stat-header {
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;
+}
+.abt-stat-name { font-size:13px; font-weight:800; color:var(--text); }
+.abt-stat-count { font-size:11px; color:var(--text3); background:var(--surface2); padding:2px 8px; border-radius:20px; }
+
+.abt-numbers { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+.abt-num { text-align:center; }
+.abt-num-val { font-size:18px; font-weight:800; color:var(--text); }
+.abt-num-lbl { font-size:9px; color:var(--text3); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+.abt-pill-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.abt-pill {
+  font-size:10px; font-weight:600; padding:3px 8px;
+  border-radius:20px; display:flex; align-items:center; gap:4px;
+}
+.pill-urlaub { background:rgba(200,160,32,0.15); color:#c8a020; border:1px solid rgba(200,160,32,0.3); }
+.pill-krank  { background:rgba(220,50,50,0.12);  color:#e05050; border:1px solid rgba(220,50,50,0.25); }
+.pill-frei   { background:rgba(50,200,120,0.12); color:#4dc87a; border:1px solid rgba(50,200,120,0.25); }
+
+.abt-bar-wrap { height:6px; background:var(--border2); border-radius:3px; margin-top:8px; position:relative; }
+.abt-bar-soll { position:absolute; top:0; height:100%; border-radius:3px; background:var(--border2); }
+.abt-bar-ist  { position:absolute; top:0; height:100%; border-radius:3px; transition:width 0.3s; }
+.abt-bar-legend { display:flex; justify-content:space-between; font-size:10px; color:var(--text3); margin-top:4px; }
+
+/* MA table */
+.ma-stat-wrap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--radius); padding:16px 18px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+}
+.ma-stat-wrap h3 { font-size:13px; font-weight:800; color:var(--text); margin-bottom:14px; }
+.ma-stat-table { width:100%; border-collapse:collapse; }
+.ma-stat-table th {
+  font-size:9px; font-weight:700; color:var(--text3); text-transform:uppercase;
+  letter-spacing:0.5px; padding:6px 10px; border-bottom:1px solid var(--border);
+  text-align:left; white-space:nowrap;
+}
+.ma-stat-table th:not(:first-child) { text-align:right; }
+.ma-stat-table td { padding:7px 10px; border-bottom:1px solid var(--border); font-size:12px; }
+.ma-stat-table td:not(:first-child) { text-align:right; font-variant-numeric:tabular-nums; }
+.ma-stat-table tr:last-child td { border-bottom:none; }
+.ma-stat-table tr:hover td { background:rgba(255,255,255,0.025); }
+.ma-name-cell { display:flex; align-items:center; gap:8px; }
+.ma-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.ma-diff-bar { display:flex; align-items:center; gap:6px; justify-content:flex-end; }
+.mini-bar-wrap { width:50px; height:4px; background:var(--border2); border-radius:2px; flex-shrink:0; }
+.mini-bar { height:4px; border-radius:2px; }
+
+/* Section titles */
+.psec-title {
+  font-size: 10px; font-weight: 800; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px; margin-top: 20px;
+}
+.psec-title:first-child { margin-top: 0; }
+
+/* Group rename rows */
+.grp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.grp-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.grp-row input {
+  flex: 1; padding: 7px 10px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--rsm); color: var(--text); font-size: 12px;
+  font-family: 'Inter', sans-serif;
+}
+.grp-row input:focus { outline: none; border-color: var(--accent); }
+
+/* Employee table */
+.emp-table { width: 100%; border-collapse: collapse; }
+.emp-table th {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left;
+}
+.emp-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); }
+.emp-table tr:last-child td { border-bottom: none; }
+.emp-table tr:hover td { background: rgba(255,255,255,0.02); }
+.emp-table input, .emp-table select {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text); font-size: 11px;
+  font-family: 'Inter', sans-serif; padding: 4px 6px; width: 100%;
+}
+.emp-table input:focus, .emp-table select:focus { outline: none; border-color: var(--accent); }
+
+/* Stat cards */
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px;
+}
+.stat-name { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+.stat-grp  { font-size: 10px; color: var(--text3); font-weight: 500; }
+.stat-row  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.stat-lbl  { font-size: 11px; color: var(--text2); }
+.stat-val  { font-size: 12px; font-weight: 700; }
+.stat-bar-wrap { height: 4px; background: var(--border2); border-radius: 2px; margin-top: 8px; }
+.stat-bar { height: 4px; border-radius: 2px; }
+.stat-over  { color: #e05050; }
+.stat-ok    { color: #4dc87a; }
+.stat-under { color: #c8a020; }
+
+.del-btn {
+  background: none; border: none; color: var(--text3);
+  cursor: pointer; font-size: 14px; padding: 2px 5px;
+  border-radius: 4px; transition: color 0.1s, background 0.1s;
+}
+.del-btn:hover { color: #e05050; background: rgba(220,50,50,0.1); }
+
+.add-emp-row {
+  display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center;
+}
+.add-emp-row input, .add-emp-row select {
+  padding: 7px 10px; background: var(--surface2);
+  border: 1.5px solid var(--border); border-radius: var(--rsm);
+  color: var(--text); font-size: 12px; font-family: 'Inter', sans-serif;
+}
+.add-emp-row input:focus, .add-emp-row select:focus { outline: none; border-color: var(--accent); }
+
+/* Undo button */
+.btn-undo { opacity: 0.5; pointer-events: none; transition: opacity 0.2s; }
+.btn-undo.active { opacity: 1; pointer-events: auto; }
+
+/* Drag handles in MA table */
+.drag-handle { cursor: grab; color: var(--text3); font-size: 13px; padding: 0 4px; user-select: none; }
+.drag-handle:active { cursor: grabbing; }
+tr.drag-over td { border-top: 2px solid var(--accent) !important; }
+
+/* Validation warning in modal */
+.val-warn {
+  background: rgba(220,80,50,0.12); border: 1px solid rgba(220,80,50,0.3);
+  border-radius: 6px; padding: 6px 10px; font-size: 11px; color: #e07060;
+  margin-top: 8px; display: none;
+}
+.val-warn.show { display: block; }
+
+/* Copy week bar */
+.copy-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: var(--rsm);
+  margin-bottom: 10px; font-size: 12px; color: var(--text2);
+}
+.copy-bar select {
+  background: var(--surface3); border: 1px solid var(--border2);
+  color: var(--text); border-radius: 5px; padding: 4px 8px;
+  font-size: 12px; font-family: 'Inter', sans-serif;
+}
+
+/* Save dot */
+.save-dot { width:7px; height:7px; border-radius:50%; background:#20a860; display:inline-block; margin-left:4px; }
+.save-dot.unsaved { background:#c8a020; animation:sdpulse 1.5s infinite; }
+@keyframes sdpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+.toast {
+  position: fixed; bottom: 18px; right: 18px;
+  background: #ffffff; color: var(--text);
+  border: 1px solid var(--border2);
+  font-size: 12px; font-weight: 600;
+  padding: 9px 15px; border-radius: var(--rsm);
+  z-index: 300; opacity: 0; transform: translateY(6px);
+  transition: all 0.22s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── PRINT ── */
+@media print {
+  @page { size: A4 landscape; margin: 6mm 5mm; }
+  .topbar, .modal-ov, .toast, .nav-tabs, .week-nav, .copy-bar, .page:not(#pagePlan) { display: none !important; }
+  #pagePlan { display: block !important; }
+
+  body { padding: 0 !important; background: #fff !important; color: #1a1e2e !important; }
+  .page-wrap, #pagePlan { max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+
+  .wrap {
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: 1px solid #d0d5e8 !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+  th, td { border: 1px solid #e4e8f4 !important; }
+
+  /* Name column */
+  .col-name {
+    position: static !important;
+    width: 82px !important;
+    font-size: 8.5pt !important; font-weight: 700 !important;
+    padding: 3px 6px !important;
+    background: #fafbff !important; color: #1a1e2e !important;
+    border-right: 1.5px solid #d0d5e8 !important;
+  }
+
+  /* Gesamt header */
+  .th-gesamt {
+    writing-mode: horizontal-tb !important;
+    transform: none !important;
+    background: #bdd7ee !important; color: #1a3a5a !important;
+    font-size: 7.5pt !important; font-weight: 800 !important;
+    padding: 3px !important; letter-spacing: 0.3px !important;
+    border: 1px solid #e4e8f4 !important;
+  }
+
+  /* Column widths */
+  .c-time  { width: 46px !important; }
+  .c-std   { width: 36px !important; }
+  .c-total { width: 52px !important; border-left: 1.5px solid #c8d0f0 !important; }
+
+  /* Headers — clean slate with accent gradient */
+  .th-main {
+    background: #bdd7ee !important; color: #1a1e2e !important;
+    font-size: 9pt !important; font-weight: 700 !important;
+    padding: 5px 2px !important; letter-spacing: 0.2px !important;
+  }
+  .th-date {
+    background: #d4e8f5 !important; color: #1a3a5a !important;
+    font-size: 8pt !important; font-weight: 500 !important;
+    padding: 3px 2px !important;
+  }
+  .th-sub {
+    background: #eef2fd !important; color: #4a5278 !important;
+    font-size: 7pt !important; font-weight: 600 !important;
+    padding: 3px 1px !important; text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+  }
+  .th-main.col-name {
+    background: #3a6ee8 !important; color: #fff !important;
+    border-right: 1.5px solid rgba(255,255,255,0.3) !important;
+    font-size: 9pt !important;
+  }
+
+  /* Name colour accents — subtle left bar only */
+  .nc-red    { background: #fff !important; color: #1a1e2e !important; border-left: 3px solid #e04040 !important; }
+  .nc-yellow { background: #fff !important; color: #1a1e2e !important; border-left: 3px solid #c8a800 !important; }
+  .nc-white  { background: #fff !important; color: #1a1e2e !important; border-left: 3px solid #d0d5e8 !important; }
+  .nc-blue   { background: #fff !important; color: #1a1e2e !important; border-left: 3px solid #3a6ee8 !important; }
+  .nc-orange { background: #fff !important; color: #1a1e2e !important; border-left: 3px solid #d07020 !important; }
+
+  /* Status cells — soft pastels, no harsh colours */
+  .bg-dienst { background: #ffffff !important; color: #1a1e2e !important; }
+  .bg-frei   { background: #ecfaf2 !important; color: #0a6030 !important; font-weight: 600 !important; }
+  .bg-urlaub { background: #fffbea !important; color: #7a5500 !important; font-weight: 600 !important; }
+  .bg-krank  { background: #fff0f0 !important; color: #a01818 !important; font-weight: 600 !important; }
+  .bg-nein   { background: #f5f6fa !important; color: #aab0c8 !important; }
+
+  .c-time { font-size: 8.5pt !important; font-weight: 600 !important; padding: 3px 2px !important; }
+  .c-std  { font-size: 8.5pt !important; font-weight: 700 !important; padding: 3px 2px !important; }
+  .bg-dienst.c-std { background: #fff5f5 !important; color: #c02020 !important; }
+  .bg-frei.c-std   { background: #ecfaf2 !important; color: #0a6030 !important; }
+  .bg-urlaub.c-std { background: #fffbea !important; color: #7a5500 !important; }
+  .bg-krank.c-std  { background: #fff0f0 !important; color: #a01818 !important; }
+
+  .c-total {
+    background: #f0f4ff !important; color: #2850c0 !important;
+    font-size: 9pt !important; font-weight: 800 !important;
+    padding: 3px 4px !important;
+    border-left: 1px solid #e4e8f4 !important;
+  }
+
+  /* Group headers — thin coloured accent bar, light background */
+  .grp-hdr td {
+    font-size: 7.5pt !important; font-weight: 800 !important;
+    height: 16px !important; padding: 3px 10px !important;
+    border: none !important; letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+  }
+  .grp-hdr.g1 td { background: #d8e4f8 !important; color: #1a40b0 !important; border-left: 3px solid #3a6ee8 !important; }
+  .grp-hdr.g2 td { background: #fde4b8 !important; color: #8a4000 !important; border-left: 3px solid #e08020 !important; }
+  .grp-hdr.g3 td { background: #e4d8f8 !important; color: #4820a0 !important; border-left: 3px solid #7850d0 !important; }
+  .grp-hdr.g4 td { background: #c8f0da !important; color: #0a5828 !important; border-left: 3px solid #20a860 !important; }
+  .grp-hdr.g5 td { background: #c4edf2 !important; color: #086070 !important; border-left: 3px solid #10a0b0 !important; }
+
+  .gr1 .col-name { border-left: 3px solid #3a6ee8 !important; }
+  .gr2 .col-name { border-left: 3px solid #e08020 !important; }
+  .gr3 .col-name { border-left: 3px solid #7850d0 !important; }
+  .gr4 .col-name { border-left: 3px solid #20a860 !important; }
+  .gr5 .col-name { border-left: 3px solid #10a0b0 !important; }
+
+  tbody tr td { height: 22px !important; }
+  tr.sep td   { height: 3px !important; background: #e8ecf8 !important; border: none !important; }
+
+  /* Fix: KW header cell top-left — ensure text visible and border clean */
+  th.th-main.col-name {
+    background: #bdd7ee !important; color: #1a3a5a !important;
+    font-size: 9pt !important; font-weight: 800 !important;
+    border: 1px solid #e4e8f4 !important;
+    border-right: 1.5px solid #e4e8f4 !important;
+  }
+
+  /* Fix: wrap border — no extra outer border artifacts */
+  .wrap { border: 1px solid #e4e8f4 !important; border-radius: 0 !important; overflow: visible !important; }
+  thead tr:first-child th { border-radius: 0 !important; }
+
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+
+/* ── EMPTY PLAN PRINT MODE ── */
+@media print {
+  body.print-empty table tbody td.c-time,
+  body.print-empty table tbody td.c-std {
+    color: transparent !important;
+    background: #fff !important;
+  }
+  body.print-empty table tbody td.c-total {
+    color: transparent !important;
+    background: #f0f4ff !important;
+  }
+  /* Keep header text white (already set by th-main etc.) */
+  body.print-empty th.th-sub    { color: #4a5278 !important; }
+  body.print-empty th.th-main,
+  body.print-empty th.th-date,
+  body.print-empty th.th-gesamt { color: #1a3a5a !important; }
+  /* Name col: show names, clear background */
+  body.print-empty table tbody td.col-name {
+    color: #1a1e2e !important; background: #fafbff !important;
+  }
+  /* Group headers: keep colored accent */
+  body.print-empty table tbody tr.grp-hdr.g1 td { background: #d8e4f8 !important; color: #1a40b0 !important; }
+  body.print-empty table tbody tr.grp-hdr.g2 td { background: #fde4b8 !important; color: #8a4000 !important; }
+  body.print-empty table tbody tr.grp-hdr.g3 td { background: #e4d8f8 !important; color: #4820a0 !important; }
+  body.print-empty table tbody tr.grp-hdr.g4 td { background: #c8f0da !important; color: #0a5828 !important; }
+  body.print-empty table tbody tr.grp-hdr.g5 td { background: #c4edf2 !important; color: #086070 !important; }
+  /* Status cells: transparent so empty cells look clean */
+  body.print-empty table tbody td.bg-frei,
+  body.print-empty table tbody td.bg-urlaub,
+  body.print-empty table tbody td.bg-krank,
+  body.print-empty table tbody td.bg-nein {
+    background: #fff !important; color: transparent !important;
+  }
+  body.print-empty table tbody tr.sep td { background: #e8ecf8 !important; }
+}
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+<!-- TOP NAV -->
+<div class="topbar">
+  <div class="tb-left">
+    <span class="tb-title">Dienstplan</span>
+    <span class="kw-pill" id="kwPill">KW 10</span>
+    <span class="save-dot" id="saveDot" title="Gespeichert"></span>
+  </div>
+  <div class="tb-right">
+    <button class="btn btn-undo" id="btnUndo" onclick="doUndo()" title="Rückgängig">↩ Rückgängig</button>
+    <button class="btn" onclick="window.print()">🖨 Drucken</button>
+    <button class="btn" onclick="printEmpty()" title="Leeren Plan zum handschriftlichen Ausfüllen drucken">🖨 Leerer Plan</button>
+    <button class="btn" onclick="doExport()">⬇ CSV</button>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="nav-tabs">
+  <button class="nav-tab active" id="navPlan"      onclick="showPage('plan')">📅 Wochenplan</button>
+  <button class="nav-tab"        id="navEinstellungen" onclick="showPage('einstellungen')">⚙️ Mitarbeiter & Abteilungen</button>
+</div>
+
+<!-- PAGE: WOCHENPLAN -->
+<div class="page active" id="pagePlan">
+  <div style="display:flex;align-items:center;margin-bottom:10px;">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">‹</button>
+      <span id="wkRange">02.03.2026 – 08.03.2026</span>
+      <button onclick="changeWeek(1)">›</button>
+    </div>
+  </div>
+  <div class="wrap">
+    <table id="tbl">
+      <thead id="thead"></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="copy-bar" style="margin-top:10px;margin-bottom:0;">
+    <span>📋 Woche kopieren nach:</span>
+    <select id="copyTarget">
+      <option value="1">Nächste Woche</option>
+      <option value="2">In 2 Wochen</option>
+      <option value="3">In 3 Wochen</option>
+      <option value="4">In 4 Wochen</option>
+    </select>
+    <button class="btn" onclick="copyWeek()">Kopieren</button>
+  </div>
+</div>
+</div>
+
+<!-- PAGE: EINSTELLUNGEN (Mitarbeiter + Abteilungen) -->
+<div class="page" id="pageEinstellungen">
+  <div class="settings-wrap" style="grid-template-columns:2fr 1fr 1fr;">
+    <div class="settings-card">
+      <h3>👥 Mitarbeiter verwalten</h3>
+      <div id="maTableWrap"></div>
+      <div class="psec-title" style="margin-top:24px">Neuen Mitarbeiter hinzufügen</div>
+      <div class="add-emp-row">
+        <input id="newName" placeholder="Name" style="flex:1;min-width:100px">
+        <select id="newGrp"></select>
+        <select id="newNc">
+          <option value="white">Neutral</option>
+          <option value="red">Rot</option>
+          <option value="yellow">Gelb</option>
+          <option value="blue">Blau</option>
+          <option value="orange">Orange</option>
+        </select>
+        <input id="newVtg" type="number" placeholder="h/Wo" min="0" max="80" style="width:70px">
+        <button class="btn btn-accent" onclick="addEmpPage()">+ Hinzufügen</button>
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>🏷 Abteilungen umbenennen</h3>
+      <div id="abtRenameWrap"></div>
+      <div style="margin-top:18px;padding:12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);font-size:11px;color:var(--text2);">
+        Änderungen werden sofort im Wochenplan übernommen.
+      </div>
+    </div>
+    <div class="settings-card">
+      <h3>🎨 Gruppen-Farben</h3>
+      <div id="abtColorWrap"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /page-wrap -->
+
+<!-- MINI POPUP (Vorlagen + Status) -->
+<div id="miniPop" style="
+  display:none; position:fixed; z-index:500;
+  background:var(--surface); border:1px solid var(--border2);
+  border-radius:10px; padding:8px 10px;
+  box-shadow:0 6px 28px rgba(0,0,0,0.18);
+  min-width:180px; max-width:260px;
+  animation: mIn 0.15s ease;
+">
+  <div id="mpPresets" style="display:none;margin-bottom:6px;">
+    <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Vorlagen</div>
+    <div id="mpPresetBtns" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+  </div>
+  <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Status</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+    <button class="sbtn sbtn-dienst" onmousedown="event.preventDefault();mpSetStatus('dienst')">🕐 Dienst</button>
+    <button class="sbtn sbtn-frei"   onmousedown="event.preventDefault();mpSetStatus('frei')">✅ Frei</button>
+    <button class="sbtn sbtn-urlaub" onmousedown="event.preventDefault();mpSetStatus('urlaub')">🌴 Urlaub</button>
+    <button class="sbtn sbtn-krank"  onmousedown="event.preventDefault();mpSetStatus('krank')">🤒 Krank</button>
+    <button class="sbtn sbtn-nein"   onmousedown="event.preventDefault();mpSetStatus('nein')" style="grid-column:span 2;">⛔ Nicht eingeteilt</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DAYS7 = ['Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag','Sonntag'];
+const BASE_MON = new Date(2026,2,2);
+let weekOff = 0;
+
+function getWeek(off){
+  return Array.from({length:7},(_,i)=>{
+    const d=new Date(BASE_MON); d.setDate(BASE_MON.getDate()+off*7+i); return d;
+  });
+}
+function fmtD(d){return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;}
+function getKW(d){
+  const ud=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dn=ud.getUTCDay()||7; ud.setUTCDate(ud.getUTCDate()+4-dn);
+  const ys=new Date(Date.UTC(ud.getUTCFullYear(),0,1));
+  return Math.ceil((((ud-ys)/86400000)+1)/7);
+}
+
+const BG_MAP = {dienst:'bg-dienst', frei:'bg-frei', urlaub:'bg-urlaub', krank:'bg-krank', nein:'bg-nein'};
+const STATUS_LABEL = {frei:'Frei', urlaub:'Urlaub', krank:'Krank', nein:'—'};
+const STD_RED  = '#e05050';
+const STD_NORM = 'var(--text2)';
+const NC = {red:'nc-red',yellow:'nc-yellow',white:'nc-white',blue:'nc-blue',orange:'nc-orange'};
+const GRP_COLORS = {1:'#4f7ef7',2:'#f0a030',3:'#9070e0',4:'#30c880',5:'#20b8c8'};
+let GRP_NAMES = {1:'Küche',2:'Service',3:'Service Aushilfen',4:'Counter',5:'Mechanik'};
+
+// Schnellauswahl-Zeiten pro Abteilung
+const PRESETS = {
+  1: [['9:00','18:00'],['12:00','18:00'],['14:00','22:00']],
+  2: [['14:30','19:00'],['14:30','23:00']],
+  3: [],
+  4: [['8:00','11:00'],['9:00','12:00'],['14:30','23:00']],
+  5: [],
+};
+
+function applyPreset(b,e){
+  setStatus('dienst');
+  document.getElementById('iBeg').value=b;
+  document.getElementById('iEnd').value=e;
+}
+
+// Normalize short time input: "9"→"9:00", "930"→"9:30", "1430"→"14:30"
+function normOnBlur(input){
+  let v = input.value.trim().replace(/[^0-9:]/g,'');
+  if(!v){ return; }
+  if(!v.includes(':')){
+    if(v.length<=2){
+      v = v + ':00';
+    } else if(v.length===3){
+      v = v[0] + ':' + v.slice(1);
+    } else if(v.length===4){
+      v = v.slice(0,2) + ':' + v.slice(2);
+    }
+  }
+  input.value = v;
+}
+
+function calcS(b,e){
+  if(!b||!e)return'';
+  try{
+    let [bh,bm]=b.split(':').map(Number);
+    let [eh,em]=e.split(':').map(Number);
+    if(eh<bh||(eh===bh&&em<bm))eh+=24;
+    let diff=(eh*60+em)-(bh*60+bm);
+    if(diff<=0)return'';
+    // Pausenabzug: über 6h (>360min) = 30min, über 9h (>540min) = 45min
+    if(diff>540) diff -= 45;
+    else if(diff>360) diff -= 30;
+    return`${Math.floor(diff/60)}:${String(diff%60).padStart(2,'0')}`;
+  }catch{return'';}
+}
+
+// status: 'dienst' | 'frei' | 'urlaub' | 'krank'
+function mkS(status, b, e){
+  if(status==='dienst'){
+    const s=calcS(b,e);
+    return{status,b:b||'',e:e||'',std:s||'0:00'};
+  }
+  return{status,b:'',e:'',std:''};
+}
+
+// Backwards compat helper for old mk() calls in data
+function mk(b,e,oldBg,oldSc){
+  if(b||e) return mkS('dienst',b,e);
+  // map old bg colours to status
+  if(oldBg==='black') return mkS('urlaub','',''); // old Urlaub was black
+  return mkS('frei','','');
+}
+
+let emps=[
+  // ── GROUP 1 – Küche ──
+  {n:'Sven',   nc:'white', grp:1, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Kinfe',  nc:'white', grp:1, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Antonia',nc:'white', grp:1, vtg:35, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  // ── GROUP 2 – Service ──
+  {n:'Justin', nc:'white', grp:2, vtg:35, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Kaua',   nc:'white', grp:2, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Kira',   nc:'white', grp:2, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Benny',  nc:'white', grp:2, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  // ── GROUP 3 – Service Aushilfen ──
+  {n:'Diego',  nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Marie',  nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Rojan',  nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Ivana',  nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Hasret', nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Lena',   nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  {n:'Maria',  nc:'white', grp:3, vtg:20, d:Array.from({length:7},(_,i)=>i<=3?mkS('nein'):mkS('frei')), tot:'0:00'},
+  // ── GROUP 4 – Counter ──
+  {n:'Stefano',nc:'white', grp:4, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Sabse',  nc:'white', grp:4, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Mehmet', nc:'white', grp:4, vtg:30, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  // ── GROUP 5 – Mechanik ──
+  {n:'Marko',  nc:'white', grp:5, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+  {n:'Jürgen', nc:'white', grp:5, vtg:40, d:Array.from({length:7},()=>mkS('frei')), tot:'0:00'},
+];
+
+function render(){
+  const week=getWeek(weekOff);
+  const kw=getKW(week[0]);
+  document.getElementById('kwPill').textContent=`KW ${kw}`;
+  document.getElementById('wkRange').textContent=`${fmtD(week[0])} – ${fmtD(week[6])}`;
+
+  const COLS=7*3+2;
+  const DAYS_SHORT=['Mo','Di','Mi','Do','Fr','Sa','So'];
+
+  // THEAD — 3 rows only: day names + dates + Beginn/Ende/Std
+  let th=`
+  <tr>
+    <th class="th-main col-name" rowspan="3" style="font-size:12px;letter-spacing:-0.2px;">KW ${kw}</th>
+    ${DAYS_SHORT.map(d=>`<th class="th-main" colspan="3">${d}</th>`).join('')}
+    <th class="th-gesamt" rowspan="3">Gesamt</th>
+  </tr>
+  <tr>
+    ${week.map(d=>`<th class="th-date" colspan="3">${fmtD(d)}</th>`).join('')}
+  </tr>
+  <tr>
+    ${DAYS7.map(()=>`<th class="th-sub">Bgn</th><th class="th-sub">Ende</th><th class="th-sub">Std</th>`).join('')}
+  </tr>`;
+  document.getElementById('thead').innerHTML=th;
+
+  // TBODY
+  let tb='', lastGrp=null;
+  emps.forEach((emp,ei)=>{
+    if(!emp)return;
+    if(emp.grp!==lastGrp){
+      if(lastGrp!==null) tb+=`<tr class="sep"><td colspan="${COLS}"></td></tr>`;
+      tb+=`<tr class="grp-hdr g${emp.grp}"><td colspan="${COLS}" style="position:static;">${GRP_NAMES[emp.grp]}</td></tr>`;
+      lastGrp=emp.grp;
+    }
+    const ncls=NC[emp.nc]||'nc-white';
+    tb+=`<tr class="gr${emp.grp}">`;
+    tb+=`<td class="col-name ${ncls}" ondblclick="renameEmp(${ei})" title="Doppelklick zum Umbenennen">${emp.n}</td>`;
+    emp.d.forEach((day,di)=>{
+      const st = day.status||'frei';
+      const cls = BG_MAP[st]||'bg-frei';
+      if(st==='dienst'){
+        tb+=`<td class="c-time ${cls}" onclick="startInlineEdit(${ei},${di},'b',this)" id="cell-${ei}-${di}-b">${day.b}</td>`;
+        tb+=`<td class="c-time ${cls}" onclick="startInlineEdit(${ei},${di},'e',this)" id="cell-${ei}-${di}-e">${day.e}</td>`;
+        tb+=`<td class="c-std  ${cls}" onclick="openMod(${ei},${di})" id="cell-${ei}-${di}-s">${day.std}</td>`;
+      } else {
+        const lbl = STATUS_LABEL[st]||st;
+        tb+=`<td class="c-time ${cls} c-status" colspan="3" style="text-align:center;font-weight:700;font-size:11px;letter-spacing:0.3px;" onclick="startInlineEditFromStatus(${ei},${di},this)">${lbl}</td>`;
+      }
+    });
+    tb+=`<td class="c-total">${emp.tot}</td></tr>`;
+  });
+  document.getElementById('tbody').innerHTML=tb;
+}
+
+// ── MODAL ──
+let et={ei:null,di:null};
+let curStatus='frei';
+
+function setStatus(s){
+  curStatus=s;
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.toggle('active', b.dataset.status===s));
+  document.getElementById('timeFields').style.display = s==='dienst' ? 'block' : 'none';
+}
+
+// ── MINI POPUP (Vorlagen + Status) ──
+let mpContext = {ei:null, di:null};
+
+function openMiniPop(ei, di, anchorEl){
+  mpContext = {ei, di};
+  const emp = emps[ei];
+  const pop = document.getElementById('miniPop');
+
+  // Presets
+  const grpPresets = PRESETS[emp.grp]||[];
+  const presetsWrap = document.getElementById('mpPresets');
+  const presetBtns  = document.getElementById('mpPresetBtns');
+  if(grpPresets.length){
+    presetBtns.innerHTML = grpPresets.map(([b,e])=>
+      `<button class="preset-chip" style="font-size:10px;padding:3px 7px;"
+        onmousedown="event.preventDefault();mpApplyPreset('${b}','${e}')">${b}–${e}</button>`
+    ).join('');
+    presetsWrap.style.display='block';
+  } else {
+    presetsWrap.style.display='none';
+  }
+
+  // Position above anchor cell - use rAF so dimensions are known
+  pop.style.visibility='hidden';
+  pop.style.display='block';
+  requestAnimationFrame(()=>{
+    const rect = anchorEl.getBoundingClientRect();
+    const pw = pop.offsetWidth||200, ph = pop.offsetHeight||90;
+    let left = rect.left + window.scrollX;
+    let top  = rect.bottom + window.scrollY + 4;
+    if(left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    if(left < 4) left = 4;
+    if(top + ph > window.innerHeight + window.scrollY - 4) top = rect.top + window.scrollY - ph - 4;
+    pop.style.left=left+'px'; pop.style.top=top+'px';
+    pop.style.visibility='visible';
+  });
+}
+
+function closeMiniPop(){
+  document.getElementById('miniPop').style.display='none';
+  mpContext = {ei:null, di:null};
+}
+
+function startInlineEditFromStatus(ei, di, anchorEl){
+  // Switch to dienst first, then start inline edit on Bgn cell
+  const day = emps[ei].d[di];
+  const wasB = day.b||'', wasE = day.e||'';
+  if(day.status !== 'dienst'){
+    pushUndo();
+    emps[ei].d[di] = mkS('dienst', wasB, wasE);
+    recalc(ei); saveWeek(); markUnsaved(); saveData();
+    render(); // re-render to show the two time cells
+  }
+  // After render, find the Bgn cell and start editing
+  setTimeout(()=>{
+    const td = document.getElementById(`cell-${ei}-${di}-b`);
+    if(td) startInlineEdit(ei, di, 'b', td);
+  }, 20);
+}
+
+function mpApplyPreset(b, e){
+  const {ei, di} = mpContext;
+  if(ei===null) return;
+  pushUndo();
+  emps[ei].d[di] = mkS('dienst', b, e);
+  recalc(ei); saveWeek(); markUnsaved(); saveData(); render();
+  closeMiniPop();
+}
+
+function mpSetStatus(st){
+  const {ei, di} = mpContext;
+  if(ei===null) return;
+  if(st==='dienst'){
+    // If already editing, just focus
+    const bCell = document.getElementById(`cell-${ei}-${di}-b`);
+    if(bCell && bCell.querySelector('input')){
+      closeMiniPop(); bCell.querySelector('input').focus(); return;
+    }
+    pushUndo();
+    emps[ei].d[di] = mkS('dienst', emps[ei].d[di].b||'', emps[ei].d[di].e||'');
+    recalc(ei); saveWeek(); markUnsaved(); saveData(); render();
+    closeMiniPop();
+    setTimeout(()=>{
+      const td = document.getElementById(`cell-${ei}-${di}-b`);
+      if(td) startInlineEdit(ei, di, 'b', td);
+    }, 20);
+    return;
+  }
+  pushUndo();
+  emps[ei].d[di] = mkS(st,'','');
+  recalc(ei); saveWeek(); markUnsaved(); saveData();
+  // Mark that a status was set so blur handler doesn't overwrite
+  window._mpStatusSet = true;
+  render();
+  closeMiniPop();
+  setTimeout(()=>{ window._mpStatusSet = false; }, 200);
+}
+
+// Close mini pop on outside click
+document.addEventListener('mousedown', ev=>{
+  const pop = document.getElementById('miniPop');
+  if(pop.style.display!=='none' && !pop.contains(ev.target)){
+    closeMiniPop();
+  }
+});
+
+// ── INLINE CELL EDITING ──
+function startInlineEdit(ei, di, field, anchorEl){
+  const e = emps[ei]; if(!e) return;
+  // Snapshot day state at edit-start (important: after any render)
+  const day = emps[ei].d[di];
+
+  const cellId = `cell-${ei}-${di}-${field}`;
+  const td = document.getElementById(cellId);
+  if(!td || td.querySelector('input')) return;
+
+  const curVal = field==='b' ? day.b : day.e;
+  td.innerHTML = '';
+  const inp = document.createElement('input');
+  inp.value = curVal;
+  inp.placeholder = field==='b' ? '09:00' : '17:00';
+  inp.style.cssText = 'width:100%;border:none;background:transparent;font:inherit;color:inherit;text-align:center;outline:none;padding:0;min-width:0;';
+  td.appendChild(inp);
+  inp.focus(); inp.select();
+
+  // Show miniPop AFTER input is in DOM so positioning sees correct td rect
+  requestAnimationFrame(()=>openMiniPop(ei, di, td));
+
+  // Close popup as soon as user types
+  inp.addEventListener('input', ()=>closeMiniPop());
+
+  let committed = false;
+
+  function commitVal(){
+    if(committed) return; committed = true;
+    if(window._mpStatusSet) return; // status button was clicked, don't overwrite
+    normOnBlur(inp);
+    const newVal = inp.value.trim();
+    const cur = emps[ei].d[di];
+    const b    = field==='b' ? newVal : cur.b;
+    const eVal = field==='e' ? newVal : cur.e;
+    pushUndo();
+    emps[ei].d[di] = mkS('dienst', b, eVal);
+    recalc(ei); saveWeek(); markUnsaved(); saveData(); render();
+  }
+
+  inp.addEventListener('blur', ()=>{
+    setTimeout(()=>{
+      if(window._mpStatusSet){ committed = true; return; }
+      if(!document.getElementById('miniPop').contains(document.activeElement)){
+        commitVal(); closeMiniPop();
+      }
+    }, 150);
+  });
+
+  inp.addEventListener('keydown', ev=>{
+    if(ev.key==='Enter'){
+      ev.preventDefault();
+      normOnBlur(inp);
+      if(field==='b'){
+        // Save Bgn, jump to Ende
+        committed = true;
+        const newB = inp.value.trim();
+        const cur = emps[ei].d[di];
+        pushUndo();
+        emps[ei].d[di] = mkS('dienst', newB, cur.e);
+        recalc(ei); saveWeek(); markUnsaved(); saveData(); render();
+        closeMiniPop();
+        setTimeout(()=>{
+          const eCell = document.getElementById(`cell-${ei}-${di}-e`);
+          if(eCell) startInlineEdit(ei, di, 'e', eCell);
+        }, 10);
+      } else {
+        committed = true;
+        commitVal(); closeMiniPop();
+      }
+    } else if(ev.key==='Tab'){
+      ev.preventDefault();
+      normOnBlur(inp);
+      committed = true;
+      const cur = emps[ei].d[di];
+      const newVal = inp.value.trim();
+      const b    = field==='b' ? newVal : cur.b;
+      const eVal = field==='e' ? newVal : cur.e;
+      pushUndo();
+      emps[ei].d[di] = mkS('dienst', b, eVal);
+      recalc(ei); saveWeek(); markUnsaved(); saveData(); render();
+      closeMiniPop();
+      if(field==='b'){
+        setTimeout(()=>{
+          const eCell = document.getElementById(`cell-${ei}-${di}-e`);
+          if(eCell) startInlineEdit(ei, di, 'e', eCell);
+        }, 10);
+      }
+    } else if(ev.key==='Escape'){
+      committed = true;
+      closeMiniPop(); render();
+    }
+  });
+}
+
+// Klick auf Std-Zelle → Mini-Popup
+function openMod(ei, di){
+  const td = document.getElementById(`cell-${ei}-${di}-s`);
+  openMiniPop(ei, di, td || document.body);
+}
+
+
+function recalc(ei){
+  let tot=0;
+  emps[ei].d.forEach(d=>{
+    if(d.status!=='dienst'||!d.std)return;
+    const p=d.std.split(':'); tot+=parseInt(p[0]||0)*60+parseInt(p[1]||0);
+  });
+  emps[ei].tot=`${Math.floor(tot/60)}:${String(tot%60).padStart(2,'0')}`;
+}
+
+function changeWeek(dir){ pushUndo(); weekOff+=dir; loadWeek(); render(); }
+
+// ── STORAGE ──
+const STORE_KEY = 'dienstplan_v2';
+
+function saveData(){
+  const data = {
+    emps: emps.map(e=>({...e, d:[...e.d]})),
+    GRP_NAMES: {...GRP_NAMES},
+    GRP_COLORS: {...GRP_COLORS},
+    weekOff,
+    weeks: {...weeks}
+  };
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }catch(err){}
+  const dot = document.getElementById('saveDot');
+  if(dot){ dot.classList.remove('unsaved'); dot.title='Gespeichert'; }
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data.emps) emps = data.emps;
+    if(data.GRP_NAMES) Object.assign(GRP_NAMES, data.GRP_NAMES);
+    if(data.GRP_COLORS) Object.assign(GRP_COLORS, data.GRP_COLORS);
+    if(data.weekOff !== undefined) weekOff = data.weekOff;
+    if(data.weeks) Object.assign(weeks, data.weeks);
+    return true;
+  }catch(e){ return false; }
+}
+
+function markUnsaved(){
+  const dot = document.getElementById('saveDot');
+  if(dot){ dot.classList.add('unsaved'); dot.title='Ungespeicherte Änderungen'; }
+}
+
+// ── MULTI-WEEK STORAGE ──
+// Each week's data stored separately by weekOff key
+let weeks = {}; // {weekOff: [{d:[...], tot},...]}  — only shift data per emp index
+
+function saveWeek(){
+  weeks[weekOff] = emps.map(e=>({d:e.d.map(d=>({...d})), tot:e.tot}));
+}
+
+function loadWeek(){
+  if(weeks[weekOff]){
+    const saved = weeks[weekOff];
+    emps.forEach((e,i)=>{ if(saved[i]){ e.d=saved[i].d.map(d=>({...d})); e.tot=saved[i].tot; }});
+  } else {
+    // New week: reset based on group defaults
+    emps.forEach(e=>{
+      e.d = Array.from({length:7},(_,i)=>(e.grp===3&&i<=3)?mkS('nein'):mkS('frei'));
+      e.tot='0:00';
+    });
+  }
+}
+
+// ── UNDO ──
+let undoStack = [];
+const MAX_UNDO = 20;
+
+function pushUndo(){
+  undoStack.push({
+    emps: JSON.parse(JSON.stringify(emps)),
+    weekOff,
+    weeks: JSON.parse(JSON.stringify(weeks))
+  });
+  if(undoStack.length > MAX_UNDO) undoStack.shift();
+  const btn = document.getElementById('btnUndo');
+  if(btn) btn.classList.add('active');
+}
+
+function doUndo(){
+  if(!undoStack.length) return;
+  const prev = undoStack.pop();
+  emps.splice(0, emps.length, ...prev.emps);
+  weekOff = prev.weekOff;
+  Object.keys(weeks).forEach(k=>delete weeks[k]);
+  Object.assign(weeks, prev.weeks);
+  render();
+  markUnsaved(); saveData();
+  toast('↩ Rückgängig');
+  if(!undoStack.length){
+    const btn = document.getElementById('btnUndo');
+    if(btn) btn.classList.remove('active');
+  }
+}
+
+// ── COPY WEEK ──
+function copyWeek(){
+  const offset = parseInt(document.getElementById('copyTarget').value)||1;
+  const target = weekOff + offset;
+  if(weeks[target]){
+    if(!confirm(`KW ${getKW(getWeek(target)[0])} hat bereits Daten. Überschreiben?`)) return;
+  }
+  weeks[target] = emps.map(e=>({d:e.d.map(d=>({...d})),tot:e.tot}));
+  saveData(); markUnsaved(); saveData();
+  toast(`📋 Nach KW ${getKW(getWeek(target)[0])} kopiert`);
+}
+
+// ── VALIDATION ──
+function validateShift(b, e){
+  if(!b||!e) return null;
+  try{
+    let [bh,bm]=b.split(':').map(Number);
+    let [eh,em]=e.split(':').map(Number);
+    if(eh<bh||(eh===bh&&em<=bm)) eh+=24;
+    const diff=(eh*60+em)-(bh*60+bm);
+    if(diff > 10*60) return `⚠️ Schicht ist ${Math.floor(diff/60)}h lang — über 10h!`;
+    if(diff < 1*60) return `⚠️ Schicht unter 1 Stunde`;
+    return null;
+  }catch{ return null; }
+}
+
+// ── RENAME EMP (dblclick) ──
+function renameEmp(ei){
+  const e = emps[ei];
+  const neu = prompt('Name ändern:', e.n);
+  if(neu && neu.trim() && neu.trim()!==e.n){
+    pushUndo();
+    emps[ei].n = neu.trim();
+    render(); saveData(); toast('✏️ Umbenannt');
+  }
+}
+
+function doExport(){
+  let csv='Name,Abt,Vertrag h/Wo,'+DAYS7.map(d=>`${d} Beginn,${d} Ende,${d} Std`).join(',')+',Gesamt\n';
+  emps.forEach(e=>{
+    csv+=`"${e.n}","${GRP_NAMES[e.grp]}",${e.vtg||0},`+e.d.map(d=>`${d.b},${d.e},${d.std}`).join(',')+`,"${e.tot}"\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`dienstplan_kw${getKW(getWeek(weekOff)[0])}.csv`;
+  a.click(); toast('⬇️ CSV exportiert');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── PAGE NAVIGATION ──
+function showPage(name){
+  ['plan','einstellungen'].forEach(p=>{
+    document.getElementById('page'+p.charAt(0).toUpperCase()+p.slice(1)).classList.toggle('active',p===name);
+    document.getElementById('nav'+p.charAt(0).toUpperCase()+p.slice(1)).classList.toggle('active',p===name);
+  });
+  if(name==='einstellungen'){ renderPageMA(); renderPageAbt(); }
+}
+
+// ── PAGE: ABTEILUNGEN ──
+function renderPageAbt(){
+  document.getElementById('abtRenameWrap').innerHTML=[1,2,3,4,5].map(g=>`
+    <div class="grp-row">
+      <div class="grp-dot" style="background:${GRP_COLORS[g]}"></div>
+      <input value="${GRP_NAMES[g]}" placeholder="Abteilung ${g}"
+        oninput="GRP_NAMES[${g}]=this.value;render()">
+    </div>`).join('');
+
+  document.getElementById('abtColorWrap').innerHTML=[1,2,3,4,5].map(g=>`
+    <div class="grp-row">
+      <div class="grp-dot" style="background:${GRP_COLORS[g]}"></div>
+      <span style="font-size:12px;color:var(--text2);flex:1">${GRP_NAMES[g]}</span>
+      <input type="color" value="${GRP_COLORS[g]}"
+        oninput="GRP_COLORS[${g}]=this.value;render()"
+        style="width:36px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;">
+    </div>`).join('');
+}
+
+// ── PAGE: MITARBEITER ──
+function renderPageMA(){
+  const rows=emps.map((e,i)=>`
+    <tr draggable="true" data-idx="${i}"
+      ondragstart="dragStart(event,${i})" ondragover="dragOver(event,${i})"
+      ondrop="dragDrop(event,${i})" ondragleave="dragLeave(event)">
+      <td style="width:20px"><span class="drag-handle" title="Sortieren">⠿</span></td>
+      <td><input value="${e.n}" oninput="emps[${i}].n=this.value;render()" style="width:80px"></td>
+      <td><select onchange="emps[${i}].grp=parseInt(this.value);render()">
+        ${[1,2,3,4,5].map(g=>`<option value="${g}" ${e.grp===g?'selected':''}>${GRP_NAMES[g]}</option>`).join('')}
+      </select></td>
+      <td><select onchange="emps[${i}].nc=this.value">
+        ${['white','red','yellow','blue','orange'].map(c=>`<option value="${c}" ${e.nc===c?'selected':''}>${c==='white'?'Neutral':c}</option>`).join('')}
+      </select></td>
+      <td><input type="number" value="${e.vtg||0}" min="0" max="80"
+        oninput="emps[${i}].vtg=parseInt(this.value)||0" style="width:52px;text-align:center"></td>
+      <td><button class="del-btn" onclick="deleteEmp(${i})">🗑</button></td>
+    </tr>`).join('');
+
+  document.getElementById('maTableWrap').innerHTML=`
+    <table class="emp-table">
+      <thead><tr><th></th><th>Name</th><th>Abteilung</th><th>Farbe</th><th>h/Wo</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+
+  document.getElementById('newGrp').innerHTML=[1,2,3,4,5].map(g=>`<option value="${g}">${GRP_NAMES[g]}</option>`).join('');
+}
+
+function deleteEmp(i){
+  if(!confirm(`"${emps[i].n}" wirklich löschen?`))return;
+  pushUndo();
+  emps.splice(i,1); renderPageMA(); render(); saveData(); toast('🗑 Gelöscht');
+}
+
+function addEmpPage(){
+  const n=document.getElementById('newName').value.trim();
+  if(!n){toast('⚠️ Name eingeben');return;}
+  const grp=parseInt(document.getElementById('newGrp').value)||1;
+  const nc=document.getElementById('newNc').value||'white';
+  const vtg=parseInt(document.getElementById('newVtg').value)||0;
+  pushUndo();
+  const defaultDay = (di) => (grp===3 && di<=3) ? mkS('nein') : mkS('frei');
+  emps.push({n,nc,grp,vtg,d:Array.from({length:7},(_,di)=>defaultDay(di)),tot:'0:00'});
+  document.getElementById('newName').value='';
+  document.getElementById('newVtg').value='';
+  renderPageMA(); render(); saveData(); toast('👤 '+n+' hinzugefügt');
+}
+
+// ── PAGE: STATISTIK ──
+function totMin(emp){
+  if(!emp.tot||emp.tot==='—'||emp.tot.startsWith('#'))return null;
+  const p=emp.tot.split(':');return parseInt(p[0]||0)*60+parseInt(p[1]||0);
+}
+function fmtMin(m){
+  const abs=Math.abs(m);
+  return(m<0?'-':'')+`${Math.floor(abs/60)}:${String(abs%60).padStart(2,'0')}`;
+}
+function fmtH(m){ return Math.round(m/60*10)/10+'h'; }
+
+function renderPageStat(){
+  // ── Compute data ──
+  let totalIst=0, totalSoll=0, totalUrlaub=0, totalKrank=0, totalFrei=0;
+  const grpData={};
+  [1,2,3,4,5].forEach(g=>{ grpData[g]={ist:0,soll:0,urlaub:0,krank:0,frei:0,count:0}; });
+
+  const empStats = emps.map(e=>{
+    const ist=totMin(e);
+    const soll=(e.vtg||0)*60;
+    const urlaub=e.d.filter(d=>d.status==='urlaub').length;
+    const krank=e.d.filter(d=>d.status==='krank').length;
+    const frei=e.d.filter(d=>d.status==='frei').length;
+    const diff=ist!==null?ist-soll:null;
+    if(ist!==null){
+      totalIst+=ist; totalSoll+=soll;
+      grpData[e.grp].ist+=ist; grpData[e.grp].soll+=soll;
+    }
+    totalUrlaub+=urlaub; totalKrank+=krank; totalFrei+=frei;
+    grpData[e.grp].urlaub+=urlaub; grpData[e.grp].krank+=krank;
+    grpData[e.grp].frei+=frei; grpData[e.grp].count++;
+    return{...e,ist,soll,diff,urlaub,krank,frei};
+  });
+
+  const totalDiff=totalIst-totalSoll;
+  const warnings=empStats.filter(e=>e.diff!==null&&Math.abs(e.diff)>120); // >2h off
+
+  // ── KPI Row ──
+  const kpiHtml=`<div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Gesamt Ist-Stunden</div>
+      <div class="kpi-value kpi-info">${fmtMin(totalIst)}</div>
+      <div class="kpi-sub">von ${emps.length} Mitarbeitern</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Differenz Gesamt</div>
+      <div class="kpi-value ${totalDiff>=0?'kpi-ok':'kpi-muted'}">${totalDiff>=0?'+':''}${fmtMin(totalDiff)}</div>
+      <div class="kpi-sub">Soll: ${fmtMin(totalSoll)}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Urlaubstage</div>
+      <div class="kpi-value kpi-muted">${totalUrlaub}</div>
+      <div class="kpi-sub">diese Woche gesamt</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Kranktage</div>
+      <div class="kpi-value ${totalKrank>0?'kpi-warn':'kpi-ok'}">${totalKrank}</div>
+      <div class="kpi-sub">diese Woche gesamt</div>
+    </div>
+  </div>`;
+
+  // ── Warnings ──
+  const warnHtml = warnings.length ? `<div class="warn-banner">
+    <b>⚠️ Abweichungen &gt;2h:</b>
+    ${warnings.map(e=>`<span class="warn-chip">${e.n} ${e.diff>=0?'+':''}${fmtMin(e.diff)}</span>`).join('')}
+  </div>` : '';
+
+  // ── Abteilung cards ──
+  const abtHtml=`<div class="stat-cols">${[1,2,3,4,5].map(g=>{
+    const d=grpData[g];
+    const pct=d.soll>0?Math.min(100,Math.round(d.ist/d.soll*100)):0;
+    const diff=d.ist-d.soll;
+    const barCol=diff>=0?'#4dc87a':'#c8a020';
+    return`<div class="abt-stat-card" style="border-top:3px solid ${GRP_COLORS[g]}">
+      <div class="abt-stat-header">
+        <span class="abt-stat-name">${GRP_NAMES[g]}</span>
+        <span class="abt-stat-count">${d.count} MA</span>
+      </div>
+      <div class="abt-numbers">
+        <div class="abt-num">
+          <div class="abt-num-val">${fmtMin(d.ist)}</div>
+          <div class="abt-num-lbl">Ist</div>
+        </div>
+        <div class="abt-num">
+          <div class="abt-num-val">${fmtMin(d.soll)}</div>
+          <div class="abt-num-lbl">Soll</div>
+        </div>
+        <div class="abt-num">
+          <div class="abt-num-val" style="color:${diff>=0?'#4dc87a':'#c8a020'}">${diff>=0?'+':''}${fmtMin(diff)}</div>
+          <div class="abt-num-lbl">Diff</div>
+        </div>
+      </div>
+      <div class="abt-pill-row">
+        ${d.urlaub?`<span class="abt-pill pill-urlaub">🌴 ${d.urlaub} Urlaub</span>`:''}
+        ${d.krank?`<span class="abt-pill pill-krank">🤒 ${d.krank} Krank</span>`:''}
+        ${d.frei?`<span class="abt-pill pill-frei">✅ ${d.frei} Frei</span>`:''}
+      </div>
+      <div class="abt-bar-wrap">
+        <div class="abt-bar-ist" style="width:${pct}%;background:${barCol}"></div>
+      </div>
+      <div class="abt-bar-legend"><span>${pct}% des Solls</span><span>${fmtMin(d.soll)}</span></div>
+    </div>`;
+  }).join('')}</div>`;
+
+  // ── MA Table ──
+  const sorted=[...empStats].sort((a,b)=>(b.diff??-9999)-(a.diff??-9999));
+  const maRows=sorted.map(e=>{
+    const ist=e.ist!==null?fmtMin(e.ist):'—';
+    const soll=`${e.vtg||0}:00`;
+    const diff=e.diff!==null?e.diff:null;
+    const diffStr=diff!==null?(diff>=0?'+':'')+fmtMin(diff):'—';
+    const diffCol=diff===null?'var(--text3)':diff>0?'#c8a020':'#e05050';
+    const pct=e.soll>0&&e.ist!==null?Math.min(100,Math.round(e.ist/e.soll*100)):0;
+    const barCol=diff===null?'var(--border2)':diff>0?'#c8a020':'#e05050';
+    const badges=[
+      e.urlaub?`<span class="abt-pill pill-urlaub" style="padding:1px 6px;font-size:9px;">🌴${e.urlaub}</span>`:'',
+      e.krank?`<span class="abt-pill pill-krank"  style="padding:1px 6px;font-size:9px;">🤒${e.krank}</span>`:'',
+    ].filter(Boolean).join('');
+    return`<tr>
+      <td><div class="ma-name-cell">
+        <div class="ma-dot" style="background:${GRP_COLORS[e.grp]}"></div>
+        <span style="font-weight:600">${e.n}</span>
+        ${badges}
+      </div></td>
+      <td style="color:var(--text2);font-size:11px">${GRP_NAMES[e.grp]}</td>
+      <td>${ist}</td>
+      <td style="color:var(--text2)">${soll}</td>
+      <td><div class="ma-diff-bar">
+        <span style="color:${diffCol};font-weight:700">${diffStr}</span>
+        <div class="mini-bar-wrap"><div class="mini-bar" style="width:${pct}%;background:${barCol}"></div></div>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  const maHtml=`<div class="ma-stat-wrap">
+    <h3>👤 Mitarbeiter im Überblick</h3>
+    <table class="ma-stat-table">
+      <thead><tr><th>Name</th><th>Abteilung</th><th>Ist</th><th>Soll/Wo</th><th style="text-align:right">Differenz</th></tr></thead>
+      <tbody>${maRows}</tbody>
+    </table>
+  </div>`;
+
+  document.getElementById('statContent').innerHTML=`<div class="stat-page">${kpiHtml}${warnHtml}${maHtml}</div>`;
+}
+
+// ── DRAG & DROP (Mitarbeiter sortieren) ──
+let dragIdx = null;
+function dragStart(e,i){ dragIdx=i; e.dataTransfer.effectAllowed='move'; }
+function dragOver(e,i){
+  e.preventDefault();
+  document.querySelectorAll('.emp-table tbody tr').forEach(r=>r.classList.remove('drag-over'));
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+function dragDrop(e,i){
+  e.preventDefault();
+  if(dragIdx===null||dragIdx===i){ dragIdx=null; return; }
+  pushUndo();
+  const moved=emps.splice(dragIdx,1)[0];
+  emps.splice(i,0,moved);
+  dragIdx=null;
+  document.querySelectorAll('.emp-table tbody tr').forEach(r=>r.classList.remove('drag-over'));
+  renderPageMA(); render(); saveData(); toast('↕ Reihenfolge geändert');
+}
+
+// ── EMPTY PLAN PRINT ──
+function printEmpty() {
+  // Re-render tbody with 3 separate empty cells per day (no colspan status cells)
+  const COLS = 7*3+2;
+  let tb = '', lastGrp = null;
+  emps.forEach((emp, ei) => {
+    if(!emp) return;
+    if(emp.grp !== lastGrp) {
+      if(lastGrp !== null) tb += `<tr class="sep"><td colspan="${COLS}"></td></tr>`;
+      tb += `<tr class="grp-hdr g${emp.grp}"><td colspan="${COLS}" style="position:static;">${GRP_NAMES[emp.grp]}</td></tr>`;
+      lastGrp = emp.grp;
+    }
+    const ncls = NC[emp.nc] || 'nc-white';
+    tb += `<tr class="gr${emp.grp}">`;
+    tb += `<td class="col-name ${ncls}">${emp.n}</td>`;
+    emp.d.forEach((day, di) => {
+      tb += `<td class="c-time bg-dienst"></td>`;
+      tb += `<td class="c-time bg-dienst"></td>`;
+      tb += `<td class="c-std  bg-dienst"></td>`;
+    });
+    tb += `<td class="c-total"></td></tr>`;
+  });
+  document.getElementById('tbody').innerHTML = tb;
+
+  document.body.classList.add('print-empty');
+  window.print();
+  document.body.classList.remove('print-empty');
+
+  // Restore normal render
+  render();
+}
+
+// ── INIT ──
+loadData();
+saveWeek(); // snapshot current week on load
+render();
+</script>
+</body>
+</html>
