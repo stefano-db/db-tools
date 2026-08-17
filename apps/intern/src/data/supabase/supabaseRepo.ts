@@ -13,6 +13,7 @@ import type {
   BackupBundle,
   UserRow,
   CreateUserInput,
+  DocumentRow,
 } from '../types';
 
 /**
@@ -287,6 +288,89 @@ export class SupabaseRepository implements Repository {
     const { error } = await this.client.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/`,
     });
+    if (error) throw new Error(error.message);
+  }
+
+  // --- Dokumente ------------------------------------------------------------
+
+  async listDocuments(): Promise<DocumentRow[]> {
+    const { data, error } = await this.client
+      .from('documents')
+      .select('*')
+      .is('archived_at', null)
+      .order('category', { nullsFirst: true })
+      .order('title');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((d: any) => ({
+      id: d.id,
+      title: d.title,
+      description: d.description,
+      category: d.category,
+      fileName: d.file_name,
+      mimeType: d.mime_type,
+      sizeBytes: d.size_bytes,
+      printCount: d.print_count ?? 0,
+      lastPrintedAt: d.last_printed_at,
+      createdAt: d.created_at,
+    }));
+  }
+
+  async uploadDocument(input: {
+    file: File;
+    title: string;
+    description?: string;
+    category?: string;
+  }): Promise<void> {
+    const safe = input.file.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${crypto.randomUUID()}-${safe}`;
+
+    const { error: uploadError } = await this.client.storage
+      .from('dokumente')
+      .upload(path, input.file, { contentType: input.file.type, upsert: false });
+    if (uploadError) throw new Error(uploadError.message);
+
+    const { error } = await this.client.from('documents').insert({
+      title: input.title.trim(),
+      description: input.description?.trim() || null,
+      category: input.category?.trim() || null,
+      storage_path: path,
+      file_name: input.file.name,
+      mime_type: input.file.type || 'application/octet-stream',
+      size_bytes: input.file.size,
+      uploaded_by: await this.userId(),
+    });
+    if (error) {
+      // Eintrag fehlgeschlagen: die Datei nicht verwaist liegen lassen.
+      await this.client.storage.from('dokumente').remove([path]);
+      throw new Error(error.message);
+    }
+  }
+
+  async documentUrl(id: string, forDownload = false): Promise<string> {
+    const { data: row, error: rowError } = await this.client
+      .from('documents')
+      .select('storage_path, file_name')
+      .eq('id', id)
+      .single();
+    if (rowError) throw new Error(rowError.message);
+
+    const { data, error } = await this.client.storage
+      .from('dokumente')
+      .createSignedUrl(row.storage_path, 60 * 30, forDownload ? { download: row.file_name } : {});
+    if (error) throw new Error(error.message);
+    return data.signedUrl;
+  }
+
+  async markDocumentPrinted(id: string): Promise<void> {
+    const { error } = await this.client.rpc('document_printed', { p_id: id });
+    if (error) throw new Error(error.message);
+  }
+
+  async archiveDocument(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('documents')
+      .update({ archived_at: new Date().toISOString(), archived_by: await this.userId() })
+      .eq('id', id);
     if (error) throw new Error(error.message);
   }
 

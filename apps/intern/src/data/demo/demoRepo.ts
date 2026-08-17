@@ -119,6 +119,24 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb gibt es keine Passwörter.');
   }
 
+  async listDocuments() {
+    return [];
+  }
+
+  async uploadDocument(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keine Dateiablage.');
+  }
+
+  async documentUrl(): Promise<string> {
+    throw new Error('Im Demo-Betrieb gibt es keine Dateiablage.');
+  }
+
+  async markDocumentPrinted(): Promise<void> {}
+
+  async archiveDocument(): Promise<void> {
+    throw new Error('Im Demo-Betrieb gibt es keine Dateiablage.');
+  }
+
   async setUserEmail(): Promise<void> {
     throw new Error('Im Demo-Betrieb gibt es keine Konten.');
   }

@@ -9,11 +9,13 @@ const ICONS: Record<string, string> = {
   monitor: '🖥️',
   trophy: '🏆',
   people: '👥',
+  folder: '📁',
 };
 
 const BESCHREIBUNG: Record<string, string> = {
   maintenance: 'Frame-Stände eintragen, fällige Wartungen sehen und dokumentieren',
   urkunden: 'Events anlegen, Ergebnisse auswerten und Urkunden drucken',
+  dokumente: 'Formulare, Preislisten und Aushänge zum Ausdrucken',
   verwaltung: 'Mitarbeiter anlegen, Bereiche zuordnen und Rechte vergeben',
 };
 

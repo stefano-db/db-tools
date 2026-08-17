@@ -7,6 +7,7 @@ import { AuthProvider } from './app/AuthContext';
 import { DataProvider } from './app/DataContext';
 import { PortalHome } from './app/PortalHome';
 import { UsersPage } from './features/admin/UsersPage';
+import { DocumentsPage } from './features/documents/DocumentsPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -28,6 +29,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <PortalHome /> },
       { path: 'verwaltung', element: <UsersPage /> },
+      { path: 'dokumente', element: <DocumentsPage /> },
       {
         path: 'wartung',
         element: <MaintenanceShell />,

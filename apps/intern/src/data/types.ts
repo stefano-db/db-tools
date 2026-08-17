@@ -194,6 +194,20 @@ export interface ModuleInfo {
   canWrite: boolean;
 }
 
+/** Eine Druckvorlage im Modul Dokumente. */
+export interface DocumentRow {
+  id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  printCount: number;
+  lastPrintedAt: string | null;
+  createdAt: string;
+}
+
 /** Tabellenname -> Zeilen, wie sie in der Datenbank stehen. */
 export type BackupBundle = Record<string, unknown[]>;
 
@@ -225,6 +239,19 @@ export interface Repository {
   setUserEmail(id: string, email: string): Promise<void>;
   /** Link zum Zurücksetzen an die hinterlegte Adresse schicken. */
   sendPasswordReset(email: string): Promise<void>;
+
+  // --- Dokumente ---
+  listDocuments(): Promise<DocumentRow[]>;
+  uploadDocument(input: {
+    file: File;
+    title: string;
+    description?: string;
+    category?: string;
+  }): Promise<void>;
+  /** Zeitlich begrenzte Adresse zum Ansehen, Drucken oder Herunterladen. */
+  documentUrl(id: string, forDownload?: boolean): Promise<string>;
+  markDocumentPrinted(id: string): Promise<void>;
+  archiveDocument(id: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
    * sichtbar und durchgestrichen — gelöscht wird nichts. Mitkaskadierte Einträge
