@@ -16,7 +16,12 @@
   --color-db-surface: #161513;
   --color-db-card: #1c1a17;
   --color-db-card2: #23201c;
-  --color-db-line: #2e2a25;
+  --color-db-line: #35302a;
+
+  /* Datenflächen liegen höher als der Untergrund. Ohne diesen Abstand wirkt
+     alles flach — genau das, was die helle Fassung mit weissen Karten auf
+     grauem Grund von selbst hatte. */
+  --color-db-panel: #262220;
 
   /* Gold — die Leitfarbe */
   --color-db-gold: #e0b050;
@@ -108,6 +113,40 @@ body.db {
 }
 .db-scroll-x::-webkit-scrollbar {
   display: none;
+}
+
+/* Anzeigetafel: kräftig eingefärbte Kachel für einen Zustand. Auf dunklem Grund
+   braucht eine Zahl Fläche, um so schwer zu wiegen wie schwarz auf weiss. */
+.db-tile {
+  border-radius: 14px;
+  border: 1px solid var(--color-db-line);
+  background: var(--color-db-panel);
+  padding: 1rem 1.25rem;
+}
+.db-tile-ok {
+  background: color-mix(in srgb, var(--color-db-ok) 14%, var(--color-db-panel));
+  border-color: color-mix(in srgb, var(--color-db-ok) 45%, transparent);
+}
+.db-tile-warn {
+  background: color-mix(in srgb, var(--color-db-warn) 16%, var(--color-db-panel));
+  border-color: color-mix(in srgb, var(--color-db-warn) 50%, transparent);
+}
+.db-tile-bad {
+  background: color-mix(in srgb, var(--color-db-bad) 18%, var(--color-db-panel));
+  border-color: color-mix(in srgb, var(--color-db-bad) 55%, transparent);
+}
+
+/* Karten, die Daten tragen, heben sich vom Untergrund ab. */
+.db-panel {
+  background: var(--color-db-panel);
+  border: 1px solid var(--color-db-line);
+  border-radius: 14px;
+}
+
+/* Tabellenzeilen abwechselnd tönen — sonst verlaufen viele Zahlenzeilen
+   auf dunklem Grund ineinander. */
+.db-zebra tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
 }
 
 /* Kontrollkästchen und Auswahlfelder in der Leitfarbe statt im Systemblau. */

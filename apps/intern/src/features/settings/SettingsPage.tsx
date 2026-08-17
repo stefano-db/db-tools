@@ -328,7 +328,7 @@ function AccountCard() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="db-card p-4">
+    <section className="db-panel p-4">
       <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">{title}</h2>
       {children}
     </section>

@@ -262,7 +262,7 @@ function Section({
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">{title}</h2>
         {action}
       </div>
-      <div className="divide-y divide-db-line overflow-hidden db-card">
+      <div className="db-panel divide-y divide-db-line overflow-hidden">
         {children}
       </div>
     </section>
@@ -584,7 +584,7 @@ function ResetLaneSection({
   if (!hasData) return null;
 
   return (
-    <section className="db-card p-4">
+    <section className="db-panel p-4">
       {!open ? (
         <button
           onClick={() => setOpen(true)}

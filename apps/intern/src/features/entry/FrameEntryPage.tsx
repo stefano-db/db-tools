@@ -194,9 +194,9 @@ export function FrameEntryPage() {
         </div>
       )}
 
-      <div className="db-card overflow-hidden">
+      <div className="db-panel overflow-hidden">
         <div className="db-scroll-x overflow-x-auto">
-        <table className="w-full min-w-[34rem] text-left">
+        <table className="db-zebra w-full min-w-[34rem] text-left">
           <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
             <tr>
               <th className="px-4 py-2 font-semibold">Bahn</th>

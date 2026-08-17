@@ -81,7 +81,7 @@ export function DashboardPage() {
           <h2 className="mb-3 text-sm font-semibold tracking-wide text-db-text3 uppercase">
             Übrige Bahnen
           </h2>
-          <div className="overflow-hidden db-card">
+          <div className="db-panel overflow-hidden">
             {rest.map((o) => (
               <CompactRow key={o.lane.laneId} overview={o} />
             ))}
@@ -101,20 +101,37 @@ function Tile({
   label: string;
   tone: 'neutral' | 'ok' | 'due_soon' | 'due' | 'unknown';
 }) {
+  // Zahlen ohne Bedeutung bleiben ruhig; ein Zustand, der Handlung verlangt,
+  // bekommt Fläche. Auf dunklem Grund wiegt eine eingefärbte Kachel so schwer
+  // wie schwarze Schrift auf weiss.
+  const shell =
+    tone === 'due' && value > 0
+      ? 'db-tile db-tile-bad'
+      : tone === 'due_soon' && value > 0
+        ? 'db-tile db-tile-warn'
+        : tone === 'ok' && value > 0
+          ? 'db-tile db-tile-ok'
+          : 'db-tile';
+
   const accent =
-    tone === 'due' ? 'text-db-bad' :
-    tone === 'due_soon' ? 'text-db-warn' :
-    tone === 'ok' ? 'text-db-ok' :
-    'text-db-text2';
+    value === 0
+      ? 'text-db-text3'
+      : tone === 'due'
+        ? 'text-db-bad'
+        : tone === 'due_soon'
+          ? 'text-db-warn'
+          : tone === 'ok'
+            ? 'text-db-ok'
+            : 'text-db-text';
   const symbol = tone === 'neutral' ? '' : STATUS_STYLE[tone === 'unknown' ? 'unknown' : tone].symbol;
 
   return (
-    <div className="db-card px-4 py-3">
-      <div className={`tabular text-3xl font-bold ${accent}`}>
-        {symbol && <span className="mr-1.5 align-middle text-lg">{symbol}</span>}
+    <div className={shell}>
+      <div className={`db-num text-4xl font-extrabold ${accent}`}>
+        {symbol && <span className="mr-2 align-middle text-xl">{symbol}</span>}
         {value}
       </div>
-      <div className="mt-0.5 text-sm text-db-text2">{label}</div>
+      <div className="mt-1 text-sm font-medium text-db-text2">{label}</div>
     </div>
   );
 }
@@ -159,7 +176,7 @@ function LaneCard({ overview }: { overview: LaneOverview }) {
   return (
     <Link
       to={`/wartung/bahn/${lane.laneNumber}`}
-      className={`block rounded-lg border border-l-4 border-db-line bg-db-card p-4 transition hover:border-db-gold-dim ${STATUS_STYLE[worst].border}`}
+      className={`db-panel block border-l-4 p-4 transition hover:border-db-gold-dim ${STATUS_STYLE[worst].border}`}
     >
       <div className="flex items-start justify-between gap-4">
         <div>

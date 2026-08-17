@@ -72,7 +72,7 @@ export function HistoryPage() {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-3 db-card p-3">
+      <div className="db-panel flex flex-wrap gap-3 p-3">
         <Select label="Bahn" value={lane} onChange={(v) => setFilter('bahn', v)}
           options={snapshot.lanes.map((l) => ({ value: String(l.laneNumber), label: `Bahn ${l.laneNumber}` }))} />
         {tab === 'wartungen' && (
@@ -106,8 +106,8 @@ export function HistoryPage() {
           <p className="text-sm text-db-text2">
             {readingRows.length} Eingaben · ersetzte Werte bleiben durchgestrichen stehen
           </p>
-          <div className="overflow-hidden db-card">
-            <table className="w-full text-left text-sm">
+          <div className="db-panel overflow-hidden">
+            <table className="db-zebra w-full text-left text-sm">
               <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
                 <tr>
                   <th className="px-4 py-2 font-semibold">Ablesedatum</th>
@@ -149,8 +149,8 @@ export function HistoryPage() {
         <>
       <p className="text-sm text-db-text2">{rows.length} Einträge</p>
 
-      <div className="overflow-hidden db-card">
-        <table className="w-full text-left text-sm">
+      <div className="db-panel overflow-hidden">
+        <table className="db-zebra w-full text-left text-sm">
           <thead className="bg-db-card2 text-xs tracking-wide text-db-text2 uppercase">
             <tr>
               <th className="px-4 py-2 font-semibold">Datum</th>
