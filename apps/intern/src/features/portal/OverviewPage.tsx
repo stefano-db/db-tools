@@ -44,7 +44,7 @@ export function OverviewPage() {
       </div>
 
       <section>
-        <div className="mb-3 flex items-end justify-between">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <h2 className="text-lg font-bold">Deine Tools</h2>
           <span className="text-xs text-db-text3">
             {session?.isAdmin
@@ -150,29 +150,31 @@ function WeekCard({ week }: { week: MyWeek | null }) {
 
   return (
     <article className="db-card p-5 lg:col-span-2">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
-          Dienstplan — diese Woche
+          Diese Woche
         </h2>
-        <a href="/dienstplan/index.html" className="db-btn-gold px-3 py-1.5 text-xs">
+        <a href="/dienstplan/index.html" className="db-btn-gold px-3 py-1.5 text-xs whitespace-nowrap">
           Zum Dienstplan
         </a>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-2">
+      <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2">
         {days.map((d, i) => {
           const isToday = d.toDateString() === today;
           return (
             <div
               key={d.toISOString()}
-              className={`rounded-xl border p-2 text-center ${
+              className={`rounded-lg border px-0.5 py-2 text-center sm:rounded-xl sm:px-2 ${
                 isToday ? 'border-db-gold bg-db-card2' : 'border-db-line'
               }`}
             >
-              <div className="text-[10px] tracking-wide text-db-text3 uppercase">
-                {d.toLocaleDateString('de-DE', { weekday: 'short' })}
+              <div className="text-[9px] tracking-wide text-db-text3 uppercase sm:text-[10px]">
+                {d.toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2)}
               </div>
-              <div className={`db-num text-lg font-bold ${isToday ? 'text-db-gold' : ''}`}>
+              <div
+                className={`db-num text-base font-bold sm:text-lg ${isToday ? 'text-db-gold' : ''}`}
+              >
                 {d.getDate()}
               </div>
               <DayBar day={week?.days[i]} />
@@ -274,7 +276,7 @@ function DayBar({ day }: { day?: ShiftDay }) {
     <>
       <div className={`mt-2 h-1 rounded-full ${color}`} />
       {day?.status === 'dienst' && day.b && (
-        <div className="db-num mt-1 text-[10px] leading-tight text-db-text2">
+        <div className="db-num mt-1 hidden text-[10px] leading-tight text-db-text2 sm:block">
           {day.b}
           <br />
           {day.e}

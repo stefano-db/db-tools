@@ -42,7 +42,7 @@ const ACCOUNT: NavEntry[] = [{ to: '/profil', label: 'Profil', icon: '🙂' }];
 /** Am Handy nur die wichtigsten fünf — mehr passt nicht in eine Reiterleiste. */
 const MOBILE: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
-  { to: '/dienstplan/index.html', label: 'Dienstplan', icon: '📅' },
+  { to: '/dienstplan/index.html', label: 'Plan', icon: '📅' },
   { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
   { to: '/dokumente', label: 'Docs', icon: '📁' },
   { to: '/profil', label: 'Profil', icon: '🙂' },
@@ -103,8 +103,8 @@ export function AppLayout() {
       {/* Inhalt */}
       <div className="lg:pl-60">
         <header className="db-hero border-b border-db-line px-4 py-5 sm:px-8">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4">
-            <div className="lg:hidden">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="w-full lg:hidden">
               <Logo />
             </div>
             <div className="min-w-0 flex-1">
@@ -200,7 +200,9 @@ function SideLink({ entry }: { entry: NavEntry }) {
 }
 
 function TabLink({ entry }: { entry: NavEntry }) {
-  const cls = 'flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] text-db-text3';
+  // min-w-0 und truncate: ohne sie schieben lange Wörter die Reiter ineinander.
+  const cls =
+    'flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] text-db-text3';
 
   if (isStandalone(entry.to)) {
     return (
@@ -208,7 +210,7 @@ function TabLink({ entry }: { entry: NavEntry }) {
         <span className="text-lg" aria-hidden="true">
           {entry.icon}
         </span>
-        {entry.label}
+        <span className="w-full truncate text-center">{entry.label}</span>
       </a>
     );
   }
@@ -222,7 +224,7 @@ function TabLink({ entry }: { entry: NavEntry }) {
       <span className="text-lg" aria-hidden="true">
         {entry.icon}
       </span>
-      {entry.label}
+      <span className="w-full truncate text-center">{entry.label}</span>
     </NavLink>
   );
 }
