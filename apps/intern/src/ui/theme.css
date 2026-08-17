@@ -11,17 +11,21 @@
  */
 
 @theme {
-  /* Untergrund, von tief nach hell */
-  --color-db-bg: #0e0d0b;
-  --color-db-surface: #161513;
-  --color-db-card: #1c1a17;
-  --color-db-card2: #23201c;
-  --color-db-line: #35302a;
+  /* Untergrund, von tief nach hell.
+     Kein Schwarz: ein warmes, dunkles Braungrau. Reines Schwarz wirkt hart und
+     laesst die helle Flaeche der Wartung wie ein Loch im Bild aussehen —
+     angehoben schliesst sich der Abstand, ohne dass der Rahmen seine Ruhe
+     verliert. */
+  --color-db-bg: #26221c;
+  --color-db-surface: #2e2924;
+  --color-db-card: #332e27;
+  --color-db-card2: #3b352d;
+  --color-db-line: #4b443a;
 
   /* Datenflächen liegen höher als der Untergrund. Ohne diesen Abstand wirkt
      alles flach — genau das, was die helle Fassung mit weissen Karten auf
      grauem Grund von selbst hatte. */
-  --color-db-panel: #262220;
+  --color-db-panel: #3b352d;
 
   /* Gold — die Leitfarbe */
   --color-db-gold: #e0b050;
@@ -31,7 +35,9 @@
   /* Schrift */
   --color-db-text: #f2ede4;
   --color-db-text2: #b6ada0;
-  --color-db-text3: #7d766c;
+  /* Auf dem angehobenen Grund muss die Hilfsschrift mitziehen, sonst
+     verliert sie den noetigen Kontrast. */
+  --color-db-text3: #948c7e;
 
   /* Heller Arbeitsbereich.
      Module, in denen man laenger liest und viele Zahlen vergleicht — die
@@ -56,7 +62,7 @@
   /* Status — dieselben Bedeutungen wie in der Wartung */
   --color-db-ok: #3fb27a;
   --color-db-warn: #e0a038;
-  --color-db-bad: #dc5a54;
+  --color-db-bad: #e2706a;
 }
 
 /* Die Plattform selbst ist dunkel. Module, die noch ihr altes Aussehen haben,
