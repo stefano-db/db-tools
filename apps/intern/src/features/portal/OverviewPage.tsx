@@ -154,9 +154,16 @@ function WeekCard({ week }: { week: MyWeek | null }) {
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
           Diese Woche
         </h2>
-        <a href="/dienstplan/index.html" className="db-btn-gold px-3 py-1.5 text-xs whitespace-nowrap">
-          Zum Dienstplan
-        </a>
+        <div className="flex items-center gap-2">
+          {/* Solange ueber das neue Modul entschieden wird, steht der Entwurf
+              daneben — auch am Handy, wo es keine Seitenleiste gibt. */}
+          <Link to="/dienstplan-entwurf" className="db-btn-ghost px-3 py-1.5 text-xs whitespace-nowrap">
+            Entwurf ansehen
+          </Link>
+          <a href="/dienstplan/index.html" className="db-btn-gold px-3 py-1.5 text-xs whitespace-nowrap">
+            Zum Dienstplan
+          </a>
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2">

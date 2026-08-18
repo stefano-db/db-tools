@@ -25,6 +25,10 @@ interface NavEntry {
 const MAIN: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
   { to: '/dienstplan/index.html', label: 'Dienstplan', icon: '📅' },
+  // Der Entwurf des neuen Moduls steht daneben, solange entschieden wird. Der
+  // laufende Betrieb bleibt auf dem bisherigen Editor — er speichert, der
+  // Entwurf nicht.
+  { to: '/dienstplan-entwurf', label: 'Dienstplan (Entwurf)', icon: '✏️' },
   { to: '/meine-schichten', label: 'Meine Schichten', icon: '🗓' },
 ];
 
