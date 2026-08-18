@@ -232,6 +232,9 @@ export interface ShiftDay {
   std: string;
 }
 
+/** Eine ganze Woche: Name im Plan -> die sieben Tage. */
+export type RosterWeekData = Record<string, { d: ShiftDay[] }>;
+
 /** Die eigene Woche — Grundlage für „nächste Schicht" und den Wochenstreifen. */
 export interface MyWeek {
   employeeName: string;
@@ -295,6 +298,8 @@ export interface Repository {
   linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void>;
   /** Die eigene laufende Woche. null, wenn das Konto keinem Namen zugeordnet ist. */
   myWeek(): Promise<MyWeek | null>;
+  /** Eine ganze Woche lesen — Montagsdatum als YYYY-MM-DD. */
+  rosterWeek(weekStart: ISODate): Promise<RosterWeekData>;
   archiveDocument(id: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie

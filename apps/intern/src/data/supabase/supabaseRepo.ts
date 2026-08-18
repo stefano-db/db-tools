@@ -482,6 +482,16 @@ export class SupabaseRepository implements Repository {
     };
   }
 
+  async rosterWeek(weekStart: string): Promise<Record<string, { d: any[] }>> {
+    const { data, error } = await this.client
+      .from('roster_weeks')
+      .select('data')
+      .eq('week_start', weekStart)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    return (data?.data ?? {}) as Record<string, { d: any[] }>;
+  }
+
   async setUserPassword(id: string, password: string): Promise<void> {
     const { error } = await this.client.rpc('admin_set_password', {
       p_user_id: id,

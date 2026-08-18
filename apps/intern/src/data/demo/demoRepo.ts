@@ -145,6 +145,10 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb gibt es keinen Dienstplan.');
   }
 
+  async rosterWeek() {
+    return {};
+  }
+
   async myWeek() {
     return null;
   }

@@ -10,6 +10,7 @@ import { OverviewPage } from './features/portal/OverviewPage';
 import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
+import { RosterDraftPage } from './features/roster/RosterDraftPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -37,6 +38,9 @@ const router = createBrowserRouter([
           { path: 'profil', element: <ProfilePage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
+          // Entwurf des kommenden Dienstplan-Moduls — liest den echten Plan,
+          // schreibt nichts. Noch nicht in der Navigation.
+          { path: 'dienstplan-entwurf', element: <RosterDraftPage /> },
           {
             path: 'wartung',
             element: <MaintenanceShell />,
