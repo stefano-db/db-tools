@@ -386,9 +386,24 @@ body.db-breit .db-kopfzeile {
   body.db-plan .schicht-karte {
     padding: 0 3px !important;
   }
-  body.db-plan .zeitleiste {
-    margin-top: 0 !important;
-    height: 2px !important;
+
+  /* Am Bildschirm steht die Dauer unter der Zeit — dort ist Platz. Auf dem
+     Blatt kostet jede zweite Zeile rund einen Zentimeter ueber die ganze
+     Belegschaft, also rueckt sie hinter die Zeit. */
+  body.db-plan .schicht-karte > div {
+    display: inline !important;
+  }
+  body.db-plan .schicht-karte .dauer::before {
+    content: ' · ';
+  }
+
+  /* Die hoechste Zelle bestimmt die Zeilenhoehe — die Statusmarke muss also
+     mit abnehmen, sonst nuetzt die schmalere Schichtkarte nichts. */
+  body.db-plan .status-marke {
+    padding: 0 3px !important;
+  }
+  body.db-plan .bereichs-band {
+    padding: 0 6px !important;
   }
 
   body.db-plan tr,

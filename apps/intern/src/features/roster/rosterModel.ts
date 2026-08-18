@@ -128,35 +128,3 @@ export function isoWeekNumber(date: Date): number {
 export function emptyWeek(): ShiftDay[] {
   return Array.from({ length: 7 }, () => ({ ...EMPTY_DAY }));
 }
-
-
-/**
- * Lage einer Schicht im Tag, als Anteil von 0 bis 1.
- *
- * Zahlen muss man lesen und vergleichen; eine Lage sieht man. Zwei Zeilen
- * untereinander verraten so auf einen Blick, ob jemand frueh anfaengt und der
- * andere spaet — ohne vier Uhrzeiten im Kopf zu behalten.
- *
- * Das Fenster laeuft von 6:00 bis 2:00 der Folgenacht; darin liegt der Betrieb
- * eines Bowlingcenters vollstaendig. Was darueber hinausgeht, wird an den Rand
- * gedrueckt statt abgeschnitten — sichtbar bleibt es allemal.
- */
-const WINDOW_START = 6 * 60;
-const WINDOW_END = 26 * 60;
-
-export function shiftSpan(day: ShiftDay): { from: number; to: number } | null {
-  if (day.status !== 'dienst') return null;
-  const b = /^(\d{1,2}):(\d{2})$/.exec(day.b);
-  if (!b) return null;
-  const start = Number(b[1]) * 60 + Number(b[2]);
-  const minutes = shiftMinutes(day);
-  if (minutes <= 0) return null;
-
-  const span = WINDOW_END - WINDOW_START;
-  const from = (start - WINDOW_START) / span;
-  const to = (start + minutes - WINDOW_START) / span;
-  return {
-    from: Math.min(Math.max(from, 0), 1),
-    to: Math.min(Math.max(to, 0), 1),
-  };
-}

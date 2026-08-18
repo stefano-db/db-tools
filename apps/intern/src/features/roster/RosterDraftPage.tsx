@@ -13,7 +13,6 @@ import {
   mondayOf,
   parseTime,
   shiftMinutes,
-  shiftSpan,
   weekMinutes,
   type ShiftDay,
   type ShiftStatus,
@@ -509,14 +508,14 @@ function WeekGrid({
           return (
             <tbody key={group.no}>
               <tr>
-                <td colSpan={9} className="pt-1.5 pb-0.5">
+                <td colSpan={9} className="pt-3 pb-1">
                   <div
-                    className="flex items-center gap-3 rounded px-2 py-0.5"
+                    className="bereichs-band flex items-center gap-3 rounded-md px-3 py-1"
                     style={{ background: tint(group.color, 18), color: group.color }}
                   >
-                    <span className="text-[12px] font-extrabold tracking-wide uppercase">{group.name}</span>
+                    <span className="text-[13px] font-extrabold tracking-wide uppercase">{group.name}</span>
                     <span className="text-[11px] opacity-70">{rows.length}</span>
-                    <span className="ml-auto text-[12px] font-bold">{formatMinutes(total)} h</span>
+                    <span className="ml-auto text-[13px] font-bold">{formatMinutes(total)} h</span>
                   </div>
                 </td>
               </tr>
@@ -533,13 +532,13 @@ function WeekGrid({
                   <tr key={emp.id}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 py-0.5 pr-4 pl-3 text-left text-[13px] font-semibold whitespace-nowrap"
+                      className="sticky left-0 z-10 py-1.5 pr-4 pl-3 text-left text-sm font-semibold whitespace-nowrap"
                       style={{ background: rowBg, borderLeft: `3px solid ${group.color}`, borderTop: gap }}
                     >
                       {emp.name}
                     </th>
                     {week.map((day, i) => (
-                      <td key={i} className="px-1 py-0.5" style={{ background: rowBg, borderTop: gap }}>
+                      <td key={i} className="px-1 py-1.5" style={{ background: rowBg, borderTop: gap }}>
                         <DayCell
                           day={day}
                           color={group.color}
@@ -549,8 +548,8 @@ function WeekGrid({
                         />
                       </td>
                     ))}
-                    <td className="px-3 py-0.5 text-right" style={{ background: rowBg, borderTop: gap }}>
-                      <span className="tabular text-[13px] font-bold">{formatMinutes(minutes)}</span>
+                    <td className="px-3 py-1.5 text-right" style={{ background: rowBg, borderTop: gap }}>
+                      <span className="tabular text-sm font-bold">{formatMinutes(minutes)}</span>
                       {emp.targetHours > 0 && (
                         <span className="ml-1 text-xs text-lw-text3">/ {emp.targetHours}:00</span>
                       )}
@@ -624,19 +623,20 @@ function DayCell({
          beim Zeigen auf die Zelle. Erst dadurch passt die Belegschaft auf
          einen Bildschirm — und auf ein Blatt. */
       <div
-        className="schicht-karte rounded-md bg-white px-1.5 pt-0.5 pb-1"
+        className="schicht-karte rounded-lg bg-white px-2 py-1.5"
         style={{ boxShadow: `inset 0 0 0 1px ${tint(color, 30)}` }}
-        title={minutes > 0 ? `${formatMinutes(minutes)} Stunden` : undefined}
       >
-        <div className="tabular text-[13px] leading-[1.15] font-bold whitespace-nowrap">
+        <div className="tabular text-sm leading-tight font-bold whitespace-nowrap">
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
-        <TimeBar day={day} color={color} />
+        <div className="dauer text-[11px] leading-tight text-lw-text3">
+          {minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
+        </div>
       </div>
     ) : (
-      <div className={`rounded-md px-2 py-1.5 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
+      <div className={`status-marke rounded-lg px-2 py-3 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
     );
 
   if (!canEdit) return <div className={base}>{body}</div>;
@@ -649,31 +649,6 @@ function DayCell({
     >
       {body}
     </button>
-  );
-}
-
-/**
- * Die Schicht als Strecke im Tag.
- *
- * Untereinander gelesen ergeben die Strecken das Bild der Woche: wer frueh
- * anfaengt, steht links, wer spaet arbeitet, rechts. Man sieht die Verteilung,
- * ohne eine einzige Uhrzeit zu vergleichen — die Zahlen stehen fuer den
- * genauen Blick darueber.
- */
-function TimeBar({ day, color }: { day: ShiftDay; color: string }) {
-  const span = shiftSpan(day);
-  if (!span) return <div className="zeitleiste mt-0.5 h-[3px]" />;
-  return (
-    <div className="zeitleiste mt-0.5 h-[3px] w-full rounded-full" style={{ background: tint(color, 18) }}>
-      <div
-        className="h-full rounded-full"
-        style={{
-          background: color,
-          marginLeft: `${span.from * 100}%`,
-          width: `${Math.max((span.to - span.from) * 100, 6)}%`,
-        }}
-      />
-    </div>
   );
 }
 

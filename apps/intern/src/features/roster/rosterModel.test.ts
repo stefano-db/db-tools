@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatMinutes,
-  shiftSpan,
   isoWeekNumber,
   mondayOf,
   parseTime,
@@ -85,31 +84,5 @@ describe('isoWeekNumber', () => {
   it('zählt nach ISO 8601', () => {
     expect(isoWeekNumber(new Date(2026, 7, 17))).toBe(34);
     expect(isoWeekNumber(new Date(2026, 0, 1))).toBe(1);
-  });
-});
-
-describe('shiftSpan', () => {
-  it('legt die Schicht in das Tagesfenster', () => {
-    // 6:00 ist der Anfang des Fensters, 26:00 das Ende — 14:00 liegt bei 40 %.
-    const span = shiftSpan({ status: 'dienst', b: '14:00', e: '22:00' })!;
-    expect(span.from).toBeCloseTo(0.4, 5);
-    expect(span.to).toBeCloseTo(0.8, 5);
-  });
-
-  it('fuehrt die Spaetschicht ueber Mitternacht weiter', () => {
-    const span = shiftSpan({ status: 'dienst', b: '18:00', e: '01:00' })!;
-    expect(span.from).toBeCloseTo(0.6, 5);
-    expect(span.to).toBeCloseTo(0.95, 5);
-  });
-
-  it('drueckt Zeiten vor dem Fenster an den Rand, statt sie zu verlieren', () => {
-    const span = shiftSpan({ status: 'dienst', b: '05:00', e: '09:00' })!;
-    expect(span.from).toBe(0);
-    expect(span.to).toBeCloseTo(0.15, 5);
-  });
-
-  it('gibt es nur fuer Dienst', () => {
-    expect(shiftSpan({ status: 'urlaub', b: '', e: '' })).toBeNull();
-    expect(shiftSpan({ status: 'dienst', b: '14:00', e: '' })).toBeNull();
   });
 });
