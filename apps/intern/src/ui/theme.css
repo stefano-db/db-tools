@@ -27,10 +27,14 @@
      grauem Grund von selbst hatte. */
   --color-db-panel: #2e2923;
 
-  /* Gold — die Leitfarbe */
-  --color-db-gold: #e0b050;
-  --color-db-gold-soft: #f0cd86;
-  --color-db-gold-dim: #8a6c2e;
+  /* Gold — die Leitfarbe.
+     Der Wert kommt aus dem Haus und nicht aus einem Handbuch: #ffd240, das
+     Gold des Logos. Hell und weich sind daraus abgeleitet — hell fuer den
+     Verlauf auf Knoepfen, dunkel fuer Raender und Fokus, wo volles Gold
+     schreien wuerde. */
+  --color-db-gold: #ffd240;
+  --color-db-gold-soft: #ffe485;
+  --color-db-gold-dim: #a87f1a;
 
   /* Schrift */
   --color-db-text: #f2ede4;
