@@ -654,7 +654,12 @@ function DayCell({
         </div>
       </div>
     ) : (
-      <div className={`status-marke rounded-lg px-2 py-3 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
+      <div
+        data-status={day.status}
+        className={`status-marke rounded-lg px-2 py-3 text-xs font-semibold ${pill.cls}`}
+      >
+        {pill.label}
+      </div>
     );
 
   if (!canEdit) return <div className={base}>{body}</div>;
@@ -700,7 +705,17 @@ function TvView({
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const [fitted, setFitted] = useState({ scale: 1, dx: 0 });
+  const [fitted, setFitted] = useState({ scale: 1, dx: 0, dy: 0 });
+  const [bild, setBild] = useState<'heute' | 'woche'>(todayIndex >= 0 ? 'heute' : 'woche');
+
+  // Der Wechsel laeuft von allein: wer vorbeigeht, soll nicht warten muessen.
+  // Der Tag steht laenger als die Woche — er wird oefter gebraucht.
+  useEffect(() => {
+    if (todayIndex < 0) return;
+    const dauer = bild === 'heute' ? 18000 : 12000;
+    const t = window.setTimeout(() => setBild(bild === 'heute' ? 'woche' : 'heute'), dauer);
+    return () => window.clearTimeout(t);
+  }, [bild, todayIndex]);
 
   const fit = useCallback(() => {
     const box = boxRef.current;
@@ -716,7 +731,8 @@ function TvView({
     // linke obere Ecke als Ursprung und die Mitte selbst ausrechnen — sonst
     // fehlen Sonntag und die Wochensumme.
     const dx = (box.clientWidth - inner.offsetWidth * scale) / 2;
-    setFitted({ scale, dx });
+    const dy = (box.clientHeight - inner.offsetHeight * scale) / 2;
+    setFitted({ scale, dx, dy });
   }, []);
 
   useLayoutEffect(() => {
@@ -729,7 +745,7 @@ function TvView({
       ro.disconnect();
       window.removeEventListener('resize', fit);
     };
-  }, [fit]);
+  }, [fit, bild]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
@@ -756,31 +772,135 @@ function TvView({
 
       {/* Der Rahmen misst ohne eigene Polsterung, damit die Rechnung aufgeht;
           die Luft steckt im Inhalt. */}
+      {todayIndex >= 0 && (
+        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2">
+          {(['heute', 'woche'] as const).map((b) => (
+            <button
+              key={b}
+              onClick={() => setBild(b)}
+              aria-label={b === 'heute' ? 'Heute zeigen' : 'Ganze Woche zeigen'}
+              className={`h-2.5 w-2.5 rounded-full transition ${
+                bild === b ? 'bg-lw-text2' : 'bg-lw-line2'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
       <div ref={boxRef} className="flex-1 overflow-hidden">
         <div
           ref={innerRef}
-          className="plan-tv w-[1860px] origin-top-left px-6 py-2"
-          style={{ transform: `translateX(${fitted.dx}px) scale(${fitted.scale})` }}
+          /* Der Tag wird schmaler aufgebaut als die Woche: er hat weniger
+             Zeilen und darf deshalb weiter aufgeblasen werden, bis er die
+             Hoehe ausfuellt. Bei gleicher Breite bliebe das halbe Bild leer. */
+          className="plan-tv origin-top-left px-6 py-2"
+          style={{
+            width: bild === 'heute' ? 1250 : 1860,
+            transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})`,
+          }}
         >
           <div className="mb-1 flex items-baseline gap-4">
-            <span className="text-3xl font-extrabold">Dienstplan</span>
+            <span className="text-3xl font-extrabold">
+              {bild === 'heute' && todayIndex >= 0
+                ? `Heute · ${DAY_NAMES[todayIndex]}`
+                : 'Die ganze Woche'}
+            </span>
             <span className="text-3xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
             <span className="ml-auto text-2xl text-lw-text2">
-              {formatDayMonth(monday)} – {formatDayMonth(days[6])}
-              {monday.getFullYear()}
+              {bild === 'heute' && todayIndex >= 0
+                ? formatDayMonth(days[todayIndex]) + monday.getFullYear()
+                : `${formatDayMonth(monday)} – ${formatDayMonth(days[6])}${monday.getFullYear()}`}
             </span>
           </div>
 
-          <WeekGrid
-            employees={employees}
-            days={days}
-            todayIndex={todayIndex}
-            weekOf={weekOf}
-            canEdit={false}
-            onPick={() => {}}
-          />
+          {bild === 'heute' && todayIndex >= 0 ? (
+            <TvHeute employees={employees} weekOf={weekOf} dayIndex={todayIndex} />
+          ) : (
+            <WeekGrid
+              employees={employees}
+              days={days}
+              todayIndex={todayIndex}
+              weekOf={weekOf}
+              canEdit={false}
+              onPick={() => {}}
+            />
+          )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Der heutige Tag, gross.
+ *
+ * Das eigentliche Bild fuer die Wand. Aus vier Metern wird nicht gelesen,
+ * sondern erkannt — und erkannt werden koennen nur wenige Zeilen. Statt 133
+ * Feldern stehen hier die zwoelf bis fuenfzehn Namen, die heute im Haus sind,
+ * nach Bereichen in Spalten. Die Woche laeuft daneben weiter und kommt im
+ * Wechsel dran; nachschlagen kann man sie am Handy oder auf dem Ausdruck.
+ */
+function TvHeute({
+  employees,
+  weekOf,
+  dayIndex,
+}: {
+  employees: Employee[];
+  weekOf: (id: string) => ShiftDay[];
+  dayIndex: number;
+}) {
+  const spalten = GROUPS.map((group) => {
+    const leute = employees
+      .filter((e) => e.groupNo === group.no)
+      .map((emp) => ({ emp, day: weekOf(emp.id)[dayIndex] }));
+    return {
+      group,
+      dienst: leute.filter((x) => x.day.status === 'dienst'),
+      abwesend: leute.filter((x) => x.day.status === 'urlaub' || x.day.status === 'krank'),
+    };
+  }).filter((s) => s.dienst.length > 0 || s.abwesend.length > 0);
+
+  if (spalten.length === 0) {
+    return <p className="py-24 text-center text-4xl text-lw-text3">Heute ist niemand eingeteilt.</p>;
+  }
+
+  return (
+    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${spalten.length}, 1fr)` }}>
+      {spalten.map(({ group, dienst, abwesend }) => (
+        <section key={group.no} className="overflow-hidden rounded-2xl" style={{ background: tint(group.color, 8) }}>
+          <div
+            className="flex items-baseline gap-2 px-4 py-2"
+            style={{ background: tint(group.color, 20), color: group.color }}
+          >
+            <span className="text-2xl font-extrabold tracking-wide uppercase">{group.name}</span>
+            <span className="ml-auto text-xl font-bold">{dienst.length}</span>
+          </div>
+
+          <div className="space-y-2 p-3">
+            {dienst.map(({ emp, day }) => (
+              <div key={emp.id} className="rounded-xl bg-white px-3 py-2">
+                <div className="truncate text-xl font-bold">{emp.name}</div>
+                <div
+                  className="tabular text-[26px] leading-tight font-extrabold whitespace-nowrap"
+                  style={{ color: group.color }}
+                >
+                  {day.b}
+                  <span className="mx-0.5 font-normal text-lw-text3">–</span>
+                  {day.e}
+                </div>
+              </div>
+            ))}
+
+            {abwesend.length > 0 && (
+              <div className="px-1 pt-1 text-lg text-lw-text3">
+                {abwesend
+                  .map(({ emp, day }) => `${emp.name} (${STATUS_PILL[day.status].label})`)
+                  .join(' · ')}
+              </div>
+            )}
+          </div>
+        </section>
+      ))}
     </div>
   );
 }

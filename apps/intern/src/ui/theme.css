@@ -387,6 +387,14 @@ body.db-breit .db-kopfzeile {
   padding-top: 3px;
   padding-bottom: 3px;
 }
+/* An der Wand heisst leer schlicht: arbeitet nicht. Ein ausgeschriebenes
+   „frei" in jeder zweiten Zelle verdoppelt die Zeichen, ohne etwas zu sagen —
+   und genau das laesst die Tafel unruhig wirken. Der Platz bleibt stehen,
+   damit die Zeilen nicht verrutschen. */
+.plan-tv .status-marke[data-status='frei'],
+.plan-tv .status-marke[data-status='nein'] {
+  visibility: hidden;
+}
 /* Namen und Wochensumme sind das, was aus der Entfernung zuerst gesucht wird. */
 .plan-tv th[scope='row'] {
   font-size: 21px;
