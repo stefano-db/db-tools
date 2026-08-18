@@ -318,3 +318,87 @@ body.db-breit .db-kopfzeile {
 .lw-card input[type='radio'] {
   accent-color: var(--color-db-gold-dim);
 }
+
+
+/* ── DRUCK: WOCHENPLAN AUF EIN BLATT ─────────────────────────────────────────
+   Der Plan haengt im Center aus und wird in die Gruppe geschickt — Papier ist
+   kein Nebenschauplatz. A4 quer, alles Bedienbare faellt weg, und die
+   Bereichsfarben werden erzwungen: ohne sie zerfaellt die Ordnung, die den
+   Plan lesbar macht. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
+  body.db-plan {
+    background: #fff;
+  }
+
+  /* Rahmen der Plattform, Reiter und Bedienleisten gehoeren nicht aufs Blatt. */
+  body.db-plan aside,
+  body.db-plan header,
+  body.db-plan nav,
+  body.db-plan .nicht-drucken {
+    display: none !important;
+  }
+
+  body.db-plan .nur-drucken {
+    display: block !important;
+  }
+
+  body.db-plan main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  body.db-plan .lw-sheet {
+    padding: 0;
+    border-radius: 0;
+    background: #fff;
+  }
+
+  /* Auf Papier gibt es kein Scrollen — die Tabelle muss sich fuegen. */
+  body.db-plan .db-scroll-x {
+    overflow: visible !important;
+  }
+  body.db-plan table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Die Zellen tragen ihre Schriftgroessen selbst; auf Papier muessen sie
+     einheitlich kleiner werden, sonst passt die Belegschaft nicht auf ein
+     Blatt. Deshalb hier mit Nachdruck. */
+  body.db-plan table,
+  body.db-plan table * {
+    font-size: 8pt !important;
+    line-height: 1.15 !important;
+  }
+  /* Luft, die am Bildschirm guttut, kostet auf dem Blatt Zeilen. Jeder
+     eingesparte Punkt je Zeile ist Platz fuer weitere Mitarbeiter, bevor der
+     Plan auf ein zweites Blatt rutscht. */
+  body.db-plan table td,
+  body.db-plan table th {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  body.db-plan .schicht-karte {
+    padding: 0 3px !important;
+  }
+  body.db-plan .zeitleiste {
+    margin-top: 0 !important;
+    height: 2px !important;
+  }
+
+  body.db-plan tr,
+  body.db-plan tbody {
+    break-inside: avoid;
+  }
+
+  /* Flaechen und Farben mitdrucken, nicht wegoptimieren. */
+  body.db-plan * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

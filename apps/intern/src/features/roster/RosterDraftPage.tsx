@@ -13,6 +13,7 @@ import {
   mondayOf,
   parseTime,
   shiftMinutes,
+  shiftSpan,
   weekMinutes,
   type ShiftDay,
   type ShiftStatus,
@@ -119,8 +120,8 @@ export function RosterDraftPage() {
   // Wie in der Bahnwartung: neben einer hellen Flaeche laeuft der Rahmen eine
   // Stufe heller, sonst steht sie wie ein Loch im dunklen Bild.
   useEffect(() => {
-    document.body.classList.add('db-hell', 'db-breit');
-    return () => document.body.classList.remove('db-hell', 'db-breit');
+    document.body.classList.add('db-hell', 'db-breit', 'db-plan');
+    return () => document.body.classList.remove('db-hell', 'db-breit', 'db-plan');
   }, []);
 
   const monday = useMemo(() => addDays(mondayOf(new Date()), offset * 7), [offset]);
@@ -212,7 +213,7 @@ export function RosterDraftPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="nicht-drucken flex flex-wrap items-center gap-x-3 gap-y-2">
         <h1 className="mr-auto text-2xl font-extrabold">Dienstplan</h1>
         <span className="rounded-md bg-db-card2 px-2 py-1 text-xs font-semibold text-db-text2">
           Entwurf — nichts wird gespeichert
@@ -238,9 +239,19 @@ export function RosterDraftPage() {
         ))}
       </nav>
 
-      <div className="lw-sheet space-y-4">
+      <div className="lw-sheet space-y-3">
         {tab === 'plan' ? (
           <>
+            {/* Auf dem Blatt fehlen Reiter und Bedienleiste — dann muss oben
+                stehen, um welche Woche es geht. */}
+            <div className="nur-drucken hidden">
+              <div className="text-lg font-extrabold">
+                Dienstplan KW {isoWeekNumber(monday)} · {formatDayMonth(monday)} –{' '}
+                {formatDayMonth(addDays(monday, 6))}
+                {monday.getFullYear()}
+              </div>
+            </div>
+
             <Toolbar
               monday={monday}
               offset={offset}
@@ -257,7 +268,7 @@ export function RosterDraftPage() {
               </p>
             )}
 
-            <label className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-lw-card2 px-3 py-2 text-sm">
+            <label className="nicht-drucken flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-lw-card2 px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={showExample}
@@ -282,7 +293,7 @@ export function RosterDraftPage() {
                 onPick={(empId, day, rect) => setEditing({ empId, day, rect })}
               />
             </div>
-            <div className="md:hidden">
+            <div className="nicht-drucken md:hidden">
               <DayView
                 employees={employees}
                 days={days}
@@ -382,7 +393,7 @@ function Toolbar({
 }) {
   const sunday = addDays(monday, 6);
   return (
-    <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+    <div className="nicht-drucken flex flex-wrap items-center gap-x-2 gap-y-3">
       <div className="flex items-center gap-1">
         <button
           onClick={() => onWeek(offset - 1)}
@@ -468,11 +479,11 @@ function WeekGrid({
       <table className="w-full min-w-[58rem] border-separate border-spacing-0 text-sm">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-lw-bg px-3 pb-3 text-left text-xs font-semibold tracking-wide text-lw-text3 uppercase">
+            <th className="sticky left-0 z-10 bg-lw-bg px-3 pb-1.5 text-left text-xs font-semibold tracking-wide text-lw-text3 uppercase">
               Name
             </th>
             {days.map((d, i) => (
-              <th key={i} className="px-2 pb-3 text-center">
+              <th key={i} className="px-2 pb-1.5 text-center">
                 {i === todayIndex ? (
                   <div className="mx-auto inline-block rounded-md bg-lw-warn/15 px-2 py-0.5">
                     <div className="text-sm font-bold text-lw-warn">{DAY_SHORT[i]}</div>
@@ -486,7 +497,7 @@ function WeekGrid({
                 )}
               </th>
             ))}
-            <th className="px-3 pb-3 text-right text-xs font-semibold tracking-wide text-lw-text3 uppercase">
+            <th className="px-3 pb-1.5 text-right text-xs font-semibold tracking-wide text-lw-text3 uppercase">
               Woche
             </th>
           </tr>
@@ -498,14 +509,14 @@ function WeekGrid({
           return (
             <tbody key={group.no}>
               <tr>
-                <td colSpan={9} className="pt-6 pb-2">
+                <td colSpan={9} className="pt-1.5 pb-0.5">
                   <div
-                    className="flex items-center gap-3 rounded-lg px-3 py-2"
+                    className="flex items-center gap-3 rounded px-2 py-0.5"
                     style={{ background: tint(group.color, 18), color: group.color }}
                   >
-                    <span className="text-sm font-extrabold tracking-wide uppercase">{group.name}</span>
-                    <span className="text-xs opacity-70">{rows.length} Personen</span>
-                    <span className="ml-auto text-sm font-bold">{formatMinutes(total)} h</span>
+                    <span className="text-[12px] font-extrabold tracking-wide uppercase">{group.name}</span>
+                    <span className="text-[11px] opacity-70">{rows.length}</span>
+                    <span className="ml-auto text-[12px] font-bold">{formatMinutes(total)} h</span>
                   </div>
                 </td>
               </tr>
@@ -522,13 +533,13 @@ function WeekGrid({
                   <tr key={emp.id}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 py-3 pr-4 pl-3 text-left font-semibold whitespace-nowrap"
+                      className="sticky left-0 z-10 py-0.5 pr-4 pl-3 text-left text-[13px] font-semibold whitespace-nowrap"
                       style={{ background: rowBg, borderLeft: `3px solid ${group.color}`, borderTop: gap }}
                     >
                       {emp.name}
                     </th>
                     {week.map((day, i) => (
-                      <td key={i} className="px-1 py-3" style={{ background: rowBg, borderTop: gap }}>
+                      <td key={i} className="px-1 py-0.5" style={{ background: rowBg, borderTop: gap }}>
                         <DayCell
                           day={day}
                           color={group.color}
@@ -538,8 +549,8 @@ function WeekGrid({
                         />
                       </td>
                     ))}
-                    <td className="px-3 py-3 text-right" style={{ background: rowBg, borderTop: gap }}>
-                      <span className="tabular text-base font-bold">{formatMinutes(minutes)}</span>
+                    <td className="px-3 py-0.5 text-right" style={{ background: rowBg, borderTop: gap }}>
+                      <span className="tabular text-[13px] font-bold">{formatMinutes(minutes)}</span>
                       {emp.targetHours > 0 && (
                         <span className="ml-1 text-xs text-lw-text3">/ {emp.targetHours}:00</span>
                       )}
@@ -550,6 +561,29 @@ function WeekGrid({
             </tbody>
           );
         })}
+
+        {/* Wie stark ist der Tag besetzt? Steht unter den Spalten, wo man beim
+            Ueberfliegen ohnehin landet. */}
+        <tfoot>
+          <tr>
+            <th className="sticky left-0 z-10 bg-lw-bg px-3 pt-2 text-left text-xs font-semibold tracking-wide text-lw-text3 uppercase">
+              Im Dienst
+            </th>
+            {days.map((_, i) => {
+              const list = employees.filter((e) => weekOf(e.id)[i].status === 'dienst');
+              const minutes = list.reduce((sum, e) => sum + shiftMinutes(weekOf(e.id)[i]), 0);
+              return (
+                <td key={i} className="px-1 pt-2 text-center">
+                  <div className={`text-sm font-bold ${list.length === 0 ? 'text-lw-text3' : ''}`}>
+                    {list.length}
+                  </div>
+                  <div className="text-[11px] text-lw-text3">{formatMinutes(minutes)} h</div>
+                </td>
+              );
+            })}
+            <td className="px-3 pt-2 text-right text-[11px] text-lw-text3">Personen<br />Stunden</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -586,21 +620,23 @@ function DayCell({
     day.status === 'dienst' ? (
       // Weiss auf der eingefaerbten Zeile: die Schicht tritt hervor, der Rand
       // in der Bereichsfarbe haelt sie sichtbar bei ihrem Bereich.
+      /* Eine Zeile statt drei: die Dauer steht in der Wochensumme rechts und
+         beim Zeigen auf die Zelle. Erst dadurch passt die Belegschaft auf
+         einen Bildschirm — und auf ein Blatt. */
       <div
-        className="rounded-lg bg-white px-2 py-2"
+        className="schicht-karte rounded-md bg-white px-1.5 pt-0.5 pb-1"
         style={{ boxShadow: `inset 0 0 0 1px ${tint(color, 30)}` }}
+        title={minutes > 0 ? `${formatMinutes(minutes)} Stunden` : undefined}
       >
-        <div className="tabular text-sm leading-snug font-bold whitespace-nowrap">
+        <div className="tabular text-[13px] leading-[1.15] font-bold whitespace-nowrap">
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
-        <div className="text-[11px] leading-tight text-lw-text3">
-          {minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
-        </div>
+        <TimeBar day={day} color={color} />
       </div>
     ) : (
-      <div className={`rounded-lg px-2 py-3.5 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
+      <div className={`rounded-md px-2 py-1.5 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
     );
 
   if (!canEdit) return <div className={base}>{body}</div>;
@@ -613,6 +649,31 @@ function DayCell({
     >
       {body}
     </button>
+  );
+}
+
+/**
+ * Die Schicht als Strecke im Tag.
+ *
+ * Untereinander gelesen ergeben die Strecken das Bild der Woche: wer frueh
+ * anfaengt, steht links, wer spaet arbeitet, rechts. Man sieht die Verteilung,
+ * ohne eine einzige Uhrzeit zu vergleichen — die Zahlen stehen fuer den
+ * genauen Blick darueber.
+ */
+function TimeBar({ day, color }: { day: ShiftDay; color: string }) {
+  const span = shiftSpan(day);
+  if (!span) return <div className="zeitleiste mt-0.5 h-[3px]" />;
+  return (
+    <div className="zeitleiste mt-0.5 h-[3px] w-full rounded-full" style={{ background: tint(color, 18) }}>
+      <div
+        className="h-full rounded-full"
+        style={{
+          background: color,
+          marginLeft: `${span.from * 100}%`,
+          width: `${Math.max((span.to - span.from) * 100, 6)}%`,
+        }}
+      />
+    </div>
   );
 }
 
@@ -875,7 +936,7 @@ function CellEditor({
 
 function Legend() {
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-lw-line pt-3 text-xs text-lw-text3">
+    <div className="nicht-drucken flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-lw-line pt-3 text-xs text-lw-text3">
       <span>Klick auf einen Tag ändert ihn.</span>
       <span className="ml-auto flex flex-wrap gap-x-3">
         {(['urlaub', 'krank'] as ShiftStatus[]).map((s) => (
