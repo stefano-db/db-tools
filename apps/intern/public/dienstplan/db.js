@@ -142,6 +142,15 @@
         });
       }
 
+      // Verlauf verdichten, waehrend sonst nichts zu tun ist. Fehler hier duerfen
+      // den Editor nicht aufhalten — Aufraeumen ist Nebensache.
+      if (DB.canEdit) {
+        sb.rpc('roster_verlauf_aufraeumen').then(
+          () => {},
+          () => {},
+        );
+      }
+
       const cfg = setRes.data;
       if (cfg) {
         if (cfg.group_names && Object.keys(cfg.group_names).length) {
