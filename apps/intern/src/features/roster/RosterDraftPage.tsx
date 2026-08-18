@@ -704,6 +704,17 @@ function TvView({
   const innerRef = useRef<HTMLDivElement>(null);
   const [fitted, setFitted] = useState({ scale: 1, dx: 0, dy: 0 });
 
+  // Zwei Formen zur Wahl: die Tafel, die eigens fuer die Wand gebaut ist, und
+  // die Editor-Ansicht, wie sie am Rechner steht, nur passend gerechnet. Was
+  // im Center besser funktioniert, entscheidet sich vor dem Geraet und nicht
+  // hier — die Wahl bleibt deshalb gespeichert.
+  const [form, setForm] = useState<'tafel' | 'editor'>(
+    () => (localStorage.getItem('dienstplan-tv-form') as 'tafel' | 'editor') ?? 'tafel',
+  );
+  useEffect(() => {
+    localStorage.setItem('dienstplan-tv-form', form);
+  }, [form]);
+
   const fit = useCallback(() => {
     const box = boxRef.current;
     const inner = innerRef.current;
@@ -732,7 +743,7 @@ function TvView({
       ro.disconnect();
       window.removeEventListener('resize', fit);
     };
-  }, [fit]);
+  }, [fit, form]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
@@ -750,12 +761,27 @@ function TvView({
        deshalb selbst mitbringen — sonst erbt sie die helle Schrift des dunklen
        Rahmens und steht hell auf hell. */
     <div className="fixed inset-0 z-50 flex flex-col bg-lw-bg text-lw-text">
-      <button
-        onClick={onClose}
-        className="absolute top-3 right-4 z-10 rounded-lg bg-lw-card px-3 py-1.5 text-sm text-lw-text2 opacity-40 transition hover:opacity-100"
-      >
-        Schließen (Esc)
-      </button>
+      <div className="absolute top-3 right-4 z-10 flex gap-2 opacity-30 transition hover:opacity-100">
+        {(
+          [
+            ['tafel', 'Wandtafel'],
+            ['editor', 'Editor-Ansicht'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setForm(key)}
+            className={`rounded-lg px-3 py-1.5 text-sm ${
+              form === key ? 'bg-lw-text text-lw-card' : 'bg-lw-card text-lw-text2'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+        <button onClick={onClose} className="rounded-lg bg-lw-card px-3 py-1.5 text-sm text-lw-text2">
+          Schließen (Esc)
+        </button>
+      </div>
 
       {/* Der Rahmen misst ohne eigene Polsterung, damit die Rechnung aufgeht;
           die Luft steckt im Inhalt. */}
@@ -777,7 +803,18 @@ function TvView({
             </span>
           </div>
 
-          <TvMatrix employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
+          {form === 'tafel' ? (
+            <TvMatrix employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
+          ) : (
+            <WeekGrid
+              employees={employees}
+              days={days}
+              todayIndex={todayIndex}
+              weekOf={weekOf}
+              canEdit={false}
+              onPick={() => {}}
+            />
+          )}
         </div>
       </div>
     </div>
