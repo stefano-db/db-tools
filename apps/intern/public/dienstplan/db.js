@@ -458,20 +458,11 @@
       }
     },
 
-    /**
-     * Änderungen anderer sofort übernehmen. Ohne das säße eine Leitung vor einem
-     * Plan, den jemand anderes längst geändert hat, und überschriebe ihn beim
-     * nächsten Speichern.
-     */
-    async watch(onChange) {
-      const sb = await getClient();
-      sb.channel('dienstplan')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'roster_weeks' }, (payload) => {
-          if (payload.new?.updated_by === DB.userId) return; // eigene Änderung
-          onChange();
-        })
-        .subscribe();
-    },
+    // Die frühere Fassung dieser Stelle lud bei jeder fremden Änderung die
+    // ganze Seite neu. Das nahm der Leitung, die gerade tippte, ihre Eingaben
+    // weg — samt der Änderung, die noch in der Speicherverzögerung wartete.
+    // Ersetzt durch DB.horche() weiter oben: dort wird unterschieden, ob die
+    // betroffene Woche ungespeicherte Eingaben hat.
   };
 
   window.DB = DB;
