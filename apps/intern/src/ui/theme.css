@@ -217,8 +217,7 @@ body.db-hell {
 .lw-sheet {
   background: var(--color-lw-bg);
   color: var(--color-lw-text);
-  border: 1px solid var(--color-db-line);
-  border-radius: 16px;
+  border-radius: 20px;
   padding: 1.25rem;
 }
 @media (min-width: 640px) {

@@ -73,7 +73,9 @@ export function MaintenanceShell() {
         </button>
       </div>
 
-      <nav className="db-scroll-x mt-5 flex gap-1 overflow-x-auto">
+      {/* Die Reiter beginnen erst hinter der Rundung, damit die Ecke der Flaeche
+          ganz ausschwingen kann. */}
+      <nav className="db-scroll-x mt-5 flex gap-1 overflow-x-auto pl-5">
         {NAV.map((item) => (
           <NavLink
             key={item.to}
@@ -89,7 +91,7 @@ export function MaintenanceShell() {
         ))}
       </nav>
 
-      <div className="lw-sheet rounded-tl-none space-y-5">
+      <div className="lw-sheet space-y-5">
         {error && (
           <div className="lw-card border-lw-bad bg-lw-bad/10 px-4 py-3 text-lw-bad">
             <strong className="font-semibold">Fehler beim Laden:</strong> {error}
