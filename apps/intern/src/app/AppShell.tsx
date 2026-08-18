@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
@@ -49,6 +49,14 @@ export function MaintenanceShell() {
   const { error } = useData();
   const { pathname } = useLocation();
   const [issueOpen, setIssueOpen] = useState(false);
+
+  // Solange dieses Modul offen ist, laeuft die Seite eine Stufe heller — sonst
+  // steht die weisse Arbeitsflaeche wie ein Loch im dunklen Bild. Beim
+  // Verlassen faellt der Rahmen wieder auf den ruhigen Grundton zurueck.
+  useEffect(() => {
+    document.body.classList.add('db-hell');
+    return () => document.body.classList.remove('db-hell');
+  }, []);
 
   // Wer das Modul nicht freigeschaltet hat, sieht hier nichts — auch wenn er
   // die Adresse direkt aufruft.

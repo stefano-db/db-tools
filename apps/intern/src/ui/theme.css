@@ -12,20 +12,20 @@
 
 @theme {
   /* Untergrund, von tief nach hell.
-     Kein Schwarz: ein warmes, dunkles Braungrau. Reines Schwarz wirkt hart und
-     laesst die helle Flaeche der Wartung wie ein Loch im Bild aussehen —
-     angehoben schliesst sich der Abstand, ohne dass der Rahmen seine Ruhe
-     verliert. */
-  --color-db-bg: #26221c;
-  --color-db-surface: #2e2924;
-  --color-db-card: #332e27;
-  --color-db-card2: #3b352d;
-  --color-db-line: #4b443a;
+     Kein Schwarz: ein warmes, dunkles Braungrau. Reines Schwarz wirkt hart —
+     hier bleibt der Grund ruhig genug, dass Gold und Maskottchen tragen.
+     Wo eine helle Flaeche danebensteht, hebt das Modul diesen Wert an;
+     siehe .db-hell weiter unten. */
+  --color-db-bg: #1a1713;
+  --color-db-surface: #221e1a;
+  --color-db-card: #272220;
+  --color-db-card2: #2e2923;
+  --color-db-line: #3f3931;
 
   /* Datenflächen liegen höher als der Untergrund. Ohne diesen Abstand wirkt
      alles flach — genau das, was die helle Fassung mit weissen Karten auf
      grauem Grund von selbst hatte. */
-  --color-db-panel: #3b352d;
+  --color-db-panel: #2e2923;
 
   /* Gold — die Leitfarbe */
   --color-db-gold: #e0b050;
@@ -195,6 +195,20 @@ body.db input[type='radio'] {
     var(--color-db-card2);
 }
 
+
+/* Angehobener Rahmen.
+   Nur dort, wo eine helle Flaeche im Bild steht — der Bahnwartung. Neben Weiss
+   wirkt ein tiefer Grund hart, und die Flaeche steht wie ein Loch darin. Eine
+   Stufe heller schliesst den Abstand. Im uebrigen Programm gibt es kein Weiss,
+   dort waere dieselbe Stufe unnoetig hell. */
+body.db-hell {
+  --color-db-bg: #26221c;
+  --color-db-surface: #2e2924;
+  --color-db-card: #332e27;
+  --color-db-card2: #3b352d;
+  --color-db-line: #4b443a;
+  --color-db-panel: #3b352d;
+}
 
 /* ── HELLER ARBEITSBEREICH ────────────────────────────────────────────────────
    Ein Modul, das auf hellem Grund läuft, sitzt als eigene Fläche im dunklen
