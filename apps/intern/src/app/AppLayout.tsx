@@ -72,8 +72,10 @@ export function AppLayout() {
     <div className="min-h-screen bg-db-bg text-db-text">
       {/* Seitenleiste — ab Tablet */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-db-line bg-db-card lg:flex">
-        <div className="px-5 py-5">
-          <Logo />
+        {/* Die Seitenleiste ist 240 Punkte breit — die Wortmarke darf sie
+            ausfuellen, sie ist das Erste, was man sieht. */}
+        <div className="px-4 py-5">
+          <Logo hoehe={92} />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3">
@@ -109,7 +111,7 @@ export function AppLayout() {
         <header className="db-hero border-b border-db-line px-4 py-5 sm:px-8">
           <div className="db-kopfzeile mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
             <div className="w-full lg:hidden">
-              <Logo />
+              <Logo hoehe={56} />
             </div>
             <div className="min-w-0 flex-1">
               <div className="text-sm text-db-text2">{greeting(now)},</div>
@@ -121,7 +123,7 @@ export function AppLayout() {
               <div className="text-sm text-db-text2">{dateLabel(now)}</div>
               <div className="db-num text-2xl font-bold">{timeLabel(now)}</div>
             </div>
-            <Mascot name="winken" size={64} className="hidden sm:block" />
+            <Mascot name="winken" size={88} className="hidden sm:block" />
           </div>
         </header>
 

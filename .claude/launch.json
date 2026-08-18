@@ -7,6 +7,12 @@
       "runtimeArgs": ["run", "dev", "--prefix", "apps/intern"],
       "port": 5178,
       "url": "http://localhost:5178"
+    },
+    {
+      "name": "operator12-preview",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8642", "--directory", "/private/tmp/claude-501/-Users-stefanobassotto-Desktop-Claude/10e7145d-1b1f-4456-8c81-87f933d54ee8/scratchpad"],
+      "port": 8642
     }
   ]
 }
