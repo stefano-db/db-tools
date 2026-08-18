@@ -259,16 +259,6 @@ export function RosterDraftPage() {
       <div className="lw-sheet space-y-3">
         {tab === 'plan' ? (
           <>
-            {/* Auf dem Blatt fehlen Reiter und Bedienleiste — dann muss oben
-                stehen, um welche Woche es geht. */}
-            <div className="nur-drucken hidden">
-              <div className="text-lg font-extrabold">
-                Dienstplan KW {isoWeekNumber(monday)} · {formatDayMonth(monday)} –{' '}
-                {formatDayMonth(addDays(monday, 6))}
-                {monday.getFullYear()}
-              </div>
-            </div>
-
             <Toolbar
               monday={monday}
               offset={offset}
@@ -301,7 +291,7 @@ export function RosterDraftPage() {
             </label>
 
             {/* Woche: ab Tablet als Raster, am Handy nach Tagen. */}
-            <div className="hidden md:block">
+            <div className="bildschirm-plan hidden md:block">
               <WeekGrid
                 employees={employees}
                 days={days}
@@ -322,6 +312,29 @@ export function RosterDraftPage() {
             </div>
 
             <Legend />
+
+            {/* Fassung fuers Blatt. Am Bildschirm arbeitet man mit Stundenzahl,
+                Wochensumme und ausgeschriebenem „frei" — auf Papier ist das
+                Ballast, der die Zeilen zusammendrueckt. Gedruckt wird deshalb
+                dieselbe ruhige Form wie an der Wand, in Millimetern statt in
+                Bildpunkten bemessen. */}
+            <div className="nur-drucken druckplan hidden">
+              <div className="druck-kopf">
+                <span className="druck-titel">Dienstplan</span>
+                <span className="druck-kw">KW {isoWeekNumber(monday)}</span>
+                <span className="druck-zeitraum">
+                  {formatDayMonth(monday)} – {formatDayMonth(days[6])}
+                  {monday.getFullYear()}
+                </span>
+              </div>
+              <TvMatrix
+                employees={employees}
+                days={days}
+                todayIndex={todayIndex}
+                weekOf={weekOf}
+                woche=""
+              />
+            </div>
           </>
         ) : tab === 'team' ? (
           <TeamTab employees={employees} canEdit={canEdit} onChange={setEmployees} />

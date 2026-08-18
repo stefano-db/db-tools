@@ -131,7 +131,7 @@ export function AppLayout() {
           {location.pathname !== '/' && (
             <Link
               to="/"
-              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-db-text2 hover:text-db-gold"
+              className="nicht-drucken mb-4 inline-flex items-center gap-2 text-sm font-medium text-db-text2 hover:text-db-gold"
             >
               ← Übersicht
             </Link>

@@ -331,9 +331,14 @@ body.db-breit .db-kopfzeile {
 
 /* ── DRUCK: WOCHENPLAN AUF EIN BLATT ─────────────────────────────────────────
    Der Plan haengt im Center aus und wird in die Gruppe geschickt — Papier ist
-   kein Nebenschauplatz. A4 quer, alles Bedienbare faellt weg, und die
-   Bereichsfarben werden erzwungen: ohne sie zerfaellt die Ordnung, die den
-   Plan lesbar macht. */
+   kein Nebenschauplatz.
+
+   Gedruckt wird nicht die Bildschirmtabelle. Sie traegt Stundenzahl,
+   Wochensumme und in jeder zweiten Zelle ein ausgeschriebenes „frei"; presst
+   man das auf A4, wird es eng und unleserlich. Auf dem Blatt steht deshalb
+   dieselbe ruhige Fassung wie an der Wand — und sie wird in Millimetern
+   bemessen, nicht in Bildpunkten: eine Seite ist 281 mm breit, egal wie gross
+   das Fenster gerade ist. */
 @media print {
   @page {
     size: A4 landscape;
@@ -344,11 +349,13 @@ body.db-breit .db-kopfzeile {
     background: #fff;
   }
 
-  /* Rahmen der Plattform, Reiter und Bedienleisten gehoeren nicht aufs Blatt. */
+  /* Rahmen der Plattform, Reiter, Bedienleisten und die Bildschirmfassung
+     gehoeren nicht aufs Blatt. */
   body.db-plan aside,
   body.db-plan header,
   body.db-plan nav,
-  body.db-plan .nicht-drucken {
+  body.db-plan .nicht-drucken,
+  body.db-plan .bildschirm-plan {
     display: none !important;
   }
 
@@ -367,62 +374,80 @@ body.db-breit .db-kopfzeile {
     background: #fff;
   }
 
-  /* Auf Papier gibt es kein Scrollen — die Tabelle muss sich fuegen. */
-  body.db-plan .db-scroll-x {
-    overflow: visible !important;
-  }
-  body.db-plan table {
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Die Zellen tragen ihre Schriftgroessen selbst; auf Papier muessen sie
-     einheitlich kleiner werden, sonst passt die Belegschaft nicht auf ein
-     Blatt. Deshalb hier mit Nachdruck. */
-  body.db-plan table,
-  body.db-plan table * {
-    font-size: 8pt !important;
-    line-height: 1.15 !important;
-  }
-  /* Luft, die am Bildschirm guttut, kostet auf dem Blatt Zeilen. Jeder
-     eingesparte Punkt je Zeile ist Platz fuer weitere Mitarbeiter, bevor der
-     Plan auf ein zweites Blatt rutscht. */
-  body.db-plan table td,
-  body.db-plan table th {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-  }
-  body.db-plan .schicht-karte {
-    padding: 0 3px !important;
-  }
-
-  /* Am Bildschirm steht die Dauer unter der Zeit — dort ist Platz. Auf dem
-     Blatt kostet jede zweite Zeile rund einen Zentimeter ueber die ganze
-     Belegschaft, also rueckt sie hinter die Zeit. */
-  body.db-plan .schicht-karte > div {
-    display: inline !important;
-  }
-  body.db-plan .schicht-karte .dauer::before {
-    content: ' · ';
-  }
-
-  /* Die hoechste Zelle bestimmt die Zeilenhoehe — die Statusmarke muss also
-     mit abnehmen, sonst nuetzt die schmalere Schichtkarte nichts. */
-  body.db-plan .status-marke {
-    padding: 0 3px !important;
-  }
-  body.db-plan .bereichs-band {
-    padding: 0 6px !important;
-  }
-
-  body.db-plan tr,
-  body.db-plan tbody {
-    break-inside: avoid;
-  }
-
-  /* Flaechen und Farben mitdrucken, nicht wegoptimieren. */
+  /* Flaechen und Farben mitdrucken, nicht wegoptimieren: ohne die
+     Bereichsfarben zerfaellt die Ordnung, die den Plan lesbar macht. */
   body.db-plan * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+
+  /* ---- Die Fassung fuers Blatt ------------------------------------------ */
+  .druckplan {
+    color: #201d18;
+  }
+
+  .druck-kopf {
+    display: flex;
+    align-items: baseline;
+    gap: 6mm;
+    margin-bottom: 2mm;
+  }
+  .druck-titel {
+    font-size: 15pt;
+    font-weight: 800;
+  }
+  .druck-kw {
+    font-size: 13pt;
+    font-weight: 700;
+    color: #554e44;
+  }
+  .druck-zeitraum {
+    margin-left: auto;
+    font-size: 11pt;
+    color: #554e44;
+  }
+
+  .druckplan table {
+    width: 100%;
+    table-layout: fixed;
+  }
+  /* Die Namensspalte braucht feste Breite, sonst nehmen ihr die sieben
+     Tagesspalten den Platz. */
+  .druckplan th[scope='row'] {
+    width: 32mm;
+    font-size: 10.5pt;
+    padding: 0 2mm;
+  }
+  .druckplan thead th > div {
+    padding: 0.5mm 1mm;
+  }
+  .druckplan thead th span {
+    font-size: 10pt;
+  }
+  .druckplan td {
+    padding: 0.3mm 0.6mm;
+  }
+  .druckplan tbody td > div {
+    padding: 0.7mm 1mm;
+    font-size: 9pt;
+  }
+  .druckplan tbody td span {
+    font-size: 10pt;
+  }
+  /* Bereichsband: ein Wort, also eine schmale Zeile. Vorher war es so hoch wie
+     eine ganze Personenzeile — bei fuenf Bereichen kostete das ueber einen
+     Zentimeter, den die Zeilen brauchen. */
+  .druckplan tbody td[colspan] {
+    padding-top: 0.8mm;
+  }
+  .druckplan tbody td[colspan] > div {
+    padding: 0.2mm 2mm;
+    font-size: 9pt;
+    line-height: 1.3;
+  }
+
+  .druckplan tr,
+  .druckplan tbody {
+    break-inside: avoid;
   }
 }
