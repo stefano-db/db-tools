@@ -232,7 +232,7 @@ export function RosterDraftPage() {
       <div className="nicht-drucken flex flex-wrap items-center gap-x-3 gap-y-2">
         <h1 className="mr-auto text-2xl font-extrabold">Dienstplan</h1>
         <span className="rounded-md bg-db-card2 px-2 py-1 text-xs font-semibold text-db-text2">
-          Entwurf — nichts wird gespeichert
+          Entwurf — Schichten werden nicht gespeichert
         </span>
       </div>
 
@@ -345,6 +345,7 @@ export function RosterDraftPage() {
             days={days}
             employees={employees}
             weekOf={weekOf}
+            beispiel={showExample}
             onAction={flash}
           />
         )}
@@ -1353,6 +1354,7 @@ function TeilenTab({
   days,
   employees,
   weekOf,
+  beispiel,
   onAction,
 }: {
   canEdit: boolean;
@@ -1360,6 +1362,8 @@ function TeilenTab({
   days: Date[];
   employees: Employee[];
   weekOf: (id: string) => ShiftDay[];
+  /** Laeuft gerade die erfundene Beispielwoche? Dann darf nichts hinausgehen. */
+  beispiel: boolean;
   onAction: (text: string) => void;
 }) {
   const [links, setLinks] = useState<ShareLink[] | null>(null);
@@ -1435,13 +1439,26 @@ function TeilenTab({
         <p className="rounded-lg bg-lw-bad/10 px-4 py-2.5 text-sm text-lw-bad">■ {fehler}</p>
       )}
 
+      {/* Ein Bild der erfundenen Beispielwoche in der Signal-Gruppe waere
+          schlimmer als gar keines: es sieht aus wie ein echter Plan. */}
+      {beispiel && (
+        <p className="rounded-lg bg-lw-warn/10 px-4 py-2.5 text-sm text-lw-warn">
+          ▲ Die Beispielwoche ist eingeschaltet — die Schichten sind erfunden. Zum Weitergeben oben
+          im Reiter „Wochenplan" den Haken entfernen.
+        </p>
+      )}
+
       <section>
         <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Als Bild in die Gruppe</h2>
         <p className="mt-1 mb-3 text-sm text-lw-text2">
           Erzeugt ein Bild der Woche. Am Handy öffnet sich das Teilen-Menü — dort steht Signal; am
           Rechner wird die Datei gespeichert und du hängst sie an.
         </p>
-        <button onClick={bild} className="lw-btn-primary px-4 py-2 text-sm">
+        <button
+          onClick={bild}
+          disabled={beispiel}
+          className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
+        >
           Bild erzeugen und teilen
         </button>
       </section>
@@ -1449,9 +1466,10 @@ function TeilenTab({
       <section>
         <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Link zum Anpinnen</h2>
         <p className="mt-1 mb-3 text-sm text-lw-text2">
-          Zeigt immer die laufende Woche — nach einer Änderung musst du nichts erneut schicken. Ohne
-          Anmeldung lesbar, deshalb nur weitergeben, wo es hingehört; jeder Link ist einzeln
-          zurückziehbar.
+          Anders als die Schichten im Entwurf sind diese Links <strong>echt</strong>: sie wirken
+          sofort und zeigen den laufenden Plan aus der Datenbank. Nach einer Änderung musst du
+          nichts erneut schicken. Ohne Anmeldung lesbar, deshalb nur weitergeben, wo es hingehört;
+          jeder Link ist einzeln zurückziehbar.
         </p>
 
         {links === null ? (
@@ -1514,7 +1532,11 @@ function TeilenTab({
           A4 quer, eine Seite. Im Druckfenster statt eines Druckers „Als PDF sichern" wählen, wenn du
           eine Datei brauchst.
         </p>
-        <button onClick={() => window.print()} className="lw-btn-ghost px-4 py-2 text-sm">
+        <button
+          onClick={() => window.print()}
+          disabled={beispiel}
+          className="lw-btn-ghost px-4 py-2 text-sm disabled:opacity-40"
+        >
           Drucken
         </button>
       </section>
