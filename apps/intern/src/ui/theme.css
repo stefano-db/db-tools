@@ -345,8 +345,23 @@ body.db-breit .db-kopfzeile {
     margin: 8mm;
   }
 
+  /* Alles, was Farbe traegt, muss auf Weiss zurueck.
+     Der dunkle Grund der Plattform liegt auf mehreren Ebenen — html, body und
+     die Huelle des Rahmens mit ihrer Mindesthoehe. Faerbt man nur den body,
+     bleibt der Rest als grauer Rand stehen, und je nach eingestelltem
+     Seitenrand sieht man mal mehr, mal weniger davon. */
+  html,
   body.db-plan {
-    background: #fff;
+    background: #fff !important;
+  }
+
+  body.db-plan #root,
+  body.db-plan #root > div,
+  body.db-plan .min-h-screen,
+  body.db-plan main {
+    background: transparent !important;
+    color: #201d18 !important;
+    min-height: 0 !important;
   }
 
   /* Rahmen der Plattform, Reiter, Bedienleisten und die Bildschirmfassung
