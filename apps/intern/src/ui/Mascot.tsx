@@ -1,10 +1,19 @@
 /**
- * Maskottchen und Logo.
+ * Pinny und das Logo.
  *
- * Die echten Bilder liegen später unter public/marke/. Solange eines fehlt,
- * erscheint ein Platzhalter — die Seite bleibt dadurch benutzbar, und das
- * Austauschen besteht nur darin, die Datei in den Ordner zu legen. Am Code
- * muss dafür nichts geändert werden.
+ * Pinny ist die Figur des Hauses — schwarze Kappe, Namensschild, winkende Hand.
+ * Die Bilder liegen unter public/marke/. Solange eines fehlt, erscheint ein
+ * Platzhalter; das Austauschen besteht darin, die Datei in den Ordner zu legen,
+ * am Code ändert sich nichts.
+ *
+ * Zwei Zuschnitte aus derselben Datei, denn ein Bild kann nicht beides:
+ *
+ *   „figur"  zeigt Pinny ganz — für die Anmeldung, die Kopfzeile, die
+ *            Werkzeugkacheln. Dort ist Platz, und die winkende Hand gehört dazu.
+ *
+ *   „kopf"   zeigt nur den Kopf, rund beschnitten — für die kleinen Felder in
+ *            Kopfzeile, Profil und Benutzerliste. Die ganze Figur auf 38 Pixel
+ *            wäre ein Fleck; angeschnitten auf das Gesicht erkennt man sie.
  */
 import { useState } from 'react';
 
@@ -13,21 +22,25 @@ export type MascotName = 'winken' | 'counter' | 'service' | 'kueche' | 'mechanik
 /** Dateiname und Notbehelf je Figur. */
 const MASCOTS: Record<MascotName, { file: string; emoji: string }> = {
   winken: { file: 'maskottchen-winken.png', emoji: '👋' },
+  // Bis eine eigene Fassung kommt, steht Pinny auch fuer das Profil: dieselbe
+  // Figur, dieselbe Datei — kein zweites Mal dieselben Bytes im Programm.
   counter: { file: 'maskottchen-counter.png', emoji: '🎳' },
   service: { file: 'maskottchen-service.png', emoji: '🍹' },
   kueche: { file: 'maskottchen-kueche.png', emoji: '👨‍🍳' },
   mechanik: { file: 'maskottchen-mechanik.png', emoji: '🔧' },
-  profil: { file: 'maskottchen-profil.png', emoji: '🙂' },
+  profil: { file: 'maskottchen-winken.png', emoji: '🙂' },
 };
 
 export function Mascot({
   name,
   className = '',
   size = 64,
+  variante = 'figur',
 }: {
   name: MascotName;
   className?: string;
   size?: number;
+  variante?: 'figur' | 'kopf';
 }) {
   const [failed, setFailed] = useState(false);
   const entry = MASCOTS[name];
@@ -45,7 +58,14 @@ export function Mascot({
     );
   }
 
-  return (
+  // Der Kopf sitzt oben in der Mitte des Bildes: beschneiden wir auf das obere
+  // Fünftel, steht das Gesicht im Kreis statt einer Schulter.
+  const zuschnitt =
+    variante === 'kopf'
+      ? 'rounded-full object-cover [object-position:50%_10%]'
+      : 'object-contain';
+
+  const bild = (
     <img
       src={`/marke/${entry.file}`}
       alt=""
@@ -53,30 +73,63 @@ export function Mascot({
       height={size}
       loading="lazy"
       onError={() => setFailed(true)}
-      className={`shrink-0 object-contain ${className}`}
+      className={`shrink-0 ${zuschnitt} ${className}`}
       style={{ width: size, height: size }}
     />
   );
-}
 
-/** Wortmarke. Fällt auf Text zurück, solange das Logo fehlt. */
-export function Logo({ className = '' }: { className?: string }) {
-  const [failed, setFailed] = useState(false);
-
-  if (failed) {
-    return (
-      <span className={`text-lg font-extrabold tracking-wide ${className}`}>
-        DREAM<span className="text-db-gold"> BOWL</span>
-      </span>
-    );
-  }
+  // Der Kopf sitzt im Kreis und hat dadurch ohnehin eine Flaeche; die ganze
+  // Figur braucht sie, weil ihre Kleidung so dunkel ist wie der Grund.
+  if (variante === 'kopf') return bild;
 
   return (
-    <img
-      src="/marke/logo.png"
-      alt="Dream Bowl"
-      onError={() => setFailed(true)}
-      className={`h-9 w-auto object-contain ${className}`}
+    <span
+      className="db-figur-schein grid shrink-0 place-items-center rounded-full"
+      style={{ width: size, height: size }}
+    >
+      {bild}
+    </span>
+  );
+}
+
+/**
+ * Wortmarke.
+ *
+ * Die Datei ist einfarbig schwarz — auf dem dunklen Grund des Programms wäre
+ * sie unsichtbar. Statt eine zweite, goldene Fassung zu pflegen, wird sie als
+ * Maske benutzt: sichtbar ist dann nicht die Datei, sondern die Farbe der
+ * Umgebung. Dieselbe Datei erscheint dadurch golden in der App und schwarz auf
+ * dem Ausdruck, und bei einer Änderung des Goldtons ändert sich nichts hier.
+ */
+export function Logo({
+  className = '',
+  hoehe = 36,
+}: {
+  className?: string;
+  /** Höhe in Punkten; die Breite ergibt sich aus dem Seitenverhältnis. */
+  hoehe?: number;
+}) {
+  const maske = {
+    WebkitMaskImage: 'url(/marke/logo.svg)',
+    maskImage: 'url(/marke/logo.svg)',
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center',
+    maskPosition: 'center',
+    WebkitMaskSize: 'contain',
+    maskSize: 'contain',
+    backgroundColor: 'currentColor',
+    // Seitenverhältnis der zugeschnittenen Zeichnung: 1534 zu 857.
+    width: hoehe * (1534 / 857),
+    height: hoehe,
+  } as const;
+
+  return (
+    <span
+      role="img"
+      aria-label="Dream Bowl"
+      className={`inline-block shrink-0 text-db-gold ${className}`}
+      style={maske}
     />
   );
 }

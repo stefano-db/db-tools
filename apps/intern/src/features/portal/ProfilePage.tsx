@@ -32,7 +32,7 @@ export function ProfilePage() {
   return (
     <div className="max-w-2xl space-y-5">
       <article className="db-card flex items-center gap-4 p-5">
-        <Mascot name="profil" size={72} className="rounded-full" />
+        <Mascot name="profil" size={72} variante="kopf" />
         <div className="min-w-0">
           <h1 className="truncate text-2xl font-extrabold">{session?.displayName}</h1>
           <p className="text-db-text2">

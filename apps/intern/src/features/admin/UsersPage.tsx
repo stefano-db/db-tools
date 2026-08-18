@@ -154,7 +154,7 @@ function UserCard({
   return (
     <article className={`db-card p-4 ${user.active ? '' : 'opacity-60'}`}>
       <header className="flex items-center gap-3">
-        <Mascot name="profil" size={40} className="rounded-full" />
+        <Mascot name="profil" size={40} variante="kopf" />
         <div className="min-w-0 flex-1">
           <h2 className="truncate font-bold">
             {user.displayName}

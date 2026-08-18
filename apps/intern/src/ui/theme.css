@@ -195,8 +195,21 @@ body.db input[type='radio'] {
    Sobald sie in public/marke/ liegen, greift stattdessen das Bild. */
 .db-mascot-fallback {
   background:
-    radial-gradient(circle at 50% 35%, rgba(224, 176, 80, 0.28), transparent 60%),
+    radial-gradient(circle at 50% 35%, rgba(255, 210, 64, 0.26), transparent 60%),
     var(--color-db-card2);
+}
+
+/* Boden unter der Figur.
+   Pinny traegt schwarze Kappe und schwarzen Pullover — auf dem dunklen Grund
+   des Programms verschwimmt beides. Ein weicher Schein dahinter gibt ihm eine
+   Flaeche, auf der er steht, ohne ihn in einen Kasten zu sperren. */
+.db-figur-schein {
+  background: radial-gradient(
+    ellipse 62% 58% at 50% 46%,
+    rgba(255, 210, 64, 0.14),
+    rgba(255, 210, 64, 0.05) 55%,
+    transparent 72%
+  );
 }
 
 

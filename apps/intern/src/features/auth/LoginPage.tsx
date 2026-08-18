@@ -47,8 +47,8 @@ export function LoginPage() {
     <div className="db-hero grid min-h-screen place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center gap-4 text-center">
-          <Logo className="h-12" />
-          <Mascot name="winken" size={92} />
+          <Logo hoehe={72} />
+          <Mascot name="winken" size={132} />
           <p className="text-sm text-db-text2">
             Interne Plattform · Anmeldung für Mitarbeiter
           </p>

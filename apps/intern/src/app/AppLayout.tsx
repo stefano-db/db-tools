@@ -94,7 +94,7 @@ export function AppLayout() {
           to="/profil"
           className="m-3 flex items-center gap-3 rounded-xl border border-db-line p-3 hover:border-db-gold-dim"
         >
-          <Mascot name="profil" size={38} className="rounded-full" />
+          <Mascot name="profil" size={38} variante="kopf" />
           <span className="min-w-0">
             <span className="block truncate font-semibold">{session?.displayName}</span>
             <span className="block truncate text-xs text-db-text3">
