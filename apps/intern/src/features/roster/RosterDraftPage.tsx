@@ -700,7 +700,7 @@ function TvView({
 }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
+  const [fitted, setFitted] = useState({ scale: 1, dx: 0 });
 
   const fit = useCallback(() => {
     const box = boxRef.current;
@@ -710,7 +710,13 @@ function TvView({
     // also immer der unskalierte Aufbau, egal wie oft wir nachrechnen.
     const byWidth = box.clientWidth / inner.offsetWidth;
     const byHeight = box.clientHeight / inner.offsetHeight;
-    setScale(Math.min(byWidth, byHeight, 2.2));
+    const scale = Math.min(byWidth, byHeight, 2.2);
+    // Der Block ist breiter als der Rahmen und liegt deshalb links an; eine
+    // Skalierung aus der Mitte wuerde ihn rechts aus dem Bild schieben. Also
+    // linke obere Ecke als Ursprung und die Mitte selbst ausrechnen — sonst
+    // fehlen Sonntag und die Wochensumme.
+    const dx = (box.clientWidth - inner.offsetWidth * scale) / 2;
+    setFitted({ scale, dx });
   }, []);
 
   useLayoutEffect(() => {
@@ -737,7 +743,10 @@ function TvView({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-lw-bg">
+    /* Die Ansicht steht ausserhalb des hellen Bereichs und muss ihre Farben
+       deshalb selbst mitbringen — sonst erbt sie die helle Schrift des dunklen
+       Rahmens und steht hell auf hell. */
+    <div className="fixed inset-0 z-50 flex flex-col bg-lw-bg text-lw-text">
       <button
         onClick={onClose}
         className="absolute top-3 right-4 z-10 rounded-lg bg-lw-card px-3 py-1.5 text-sm text-lw-text2 opacity-40 transition hover:opacity-100"
@@ -750,13 +759,13 @@ function TvView({
       <div ref={boxRef} className="flex-1 overflow-hidden">
         <div
           ref={innerRef}
-          className="plan-dicht mx-auto w-[1400px] origin-top px-8 py-6"
-          style={{ transform: `scale(${scale})` }}
+          className="plan-tv w-[1860px] origin-top-left px-6 py-2"
+          style={{ transform: `translateX(${fitted.dx}px) scale(${fitted.scale})` }}
         >
-          <div className="mb-3 flex items-baseline gap-4">
+          <div className="mb-1 flex items-baseline gap-4">
             <span className="text-3xl font-extrabold">Dienstplan</span>
-            <span className="text-2xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
-            <span className="ml-auto text-xl text-lw-text2">
+            <span className="text-3xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
+            <span className="ml-auto text-2xl text-lw-text2">
               {formatDayMonth(monday)} – {formatDayMonth(days[6])}
               {monday.getFullYear()}
             </span>

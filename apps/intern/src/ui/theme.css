@@ -347,6 +347,61 @@ body.db-breit .db-kopfzeile {
   padding-bottom: 2px;
 }
 
+/* Fernseher-Form des Wochenplans.
+   Papier und Fernseher haben dieselbe Not — nicht scrollen zu koennen — aber
+   nicht dieselbe Loesung. Auf dem Blatt wird gelesen, aus 40 cm Abstand; am
+   Fernseher wird erkannt, aus vier Metern. Also: dieselbe Zeile je Schicht,
+   aber grosse Schrift und ordentliche Polster. Die Hoehe ist knapp, die
+   Breite im Ueberfluss — deshalb waechst die Schrift, nicht der Abstand. */
+.plan-tv {
+  color: var(--color-lw-text);
+}
+.plan-tv .schicht-karte {
+  padding: 5px 10px;
+}
+.plan-tv .schicht-karte > div {
+  display: inline;
+}
+.plan-tv .schicht-karte > div:first-child {
+  font-size: 21px;
+  letter-spacing: -0.01em;
+}
+.plan-tv .schicht-karte .dauer {
+  font-size: 15px;
+}
+.plan-tv .schicht-karte .dauer::before {
+  content: '  ';
+}
+.plan-tv .status-marke {
+  padding: 7px 10px;
+  font-size: 16px;
+}
+.plan-tv .bereichs-band {
+  padding: 3px 14px;
+}
+.plan-tv .bereichs-band span {
+  font-size: 19px;
+}
+.plan-tv td,
+.plan-tv th {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+/* Namen und Wochensumme sind das, was aus der Entfernung zuerst gesucht wird. */
+.plan-tv th[scope='row'] {
+  font-size: 21px;
+}
+.plan-tv tbody td:last-child span {
+  font-size: 20px;
+}
+.plan-tv thead th > div,
+.plan-tv thead th > div > div {
+  font-size: 17px;
+}
+.plan-tv tfoot td div:first-child {
+  font-size: 20px;
+}
+
 /* ── DRUCK: WOCHENPLAN AUF EIN BLATT ─────────────────────────────────────────
    Der Plan haengt im Center aus und wird in die Gruppe geschickt — Papier ist
    kein Nebenschauplatz. A4 quer, alles Bedienbare faellt weg, und die
