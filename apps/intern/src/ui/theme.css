@@ -320,6 +320,33 @@ body.db-breit .db-kopfzeile {
 }
 
 
+/* Dichte Form des Wochenplans.
+   Zwei Ausgaben brauchen sie: das Blatt und der Fernseher. Beide koennen nicht
+   scrollen — was nicht drauf ist, ist weg. Die Dauer rueckt hinter die Zeit,
+   und Polsterungen fallen weg. Die hoechste Zelle bestimmt die Zeilenhoehe,
+   deshalb muessen Schichtkarte, Statusmarke und Bereichsband gemeinsam
+   abnehmen; eine allein bringt nichts. */
+.plan-dicht .schicht-karte > div {
+  display: inline;
+}
+.plan-dicht .schicht-karte .dauer::before {
+  content: ' · ';
+}
+.plan-dicht .schicht-karte {
+  padding: 2px 5px;
+}
+.plan-dicht .status-marke {
+  padding: 2px 5px;
+}
+.plan-dicht .bereichs-band {
+  padding: 2px 10px;
+}
+.plan-dicht td,
+.plan-dicht th {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
 /* ── DRUCK: WOCHENPLAN AUF EIN BLATT ─────────────────────────────────────────
    Der Plan haengt im Center aus und wird in die Gruppe geschickt — Papier ist
    kein Nebenschauplatz. A4 quer, alles Bedienbare faellt weg, und die

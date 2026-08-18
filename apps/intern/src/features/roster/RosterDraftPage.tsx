@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
 import { repository } from '../../data';
 import {
@@ -114,6 +114,7 @@ export function RosterDraftPage() {
   const [editing, setEditing] = useState<{ empId: string; day: number; rect: DOMRect } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [realPlan, setRealPlan] = useState<WeekPlan>({});
+  const [tvOpen, setTvOpen] = useState(false);
   const [showExample, setShowExample] = useState(false);
 
   // Wie in der Bahnwartung: neben einer hellen Flaeche laeuft der Rahmen eine
@@ -259,6 +260,7 @@ export function RosterDraftPage() {
               onWeek={setOffset}
               onUndo={undo}
               onAction={flash}
+              onTv={() => setTvOpen(true)}
             />
 
             {!canEdit && (
@@ -318,6 +320,17 @@ export function RosterDraftPage() {
           value={weekOf(editing.empId)[editing.day]}
           onChange={(v) => change(editing.empId, editing.day, v)}
           onClose={() => setEditing(null)}
+        />
+      )}
+
+      {tvOpen && (
+        <TvView
+          employees={employees}
+          days={days}
+          monday={monday}
+          todayIndex={todayIndex}
+          weekOf={weekOf}
+          onClose={() => setTvOpen(false)}
         />
       )}
 
@@ -381,6 +394,7 @@ function Toolbar({
   onWeek,
   onUndo,
   onAction,
+  onTv,
 }: {
   monday: Date;
   offset: number;
@@ -389,6 +403,7 @@ function Toolbar({
   onWeek: (o: number) => void;
   onUndo: () => void;
   onAction: (text: string) => void;
+  onTv: () => void;
 }) {
   const sunday = addDays(monday, 6);
   return (
@@ -442,6 +457,9 @@ function Toolbar({
             Woche kopieren
           </button>
         )}
+        <button onClick={onTv} className="lw-btn-ghost px-3 py-1.5 text-sm">
+          📺 Fernseher
+        </button>
         <button onClick={() => window.print()} className="lw-btn-ghost px-3 py-1.5 text-sm">
           Drucken
         </button>
@@ -649,6 +667,112 @@ function DayCell({
     >
       {body}
     </button>
+  );
+}
+
+/**
+ * Fernseher-Ansicht.
+ *
+ * Im Center haengt der Plan an der Wand. Dort kann niemand scrollen — was
+ * nicht auf dem Bild ist, existiert nicht. Also wird nicht gehofft, dass es
+ * passt, sondern gerechnet: der Plan wird in seiner natuerlichen Groesse
+ * aufgebaut, gemessen und dann so weit skaliert, dass er in beide Richtungen
+ * hineingeht. Das haelt auch, wenn morgen fuenf Namen dazukommen — dann wird
+ * das Bild eben etwas kleiner, statt unten abgeschnitten zu sein.
+ *
+ * Auf einem grossen Schirm darf er ueber 100 % hinauswachsen; ein 16:9-Fernseher
+ * steht weit weg und die Schrift muss dorthin tragen.
+ */
+function TvView({
+  employees,
+  days,
+  monday,
+  todayIndex,
+  weekOf,
+  onClose,
+}: {
+  employees: Employee[];
+  days: Date[];
+  monday: Date;
+  todayIndex: number;
+  weekOf: (id: string) => ShiftDay[];
+  onClose: () => void;
+}) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  const fit = useCallback(() => {
+    const box = boxRef.current;
+    const inner = innerRef.current;
+    if (!box || !inner) return;
+    // Die Transformation aendert die Groesse des Elements nicht — gemessen wird
+    // also immer der unskalierte Aufbau, egal wie oft wir nachrechnen.
+    const byWidth = box.clientWidth / inner.offsetWidth;
+    const byHeight = box.clientHeight / inner.offsetHeight;
+    setScale(Math.min(byWidth, byHeight, 2.2));
+  }, []);
+
+  useLayoutEffect(() => {
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (boxRef.current) ro.observe(boxRef.current);
+    if (innerRef.current) ro.observe(innerRef.current);
+    window.addEventListener('resize', fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', fit);
+    };
+  }, [fit]);
+
+  useEffect(() => {
+    const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    // Vollbild, wenn der Browser es hergibt — am Fernseher zaehlt jede Zeile.
+    void document.documentElement.requestFullscreen?.().catch(() => {});
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      if (document.fullscreenElement) void document.exitFullscreen?.().catch(() => {});
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-lw-bg">
+      <button
+        onClick={onClose}
+        className="absolute top-3 right-4 z-10 rounded-lg bg-lw-card px-3 py-1.5 text-sm text-lw-text2 opacity-40 transition hover:opacity-100"
+      >
+        Schließen (Esc)
+      </button>
+
+      {/* Der Rahmen misst ohne eigene Polsterung, damit die Rechnung aufgeht;
+          die Luft steckt im Inhalt. */}
+      <div ref={boxRef} className="flex-1 overflow-hidden">
+        <div
+          ref={innerRef}
+          className="plan-dicht mx-auto w-[1400px] origin-top px-8 py-6"
+          style={{ transform: `scale(${scale})` }}
+        >
+          <div className="mb-3 flex items-baseline gap-4">
+            <span className="text-3xl font-extrabold">Dienstplan</span>
+            <span className="text-2xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
+            <span className="ml-auto text-xl text-lw-text2">
+              {formatDayMonth(monday)} – {formatDayMonth(days[6])}
+              {monday.getFullYear()}
+            </span>
+          </div>
+
+          <WeekGrid
+            employees={employees}
+            days={days}
+            todayIndex={todayIndex}
+            weekOf={weekOf}
+            canEdit={false}
+            onPick={() => {}}
+          />
+        </div>
+      </div>
+    </div>
   );
 }
 
