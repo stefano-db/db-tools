@@ -38,13 +38,28 @@ import {
  * ihn mit den eigenen Namen beurteilen kann, und lässt die Datenbank in Ruhe.
  */
 
-const GROUPS: { no: number; name: string; color: string }[] = [
-  { no: 1, name: 'Küche', color: '#b8791c' },
-  { no: 2, name: 'Service', color: '#c2582a' },
-  { no: 3, name: 'Service Aushilfen', color: '#7b57c4' },
-  { no: 4, name: 'Counter', color: '#1a7a4c' },
-  { no: 5, name: 'Mechanik', color: '#1f6f92' },
+/**
+ * Jeder Bereich hat ein Zeichen.
+ *
+ * Es steht im Bereichsband, damit man es beilaeufig lernt, und taucht auf einer
+ * Schicht auf, sobald sie in einem fremden Bereich liegt. Farbe allein wuerde
+ * das nicht tragen: aus vier Metern und quer durch die Zeile sagt ein anderer
+ * Farbton „irgendwas ist anders", das Zeichen sagt, was.
+ */
+const GROUPS: { no: number; name: string; color: string; symbol: string }[] = [
+  { no: 1, name: 'Küche', color: '#b8791c', symbol: '🍳' },
+  { no: 2, name: 'Service', color: '#c2582a', symbol: '🍻' },
+  { no: 3, name: 'Service Aushilfen', color: '#7b57c4', symbol: '🤝' },
+  { no: 4, name: 'Counter', color: '#1a7a4c', symbol: '🎳' },
+  { no: 5, name: 'Mechanik', color: '#1f6f92', symbol: '🔧' },
 ];
+
+const gruppe = (no: number) => GROUPS.find((g) => g.no === no) ?? GROUPS[0];
+
+/** Der Bereich, in dem diese Schicht tatsaechlich stattfindet. */
+function bereichDerSchicht(day: ShiftDay, stammBereich: number) {
+  return day.bereich ?? stammBereich;
+}
 
 /** Schnellauswahl je Bereich — die Zeiten, die im Center wirklich vorkommen. */
 const PRESETS: Record<number, [string, string][]> = {
@@ -355,6 +370,9 @@ function normalizeWeek(list: ShiftDay[]): ShiftDay[] {
           : 'nein',
         b: typeof d.b === 'string' ? d.b : '',
         e: typeof d.e === 'string' ? d.e : '',
+        ...(typeof d.bereich === 'number' && GROUPS.some((g) => g.no === d.bereich)
+          ? { bereich: d.bereich }
+          : {}),
       };
     }
   }
@@ -372,7 +390,12 @@ function exampleWeek(employees: Employee[]): WeekPlan {
     const week = emptyWeek();
     for (let day = 0; day < 7; day++) {
       const slot = (day + idx) % 7;
-      if (slot === 0 || slot === 3) {
+      // Eine Aushilfe im fremden Bereich gehoert ins Beispiel — sonst sieht man
+      // die Kennzeichnung nie. Sie steht vor der ueblichen Verteilung, damit
+      // sie nicht zufaellig auf einen freien Tag faellt.
+      if (emp.groupNo === 5 && day === 4) {
+        week[day] = { status: 'dienst', b: '17:00', e: '23:00', bereich: 2 };
+      } else if (slot === 0 || slot === 3) {
         week[day] = { status: 'frei', b: '', e: '' };
       } else if (slot === 5 && idx % 4 === 1) {
         week[day] = { status: 'urlaub', b: '', e: '' };
@@ -531,7 +554,10 @@ function WeekGrid({
                     className="bereichs-band flex items-center gap-3 rounded-md px-3 py-1"
                     style={{ background: tint(group.color, 18), color: group.color }}
                   >
-                    <span className="text-[13px] font-extrabold tracking-wide uppercase">{group.name}</span>
+                    <span className="text-[13px] font-extrabold tracking-wide uppercase">
+                      <span className="mr-1.5">{group.symbol}</span>
+                      {group.name}
+                    </span>
                     <span className="text-[11px] opacity-70">{rows.length}</span>
                     <span className="ml-auto text-[13px] font-bold">{formatMinutes(total)} h</span>
                   </div>
@@ -559,7 +585,7 @@ function WeekGrid({
                       <td key={i} className="px-1 py-1.5" style={{ background: rowBg, borderTop: gap }}>
                         <DayCell
                           day={day}
-                          color={group.color}
+                          stammBereich={emp.groupNo}
                           isToday={i === todayIndex}
                           canEdit={canEdit}
                           onPick={(rect) => onPick(emp.id, i, rect)}
@@ -615,17 +641,20 @@ function WeekGrid({
  */
 function DayCell({
   day,
-  color,
+  stammBereich,
   isToday,
   canEdit,
   onPick,
 }: {
   day: ShiftDay;
-  color: string;
+  stammBereich: number;
   isToday: boolean;
   canEdit: boolean;
   onPick: (rect: DOMRect) => void;
 }) {
+  const bereich = gruppe(bereichDerSchicht(day, stammBereich));
+  const fremd = bereich.no !== stammBereich;
+  const color = bereich.color;
   const ref = useRef<HTMLButtonElement>(null);
   const minutes = shiftMinutes(day);
   const pill = STATUS_PILL[day.status];
@@ -642,15 +671,20 @@ function DayCell({
          einen Bildschirm — und auf ein Blatt. */
       <div
         className="schicht-karte rounded-lg bg-white px-2 py-1.5"
-        style={{ boxShadow: `inset 0 0 0 1px ${tint(color, 30)}` }}
+        style={{ boxShadow: `inset 0 0 0 ${fremd ? 2 : 1}px ${tint(color, fremd ? 70 : 30)}` }}
       >
         <div className="tabular text-sm leading-tight font-bold whitespace-nowrap">
+          {fremd && (
+            <span className="mr-1" title={bereich.name} aria-label={bereich.name}>
+              {bereich.symbol}
+            </span>
+          )}
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
         <div className="dauer text-[11px] leading-tight text-lw-text3">
-          {minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
+          {fremd ? bereich.name : minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
         </div>
       </div>
     ) : (
@@ -887,6 +921,7 @@ function TvMatrix({
                 className="rounded px-3 text-base leading-6 font-extrabold tracking-wide uppercase"
                 style={{ background: tint(group.color, 20), color: group.color }}
               >
+                <span className="mr-2">{group.symbol}</span>
                 {group.name}
               </div>
             </td>
@@ -914,16 +949,29 @@ function TvMatrix({
                       style={{ background: rowBg, borderTop: fuge }}
                     >
                       {day.status === 'dienst' ? (
-                        <div className="rounded-lg bg-white px-2 py-1 text-center">
-                          <span
-                            className="tabular text-[22px] leading-tight font-extrabold whitespace-nowrap"
-                            style={{ color: group.color }}
-                          >
-                            {day.b}
-                            <span className="mx-px font-normal text-lw-text3">–</span>
-                            {day.e}
-                          </span>
-                        </div>
+                        (() => {
+                          const b = gruppe(bereichDerSchicht(day, emp.groupNo));
+                          const fremd = b.no !== emp.groupNo;
+                          return (
+                            <div
+                              className="rounded-lg bg-white px-2 py-1 text-center"
+                              style={
+                                fremd ? { boxShadow: `inset 0 0 0 2px ${tint(b.color, 70)}` } : undefined
+                              }
+                              title={fremd ? b.name : undefined}
+                            >
+                              <span
+                                className="tabular text-[22px] leading-tight font-extrabold whitespace-nowrap"
+                                style={{ color: b.color }}
+                              >
+                                {fremd && <span className="mr-1">{b.symbol}</span>}
+                                {day.b}
+                                <span className="mx-px font-normal text-lw-text3">–</span>
+                                {day.e}
+                              </span>
+                            </div>
+                          );
+                        })()
                       ) : day.status === 'urlaub' || day.status === 'krank' ? (
                         <div
                           className={`rounded-lg px-2 py-1 text-center text-lg font-bold ${
@@ -1107,11 +1155,16 @@ function CellEditor({
       return;
     }
     setError(null);
-    onChange({ status: 'dienst', b: pb, e: pe });
+    onChange({ ...value, status: 'dienst', b: pb, e: pe });
   }
 
   function setStatus(status: ShiftStatus) {
-    onChange({ status, b: status === 'dienst' ? value.b : '', e: status === 'dienst' ? value.e : '' });
+    onChange({
+      ...value,
+      status,
+      b: status === 'dienst' ? value.b : '',
+      e: status === 'dienst' ? value.e : '',
+    });
     if (status !== 'dienst') onClose();
   }
 
@@ -1187,6 +1240,34 @@ function CellEditor({
           ) : preview > 0 ? (
             <span className="text-lw-text3">{formatMinutes(preview)} Stunden</span>
           ) : null}
+        </div>
+
+        {/* Aushelfen in einem anderen Bereich ist der Grund, warum der Bereich
+            an der Schicht haengt. Der Stammbereich steht vorn und ist der
+            Normalfall — man waehlt nur, wenn es einmal anders ist. */}
+        <div className="mb-1 text-[10px] font-bold tracking-wide text-lw-text3 uppercase">Bereich</div>
+        <div className="mb-3 flex flex-wrap gap-1">
+          {GROUPS.map((g) => {
+            const aktiv = bereichDerSchicht(value, employee.groupNo) === g.no;
+            return (
+              <button
+                key={g.no}
+                title={g.name}
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    status: 'dienst',
+                    ...(g.no === employee.groupNo ? { bereich: undefined } : { bereich: g.no }),
+                  })
+                }
+                className={`rounded-md px-2 py-1 text-sm ${aktiv ? 'text-white' : 'lw-btn-ghost'}`}
+                style={aktiv ? { background: g.color } : undefined}
+              >
+                {g.symbol}
+                {g.no === employee.groupNo && <span className="ml-1 text-[10px]">Stamm</span>}
+              </button>
+            );
+          })}
         </div>
 
         <div className="mb-1 text-[10px] font-bold tracking-wide text-lw-text3 uppercase">Status</div>

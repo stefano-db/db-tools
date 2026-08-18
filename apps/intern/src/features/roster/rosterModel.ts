@@ -14,6 +14,14 @@ export interface ShiftDay {
   b: string;
   /** Ende als "HH:MM". */
   e: string;
+  /**
+   * Bereich dieser einen Schicht, falls er vom Stammbereich der Person
+   * abweicht — jemand aus der Mechanik, der einen Abend im Service steht.
+   * Fehlt der Wert, gilt der Stammbereich. Der Bereich gehoert damit an die
+   * Schicht und nicht mehr an die Person; nur so laesst sich ein Wechsel
+   * ueberhaupt eintragen.
+   */
+  bereich?: number;
 }
 
 export const EMPTY_DAY: ShiftDay = { status: 'nein', b: '', e: '' };
