@@ -30,6 +30,9 @@ const MAIN: NavEntry[] = [
   // Entwurf nicht.
   { to: '/dienstplan-entwurf', label: 'Dienstplan (Entwurf)', icon: '✏️' },
   { to: '/meine-schichten', label: 'Meine Schichten', icon: '🗓' },
+  // Ohne Bereichspruefung: Fragen hat jeder, und wer nicht weiterweiss, soll
+  // nicht erst suchen muessen, ob er darf.
+  { to: '/chat', label: 'Fragen an Pinny', icon: '💬' },
 ];
 
 const AREA: NavEntry[] = [
@@ -48,7 +51,7 @@ const MOBILE: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
   { to: '/dienstplan/index.html', label: 'Plan', icon: '📅' },
   { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
-  { to: '/dokumente', label: 'Docs', icon: '📁' },
+  { to: '/chat', label: 'Fragen', icon: '💬' },
   { to: '/profil', label: 'Profil', icon: '🙂' },
 ];
 
@@ -72,10 +75,10 @@ export function AppLayout() {
     <div className="min-h-screen bg-db-bg text-db-text">
       {/* Seitenleiste — ab Tablet */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-db-line bg-db-card lg:flex">
-        {/* Die Seitenleiste ist 240 Punkte breit — die Wortmarke darf sie
-            ausfuellen, sie ist das Erste, was man sieht. */}
-        <div className="px-4 py-5">
-          <Logo hoehe={92} />
+        {/* Mittig in der 240 Punkte breiten Leiste: linksbuendig zog die
+            Wortmarke das Auge an den Rand statt in die Seite. */}
+        <div className="flex justify-center px-4 py-5">
+          <Logo hoehe={78} />
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3">

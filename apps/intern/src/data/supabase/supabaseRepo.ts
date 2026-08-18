@@ -533,6 +533,97 @@ export class SupabaseRepository implements Repository {
     return (data?.data ?? {}) as Record<string, { d: any[] }>;
   }
 
+  // --- Chat -----------------------------------------------------------------
+
+  /**
+   * Antwort auf eine Frage.
+   *
+   * Die Rangfolge macht die Datenbank, nicht die Oberflaeche — dort liegt der
+   * Index. Kommt spaeter ein Sprachmodell dazu, tritt es genau hier dazwischen:
+   * es bekommt die Frage und diese Treffer und formuliert daraus eine Antwort.
+   * Die Oberflaeche merkt davon nichts.
+   */
+  async chatAntwort(frage: string): Promise<any[]> {
+    const { data, error } = await this.client.rpc('chat_suche', {
+      p_frage: frage,
+      p_grenze: 4,
+    });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((t: any) => ({
+      id: t.id,
+      titel: t.titel,
+      inhalt: t.inhalt,
+      bereich: t.bereich ?? null,
+      rang: t.rang,
+    }));
+  }
+
+  async chatFrageMerken(frage: string, treffer: number): Promise<string | null> {
+    const userId = await this.userId();
+    if (!userId) return null;
+    const { data, error } = await this.client
+      .from('chat_fragen')
+      .insert({ user_id: userId, frage, treffer })
+      .select('id')
+      .single();
+    // Eine nicht festgehaltene Frage darf den Chat nicht aufhalten: der
+    // Mitarbeiter hat seine Antwort, das Mitschreiben ist unsere Sache.
+    if (error) return null;
+    return data.id;
+  }
+
+  async chatRueckmeldung(frageId: string, geholfen: boolean): Promise<void> {
+    await this.client.from('chat_fragen').update({ geholfen }).eq('id', frageId);
+  }
+
+  async wissenListe(): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('chat_wissen')
+      .select('id, titel, inhalt, bereich, schlagworte, aktiv')
+      .order('titel');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((w: any) => ({
+      id: w.id,
+      titel: w.titel,
+      inhalt: w.inhalt,
+      bereich: w.bereich ?? null,
+      schlagworte: w.schlagworte ?? [],
+      aktiv: w.aktiv,
+    }));
+  }
+
+  async wissenSpeichern(eintrag: any): Promise<void> {
+    const zeile = {
+      titel: eintrag.titel,
+      inhalt: eintrag.inhalt,
+      bereich: eintrag.bereich,
+      schlagworte: eintrag.schlagworte,
+      aktiv: eintrag.aktiv,
+      updated_at: new Date().toISOString(),
+      updated_by: await this.userId(),
+    };
+    const { error } = eintrag.id
+      ? await this.client.from('chat_wissen').update(zeile).eq('id', eintrag.id)
+      : await this.client.from('chat_wissen').insert(zeile);
+    if (error) throw new Error(error.message);
+  }
+
+  async wissenLoeschen(id: string): Promise<void> {
+    const { error } = await this.client.from('chat_wissen').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  async offeneFragen(): Promise<{ id: string; frage: string; wann: string }[]> {
+    const { data, error } = await this.client
+      .from('chat_fragen')
+      .select('id, frage, created_at')
+      .eq('treffer', 0)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((f: any) => ({ id: f.id, frage: f.frage, wann: f.created_at }));
+  }
+
   async listShareLinks(): Promise<any[]> {
     const { data, error } = await this.client
       .from('roster_share_links')

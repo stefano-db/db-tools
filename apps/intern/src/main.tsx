@@ -12,6 +12,7 @@ import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
 import { RosterDraftPage } from './features/roster/RosterDraftPage';
 import { PublicPlanPage } from './features/roster/PublicPlanPage';
+import { ChatPage } from './features/chat/ChatPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -40,6 +41,8 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <OverviewPage /> },
           { path: 'profil', element: <ProfilePage /> },
+          // Der Chat steht allen offen — er haengt nicht an einem Bereich.
+          { path: 'chat', element: <ChatPage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
           // Entwurf des kommenden Dienstplan-Moduls — liest den echten Plan,

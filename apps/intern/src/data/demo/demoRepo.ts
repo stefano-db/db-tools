@@ -145,6 +145,28 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb gibt es keinen Dienstplan.');
   }
 
+  async chatAntwort() {
+    return [];
+  }
+
+  async chatFrageMerken() {
+    return null;
+  }
+
+  async chatRueckmeldung() {}
+
+  async wissenListe() {
+    return [];
+  }
+
+  async wissenSpeichern() {}
+
+  async wissenLoeschen() {}
+
+  async offeneFragen() {
+    return [];
+  }
+
   async listShareLinks() {
     return [];
   }

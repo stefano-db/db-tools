@@ -232,6 +232,25 @@ export interface ShiftDay {
   std: string;
 }
 
+/** Ein Eintrag im Wissensspeicher des Chats. */
+export interface WissenEintrag {
+  id: string;
+  titel: string;
+  inhalt: string;
+  bereich: Department | null;
+  schlagworte: string[];
+  aktiv: boolean;
+}
+
+/** Ein Treffer der Wissenssuche — Grundlage einer Antwort. */
+export interface WissenTreffer {
+  id: string;
+  titel: string;
+  inhalt: string;
+  bereich: Department | null;
+  rang: number;
+}
+
 /** Ein Freigabe-Link auf den Dienstplan. */
 export interface ShareLink {
   token: string;
@@ -318,6 +337,26 @@ export interface Repository {
   myWeek(): Promise<MyWeek | null>;
   /** Eine ganze Woche lesen — Montagsdatum als YYYY-MM-DD. */
   rosterWeek(weekStart: ISODate): Promise<RosterWeekData>;
+  /**
+   * Antwort auf eine Frage im Chat.
+   *
+   * Heute kommt sie unmittelbar aus dem Wissensspeicher. Sobald ein
+   * Sprachmodell angeschlossen ist, bekommt es genau diese Treffer als
+   * Grundlage — die Schnittstelle bleibt dieselbe, nur der Weg dahinter
+   * aendert sich.
+   */
+  chatAntwort(frage: string): Promise<WissenTreffer[]>;
+  /** Eine gestellte Frage festhalten — auch und gerade die unbeantwortete. */
+  chatFrageMerken(frage: string, treffer: number): Promise<string | null>;
+  /** Rueckmeldung des Fragenden zu einer Antwort. */
+  chatRueckmeldung(frageId: string, geholfen: boolean): Promise<void>;
+  /** Wissensspeicher pflegen — Leitungen und Administratoren. */
+  wissenListe(): Promise<WissenEintrag[]>;
+  wissenSpeichern(eintrag: Omit<WissenEintrag, 'id'> & { id?: string }): Promise<void>;
+  wissenLoeschen(id: string): Promise<void>;
+  /** Fragen ohne Treffer — daraus waechst der Speicher. */
+  offeneFragen(): Promise<{ id: string; frage: string; wann: string }[]>;
+
   /** Freigabe-Links verwalten — nur Leitungen und Administratoren. */
   listShareLinks(): Promise<ShareLink[]>;
   createShareLink(label: string): Promise<ShareLink>;
