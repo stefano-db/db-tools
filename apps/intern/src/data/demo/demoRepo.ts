@@ -145,6 +145,27 @@ export class DemoRepository implements Repository {
     throw new Error('Im Demo-Betrieb gibt es keinen Dienstplan.');
   }
 
+  async listShareLinks() {
+    return [];
+  }
+
+  async createShareLink(label: string) {
+    return {
+      token: 'demo',
+      label,
+      createdAt: new Date().toISOString(),
+      revokedAt: null,
+      lastUsedAt: null,
+      useCount: 0,
+    };
+  }
+
+  async revokeShareLink() {}
+
+  async publicRoster() {
+    return null;
+  }
+
   async rosterWeek() {
     return {};
   }

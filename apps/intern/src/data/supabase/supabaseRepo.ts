@@ -492,6 +492,64 @@ export class SupabaseRepository implements Repository {
     return (data?.data ?? {}) as Record<string, { d: any[] }>;
   }
 
+  async listShareLinks(): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('roster_share_links')
+      .select('token, label, created_at, revoked_at, last_used_at, use_count')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      token: r.token,
+      label: r.label,
+      createdAt: r.created_at,
+      revokedAt: r.revoked_at,
+      lastUsedAt: r.last_used_at,
+      useCount: r.use_count,
+    }));
+  }
+
+  async createShareLink(label: string): Promise<any> {
+    const { data, error } = await this.client
+      .from('roster_share_links')
+      .insert({ label, created_by: await this.userId() })
+      .select('token, label, created_at, revoked_at, last_used_at, use_count')
+      .single();
+    if (error) throw new Error(error.message);
+    return {
+      token: data.token,
+      label: data.label,
+      createdAt: data.created_at,
+      revokedAt: data.revoked_at,
+      lastUsedAt: data.last_used_at,
+      useCount: data.use_count,
+    };
+  }
+
+  /** Widerrufen, nicht loeschen — wer den Link benutzt hat, bleibt nachvollziehbar. */
+  async revokeShareLink(token: string): Promise<void> {
+    const { error } = await this.client
+      .from('roster_share_links')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('token', token);
+    if (error) throw new Error(error.message);
+  }
+
+  async publicRoster(token: string): Promise<any | null> {
+    const { data, error } = await this.client.rpc('roster_public', { p_token: token });
+    if (error) throw new Error(error.message);
+    if (!data) return null;
+    return {
+      weekStart: data.week_start,
+      updatedAt: data.updated_at ?? null,
+      employees: (data.employees ?? []).map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        groupNo: e.group_no,
+      })),
+      data: data.data ?? {},
+    };
+  }
+
   async setUserPassword(id: string, password: string): Promise<void> {
     const { error } = await this.client.rpc('admin_set_password', {
       p_user_id: id,

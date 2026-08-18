@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
-import { repository } from '../../data';
+import { repository, type ShareLink } from '../../data';
+import { teileBild, zeichnePlan } from './planAlsBild';
 import {
   DAY_NAMES,
   DAY_SHORT,
@@ -46,7 +47,7 @@ import {
  * das nicht tragen: aus vier Metern und quer durch die Zeile sagt ein anderer
  * Farbton „irgendwas ist anders", das Zeichen sagt, was.
  */
-const GROUPS: { no: number; name: string; color: string; symbol: string }[] = [
+export const GROUPS: { no: number; name: string; color: string; symbol: string }[] = [
   { no: 1, name: 'Küche', color: '#b8791c', symbol: '🍳' },
   { no: 2, name: 'Service', color: '#c2582a', symbol: '🍻' },
   { no: 3, name: 'Service Aushilfen', color: '#7b57c4', symbol: '🤝' },
@@ -121,7 +122,7 @@ export function RosterDraftPage() {
   const { session } = useAuth();
   const canEdit = session?.isLead || session?.isAdmin || session === null;
 
-  const [tab, setTab] = useState<'plan' | 'team'>('plan');
+  const [tab, setTab] = useState<'plan' | 'team' | 'teilen'>('plan');
   const [offset, setOffset] = useState(0);
   const [employees, setEmployees] = useState<Employee[]>(DEMO_EMPLOYEES);
   const [plan, setPlan] = useState<WeekPlan>({});
@@ -240,6 +241,7 @@ export function RosterDraftPage() {
           [
             ['plan', 'Wochenplan'],
             ['team', 'Mitarbeiter & Bereiche'],
+            ['teilen', 'Teilen & Drucken'],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -321,8 +323,17 @@ export function RosterDraftPage() {
 
             <Legend />
           </>
-        ) : (
+        ) : tab === 'team' ? (
           <TeamTab employees={employees} canEdit={canEdit} onChange={setEmployees} />
+        ) : (
+          <TeilenTab
+            canEdit={canEdit}
+            monday={monday}
+            days={days}
+            employees={employees}
+            weekOf={weekOf}
+            onAction={flash}
+          />
         )}
       </div>
 
@@ -358,16 +369,22 @@ export function RosterDraftPage() {
   );
 }
 
-/** Fremde Daten kommen als sieben Tage — oder eben nicht. Hier wird es sicher. */
-function normalizeWeek(list: ShiftDay[]): ShiftDay[] {
+/**
+ * Fremde Daten kommen als sieben Tage — oder eben nicht.
+ *
+ * Was aus der Datenbank kommt, ist erst einmal nur JSON: die Eingabe ist
+ * deshalb bewusst unbestimmt getypt und wird hier Feld fuer Feld geprueft.
+ * Alles Unbekannte wird zu „nicht eingeteilt", nichts wird geraten.
+ */
+export function normalizeWeek(list: readonly unknown[]): ShiftDay[] {
+  const gueltig: ShiftStatus[] = ['dienst', 'frei', 'urlaub', 'krank', 'nein'];
   const week = emptyWeek();
   for (let i = 0; i < 7; i++) {
-    const d = list[i];
-    if (d && typeof d === 'object') {
+    const roh = list[i];
+    if (roh && typeof roh === 'object') {
+      const d = roh as { status?: unknown; b?: unknown; e?: unknown; bereich?: unknown };
       week[i] = {
-        status: (['dienst', 'frei', 'urlaub', 'krank', 'nein'] as ShiftStatus[]).includes(d.status)
-          ? d.status
-          : 'nein',
+        status: gueltig.includes(d.status as ShiftStatus) ? (d.status as ShiftStatus) : 'nein',
         b: typeof d.b === 'string' ? d.b : '',
         e: typeof d.e === 'string' ? d.e : '',
         ...(typeof d.bereich === 'number' && GROUPS.some((g) => g.no === d.bereich)
@@ -870,7 +887,7 @@ function TvView({
  * der gewonnene Platz geht an die Schrift. Stundensummen sind Schreibtisch-
  * arbeit — die stehen am Rechner und auf dem Ausdruck.
  */
-function TvMatrix({
+export function TvMatrix({
   employees,
   days,
   todayIndex,
@@ -1298,6 +1315,196 @@ function Legend() {
           </span>
         ))}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Reiter „Teilen & Drucken".
+ *
+ * Drei Wege aus dem Programm heraus, fuer drei verschiedene Gewohnheiten:
+ *
+ *   Der Link ist der einzige, der nicht veraltet — wer ihn in der Gruppe
+ *   anpinnt, sieht nach jeder Aenderung den neuen Stand, ohne dass jemand
+ *   etwas verschickt. Er zeigt ausschliesslich die laufende Woche, damit die
+ *   Planung fuer spaeter nicht mitliest, und er ist einzeln zurueckziehbar.
+ *
+ *   Das Bild ist ein Stand von jetzt. Dafuer sieht man es im Chat sofort,
+ *   ohne zu tippen — so, wie ihr die Plaene bisher verschickt habt.
+ *
+ *   Das Blatt ist fuer die Wand und den Ordner: A4 quer, eine Seite.
+ */
+function TeilenTab({
+  canEdit,
+  monday,
+  days,
+  employees,
+  weekOf,
+  onAction,
+}: {
+  canEdit: boolean;
+  monday: Date;
+  days: Date[];
+  employees: Employee[];
+  weekOf: (id: string) => ShiftDay[];
+  onAction: (text: string) => void;
+}) {
+  const [links, setLinks] = useState<ShareLink[] | null>(null);
+  const [label, setLabel] = useState('Signal-Gruppe');
+  const [fehler, setFehler] = useState<string | null>(null);
+
+  useEffect(() => {
+    let aktiv = true;
+    repository
+      .listShareLinks()
+      .then((l) => aktiv && setLinks(l))
+      .catch((e) => aktiv && setFehler(e instanceof Error ? e.message : String(e)));
+    return () => {
+      aktiv = false;
+    };
+  }, []);
+
+  const adresse = (token: string) => `${window.location.origin}/plan/${token}`;
+
+  async function anlegen() {
+    try {
+      const neu = await repository.createShareLink(label.trim() || 'Ohne Namen');
+      setLinks((l) => [neu, ...(l ?? [])]);
+      setFehler(null);
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function widerrufen(token: string) {
+    try {
+      await repository.revokeShareLink(token);
+      setLinks((l) =>
+        (l ?? []).map((x) => (x.token === token ? { ...x, revokedAt: new Date().toISOString() } : x)),
+      );
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function teilen(token: string) {
+    const url = adresse(token);
+    if (navigator.share) {
+      await navigator.share({ title: 'Dienstplan', url }).catch(() => {});
+      return;
+    }
+    await navigator.clipboard?.writeText(url);
+    onAction('Link kopiert.');
+  }
+
+  async function bild() {
+    try {
+      const canvas = zeichnePlan({
+        monday,
+        days,
+        bereiche: GROUPS,
+        personen: employees,
+        weekOf,
+      });
+      const wie = await teileBild(canvas, `Dienstplan-KW${isoWeekNumber(monday)}.png`);
+      onAction(wie === 'geteilt' ? 'Bild weitergegeben.' : 'Bild gespeichert — jetzt in Signal anhängen.');
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  const aktive = (links ?? []).filter((l) => !l.revokedAt);
+  const alte = (links ?? []).filter((l) => l.revokedAt);
+
+  return (
+    <div className="space-y-6">
+      {fehler && (
+        <p className="rounded-lg bg-lw-bad/10 px-4 py-2.5 text-sm text-lw-bad">■ {fehler}</p>
+      )}
+
+      <section>
+        <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Als Bild in die Gruppe</h2>
+        <p className="mt-1 mb-3 text-sm text-lw-text2">
+          Erzeugt ein Bild der Woche. Am Handy öffnet sich das Teilen-Menü — dort steht Signal; am
+          Rechner wird die Datei gespeichert und du hängst sie an.
+        </p>
+        <button onClick={bild} className="lw-btn-primary px-4 py-2 text-sm">
+          Bild erzeugen und teilen
+        </button>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Link zum Anpinnen</h2>
+        <p className="mt-1 mb-3 text-sm text-lw-text2">
+          Zeigt immer die laufende Woche — nach einer Änderung musst du nichts erneut schicken. Ohne
+          Anmeldung lesbar, deshalb nur weitergeben, wo es hingehört; jeder Link ist einzeln
+          zurückziehbar.
+        </p>
+
+        {links === null ? (
+          <p className="text-sm text-lw-text3">Wird geladen…</p>
+        ) : (
+          <div className="space-y-2">
+            {aktive.map((l) => (
+              <div key={l.token} className="lw-card flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5">
+                <span className="font-semibold">{l.label}</span>
+                <span className="text-xs text-lw-text3">{l.useCount}× geöffnet</span>
+                <code className="w-full truncate text-xs text-lw-text2 sm:w-auto sm:flex-1">
+                  {adresse(l.token)}
+                </code>
+                <button onClick={() => teilen(l.token)} className="lw-btn-ghost px-3 py-1.5 text-sm">
+                  Teilen
+                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => widerrufen(l.token)}
+                    className="lw-btn-ghost px-3 py-1.5 text-sm"
+                  >
+                    Zurückziehen
+                  </button>
+                )}
+              </div>
+            ))}
+
+            {aktive.length === 0 && (
+              <p className="text-sm text-lw-text3">Noch kein Link vergeben.</p>
+            )}
+
+            {canEdit && (
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <input
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder="Wofür? z. B. Signal-Gruppe"
+                  className="lw-input w-56"
+                />
+                <button onClick={anlegen} className="lw-btn-ghost px-4 py-2 text-sm">
+                  Link erstellen
+                </button>
+              </div>
+            )}
+
+            {alte.length > 0 && (
+              <p className="pt-2 text-xs text-lw-text3">
+                {alte.length} zurückgezogene{alte.length === 1 ? 'r' : ''} Link
+                {alte.length === 1 ? '' : 's'} — bleiben zur Nachvollziehbarkeit stehen und
+                funktionieren nicht mehr.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Auf Papier</h2>
+        <p className="mt-1 mb-3 text-sm text-lw-text2">
+          A4 quer, eine Seite. Im Druckfenster statt eines Druckers „Als PDF sichern" wählen, wenn du
+          eine Datei brauchst.
+        </p>
+        <button onClick={() => window.print()} className="lw-btn-ghost px-4 py-2 text-sm">
+          Drucken
+        </button>
+      </section>
     </div>
   );
 }

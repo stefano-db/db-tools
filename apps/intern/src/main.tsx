@@ -11,6 +11,7 @@ import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
 import { RosterDraftPage } from './features/roster/RosterDraftPage';
+import { PublicPlanPage } from './features/roster/PublicPlanPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -26,6 +27,9 @@ import { SettingsPage } from './features/settings/SettingsPage';
  * Rechteprüfung bleiben gemeinsam.
  */
 const router = createBrowserRouter([
+  // Der Freigabe-Link steht bewusst vor der Anmeldeschranke: er ist fuer die
+  // Signal-Gruppe und die Fernseher gedacht und zeigt nur die laufende Woche.
+  { path: '/plan/:token', element: <PublicPlanPage /> },
   {
     path: '/',
     element: <RequireAuth />,

@@ -232,6 +232,24 @@ export interface ShiftDay {
   std: string;
 }
 
+/** Ein Freigabe-Link auf den Dienstplan. */
+export interface ShareLink {
+  token: string;
+  label: string;
+  createdAt: string;
+  revokedAt: string | null;
+  lastUsedAt: string | null;
+  useCount: number;
+}
+
+/** Was ein Freigabe-Link ohne Anmeldung ausliefert: genau die laufende Woche. */
+export interface PublicRoster {
+  weekStart: ISODate;
+  updatedAt: string | null;
+  employees: { id: string; name: string; groupNo: number }[];
+  data: Record<string, { d: ShiftDay[] }>;
+}
+
 /** Eine ganze Woche: Name im Plan -> die sieben Tage. */
 export type RosterWeekData = Record<string, { d: ShiftDay[] }>;
 
@@ -300,6 +318,16 @@ export interface Repository {
   myWeek(): Promise<MyWeek | null>;
   /** Eine ganze Woche lesen — Montagsdatum als YYYY-MM-DD. */
   rosterWeek(weekStart: ISODate): Promise<RosterWeekData>;
+  /** Freigabe-Links verwalten — nur Leitungen und Administratoren. */
+  listShareLinks(): Promise<ShareLink[]>;
+  createShareLink(label: string): Promise<ShareLink>;
+  revokeShareLink(token: string): Promise<void>;
+  /**
+   * Den Plan zu einem Freigabe-Link holen — ohne Anmeldung. null, wenn der
+   * Link unbekannt oder widerrufen ist; die Datenbank verraet nicht, welches
+   * von beidem.
+   */
+  publicRoster(token: string): Promise<PublicRoster | null>;
   archiveDocument(id: string): Promise<void>;
   /**
    * Eine abgeschlossene Wartung stornieren. Der Eintrag bleibt in der Historie
