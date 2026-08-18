@@ -119,8 +119,8 @@ export function RosterDraftPage() {
   // Wie in der Bahnwartung: neben einer hellen Flaeche laeuft der Rahmen eine
   // Stufe heller, sonst steht sie wie ein Loch im dunklen Bild.
   useEffect(() => {
-    document.body.classList.add('db-hell');
-    return () => document.body.classList.remove('db-hell');
+    document.body.classList.add('db-hell', 'db-breit');
+    return () => document.body.classList.remove('db-hell', 'db-breit');
   }, []);
 
   const monday = useMemo(() => addDays(mondayOf(new Date()), offset * 7), [offset]);
@@ -510,21 +510,25 @@ function WeekGrid({
                 </td>
               </tr>
 
-              {rows.map((emp) => {
+              {rows.map((emp, rowIndex) => {
                 const week = weekOf(emp.id);
                 const minutes = weekMinutes(week);
-                const rowBg = tint(group.color, 8);
+                // Zeile fuer Zeile abwechselnd getoent, dazu eine helle Fuge:
+                // ueber sieben Spalten hinweg verrutscht man sonst leicht in
+                // die Nachbarzeile.
+                const rowBg = tint(group.color, rowIndex % 2 === 0 ? 7 : 13);
+                const gap = rowIndex === 0 ? undefined : '2px solid #ffffff';
                 return (
                   <tr key={emp.id}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 py-2.5 pr-4 pl-3 text-left font-semibold whitespace-nowrap"
-                      style={{ background: rowBg, borderLeft: `3px solid ${group.color}` }}
+                      className="sticky left-0 z-10 py-3 pr-4 pl-3 text-left font-semibold whitespace-nowrap"
+                      style={{ background: rowBg, borderLeft: `3px solid ${group.color}`, borderTop: gap }}
                     >
                       {emp.name}
                     </th>
                     {week.map((day, i) => (
-                      <td key={i} className="px-1 py-2.5" style={{ background: rowBg }}>
+                      <td key={i} className="px-1 py-3" style={{ background: rowBg, borderTop: gap }}>
                         <DayCell
                           day={day}
                           color={group.color}
@@ -534,7 +538,7 @@ function WeekGrid({
                         />
                       </td>
                     ))}
-                    <td className="px-3 py-2.5 text-right" style={{ background: rowBg }}>
+                    <td className="px-3 py-3 text-right" style={{ background: rowBg, borderTop: gap }}>
                       <span className="tabular text-base font-bold">{formatMinutes(minutes)}</span>
                       {emp.targetHours > 0 && (
                         <span className="ml-1 text-xs text-lw-text3">/ {emp.targetHours}:00</span>

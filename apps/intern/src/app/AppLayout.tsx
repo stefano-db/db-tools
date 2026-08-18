@@ -103,7 +103,7 @@ export function AppLayout() {
       {/* Inhalt */}
       <div className="lg:pl-60">
         <header className="db-hero border-b border-db-line px-4 py-5 sm:px-8">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="db-kopfzeile mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
             <div className="w-full lg:hidden">
               <Logo />
             </div>

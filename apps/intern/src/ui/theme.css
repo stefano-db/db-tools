@@ -210,6 +210,16 @@ body.db-hell {
   --color-db-panel: #3b352d;
 }
 
+/* Breite Seite.
+   Der Lesetext der Plattform steht bewusst schmal — 1152px, damit Zeilen nicht
+   ueber den ganzen Schirm laufen. Ein Wochenplan ist kein Lesetext: er hat
+   sieben Spalten und gewinnt mit jedem Pixel. Diese Klasse hebt die Grenze
+   fuer die Seiten auf, die das brauchen. */
+body.db-breit main,
+body.db-breit .db-kopfzeile {
+  max-width: 106rem;
+}
+
 /* ── HELLER ARBEITSBEREICH ────────────────────────────────────────────────────
    Ein Modul, das auf hellem Grund läuft, sitzt als eigene Fläche im dunklen
    Rahmen — sichtbar abgesetzt, damit der Wechsel gewollt wirkt und nicht wie
