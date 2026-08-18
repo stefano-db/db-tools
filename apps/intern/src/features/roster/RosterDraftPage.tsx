@@ -791,20 +791,21 @@ function TvView({
           /* Der Tag wird schmaler aufgebaut als die Woche: er hat weniger
              Zeilen und darf deshalb weiter aufgeblasen werden, bis er die
              Hoehe ausfuellt. Bei gleicher Breite bliebe das halbe Bild leer. */
-          className="plan-tv w-[1820px] origin-top-left px-6 py-3"
+          className="plan-tv w-[1820px] origin-top-left px-4 py-2"
           style={{ transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})` }}
         >
-          <div className="mb-2 flex items-baseline gap-4">
-            <span className="text-3xl font-extrabold">Dienstplan</span>
-            <span className="text-3xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
-            <span className="ml-auto text-2xl text-lw-text2">
-              {formatDayMonth(monday)} – {formatDayMonth(days[6])}
-              {monday.getFullYear()}
-            </span>
-          </div>
-
+          {/* Keine Kopfzeile: die Tagesspalten tragen das Datum bereits, und
+              jede Zeile oben kostet Schriftgroesse in allen Feldern darunter.
+              Die Kalenderwoche steht in der leeren Ecke ueber der Namensspalte
+              — dort ist ohnehin Platz. */}
           {form === 'tafel' ? (
-            <TvMatrix employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
+            <TvMatrix
+              employees={employees}
+              days={days}
+              todayIndex={todayIndex}
+              weekOf={weekOf}
+              woche={`KW ${isoWeekNumber(monday)}`}
+            />
           ) : (
             <WeekGrid
               employees={employees}
@@ -840,11 +841,13 @@ function TvMatrix({
   days,
   todayIndex,
   weekOf,
+  woche,
 }: {
   employees: Employee[];
   days: Date[];
   todayIndex: number;
   weekOf: (id: string) => ShiftDay[];
+  woche: string;
 }) {
   const gruppen = GROUPS.filter((g) => employees.some((e) => e.groupNo === g.no));
 
@@ -852,7 +855,9 @@ function TvMatrix({
     <table className="w-full border-separate border-spacing-0">
       <thead>
         <tr>
-          <th className="w-[190px] pb-2" />
+          <th className="w-[190px] pb-2 pl-1 text-left align-bottom">
+            <span className="text-2xl font-extrabold text-lw-text3">{woche}</span>
+          </th>
           {days.map((d, i) => {
             const anzahl = employees.filter((e) => weekOf(e.id)[i].status === 'dienst').length;
             const heute = i === todayIndex;
@@ -874,9 +879,12 @@ function TvMatrix({
       {gruppen.map((group) => (
         <tbody key={group.no}>
           <tr>
-            <td colSpan={8} className="pt-2 pb-1">
+            {/* Fuenf Bereichsbaender kosteten zusammen so viel Hoehe wie fuenf
+                Mitarbeiter. Sie tragen nur ein Wort — das darf schmal sein,
+                die gewonnene Hoehe geht an die Zeiten. */}
+            <td colSpan={8} className="pt-1">
               <div
-                className="rounded-md px-3 py-0.5 text-lg font-extrabold tracking-wide uppercase"
+                className="rounded px-3 text-base leading-6 font-extrabold tracking-wide uppercase"
                 style={{ background: tint(group.color, 20), color: group.color }}
               >
                 {group.name}
