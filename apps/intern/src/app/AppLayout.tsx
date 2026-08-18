@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { DEPARTMENT_LABEL } from '../data';
 import { Logo, Mascot } from '../ui/Mascot';
+import { ChatBlase } from '../features/chat/ChatBlase';
 
 /**
  * Rahmen der Plattform: Seitenleiste am Rechner, Reiterleiste am Handy.
@@ -51,9 +52,12 @@ const MOBILE: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
   { to: '/dienstplan/index.html', label: 'Plan', icon: '📅' },
   { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
-  { to: '/chat', label: 'Fragen', icon: '💬' },
+  { to: '/dokumente', label: 'Docs', icon: '📁' },
   { to: '/profil', label: 'Profil', icon: '🙂' },
 ];
+// „Fragen" steht hier bewusst nicht: am Handy sitzt Pinny als Blase unten
+// rechts, und zweimal derselbe Weg in einer fuenfteiligen Leiste kostet nur
+// Platz. In der Seitenleiste am Rechner steht er dagegen mit.
 
 export function AppLayout() {
   const { session } = useAuth();
@@ -143,6 +147,9 @@ export function AppLayout() {
           )}
           <Outlet />
         </main>
+
+        {/* Pinny in Reichweite, auf jeder Seite. */}
+        <ChatBlase />
       </div>
 
       {/* Reiterleiste — nur am Handy */}
