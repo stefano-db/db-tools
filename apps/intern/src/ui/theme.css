@@ -320,94 +320,13 @@ body.db-breit .db-kopfzeile {
 }
 
 
-/* Dichte Form des Wochenplans.
-   Zwei Ausgaben brauchen sie: das Blatt und der Fernseher. Beide koennen nicht
-   scrollen — was nicht drauf ist, ist weg. Die Dauer rueckt hinter die Zeit,
-   und Polsterungen fallen weg. Die hoechste Zelle bestimmt die Zeilenhoehe,
-   deshalb muessen Schichtkarte, Statusmarke und Bereichsband gemeinsam
-   abnehmen; eine allein bringt nichts. */
-.plan-dicht .schicht-karte > div {
-  display: inline;
-}
-.plan-dicht .schicht-karte .dauer::before {
-  content: ' · ';
-}
-.plan-dicht .schicht-karte {
-  padding: 2px 5px;
-}
-.plan-dicht .status-marke {
-  padding: 2px 5px;
-}
-.plan-dicht .bereichs-band {
-  padding: 2px 10px;
-}
-.plan-dicht td,
-.plan-dicht th {
-  padding-top: 2px;
-  padding-bottom: 2px;
-}
-
-/* Fernseher-Form des Wochenplans.
-   Papier und Fernseher haben dieselbe Not — nicht scrollen zu koennen — aber
-   nicht dieselbe Loesung. Auf dem Blatt wird gelesen, aus 40 cm Abstand; am
-   Fernseher wird erkannt, aus vier Metern. Also: dieselbe Zeile je Schicht,
-   aber grosse Schrift und ordentliche Polster. Die Hoehe ist knapp, die
-   Breite im Ueberfluss — deshalb waechst die Schrift, nicht der Abstand. */
+/* Fernseher-Ansicht.
+   Die Tafel bringt ihre Maße selbst mit — sie baut die Woche eigenstaendig
+   auf, statt die Bildschirmtabelle zu verkleinern. Hier bleibt nur, was sie
+   vom Rahmen nicht erben darf: die Schriftfarbe. Ohne sie stuende sie hell
+   auf hell, weil ringsum das dunkle Programm laeuft. */
 .plan-tv {
   color: var(--color-lw-text);
-}
-.plan-tv .schicht-karte {
-  padding: 5px 10px;
-}
-.plan-tv .schicht-karte > div {
-  display: inline;
-}
-.plan-tv .schicht-karte > div:first-child {
-  font-size: 21px;
-  letter-spacing: -0.01em;
-}
-.plan-tv .schicht-karte .dauer {
-  font-size: 15px;
-}
-.plan-tv .schicht-karte .dauer::before {
-  content: '  ';
-}
-.plan-tv .status-marke {
-  padding: 7px 10px;
-  font-size: 16px;
-}
-.plan-tv .bereichs-band {
-  padding: 3px 14px;
-}
-.plan-tv .bereichs-band span {
-  font-size: 19px;
-}
-.plan-tv td,
-.plan-tv th {
-  padding-top: 3px;
-  padding-bottom: 3px;
-}
-/* An der Wand heisst leer schlicht: arbeitet nicht. Ein ausgeschriebenes
-   „frei" in jeder zweiten Zelle verdoppelt die Zeichen, ohne etwas zu sagen —
-   und genau das laesst die Tafel unruhig wirken. Der Platz bleibt stehen,
-   damit die Zeilen nicht verrutschen. */
-.plan-tv .status-marke[data-status='frei'],
-.plan-tv .status-marke[data-status='nein'] {
-  visibility: hidden;
-}
-/* Namen und Wochensumme sind das, was aus der Entfernung zuerst gesucht wird. */
-.plan-tv th[scope='row'] {
-  font-size: 21px;
-}
-.plan-tv tbody td:last-child span {
-  font-size: 20px;
-}
-.plan-tv thead th > div,
-.plan-tv thead th > div > div {
-  font-size: 17px;
-}
-.plan-tv tfoot td div:first-child {
-  font-size: 20px;
 }
 
 /* ── DRUCK: WOCHENPLAN AUF EIN BLATT ─────────────────────────────────────────

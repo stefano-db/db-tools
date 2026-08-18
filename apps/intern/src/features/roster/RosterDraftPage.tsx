@@ -654,10 +654,7 @@ function DayCell({
         </div>
       </div>
     ) : (
-      <div
-        data-status={day.status}
-        className={`status-marke rounded-lg px-2 py-3 text-xs font-semibold ${pill.cls}`}
-      >
+      <div className={`status-marke rounded-lg px-2 py-3 text-xs font-semibold ${pill.cls}`}>
         {pill.label}
       </div>
     );
@@ -780,7 +777,7 @@ function TvView({
             </span>
           </div>
 
-          <TvWoche employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
+          <TvMatrix employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
         </div>
       </div>
     </div>
@@ -788,18 +785,20 @@ function TvView({
 }
 
 /**
- * Die ganze Woche als Kacheln — das Bild fuer die Wand.
+ * Die Woche fuer die Wand: Zeilen wie in der Tabelle, Ruhe wie bei den Kacheln.
  *
- * Nicht als Kreuztabelle: dort steht fuer jeden Menschen an jedem Tag ein
- * Feld, also auch dann, wenn er frei hat. Das sind bei neunzehn Leuten 133
- * Felder, von denen die Haelfte nichts sagt — daher die Unruhe.
+ * Eine Person bleibt eine Zeile — nur so kann man jemanden ueber die Woche
+ * verfolgen, und das ist der Sinn eines Wochenplans. Unruhig war nicht die
+ * Form, sondern was in den Feldern stand: in jeder zweiten Zelle ein
+ * ausgeschriebenes „frei", darunter in jeder besetzten noch eine zweite Zahl,
+ * dazu eine Summenspalte und eine Fusszeile.
  *
- * Hier bekommt jeder Tag eine Spalte, und darin steht nur, wer arbeitet. Aus
- * 133 Feldern werden rund achtzig Kacheln, jede mit Namen und Zeit in
- * Bereichsfarbe. Die Woche bleibt vollstaendig auf einen Blick, und der Platz
- * geht an die Schriftgroesse statt an leere Zellen.
+ * Hier traegt nur Tinte, wo jemand arbeitet: eine weisse Kachel mit der Zeit
+ * in Bereichsfarbe, gross. Freie Tage bleiben leer, die Zeile ist getoent, und
+ * der gewonnene Platz geht an die Schrift. Stundensummen sind Schreibtisch-
+ * arbeit — die stehen am Rechner und auf dem Ausdruck.
  */
-function TvWoche({
+function TvMatrix({
   employees,
   days,
   todayIndex,
@@ -810,80 +809,98 @@ function TvWoche({
   todayIndex: number;
   weekOf: (id: string) => ShiftDay[];
 }) {
+  const gruppen = GROUPS.filter((g) => employees.some((e) => e.groupNo === g.no));
+
   return (
-    <div className="grid grid-cols-7 gap-2">
-      {days.map((date, i) => {
-        const bereiche = GROUPS.map((group) => ({
-          group,
-          leute: employees
+    <table className="w-full border-separate border-spacing-0">
+      <thead>
+        <tr>
+          <th className="w-[190px] pb-2" />
+          {days.map((d, i) => {
+            const anzahl = employees.filter((e) => weekOf(e.id)[i].status === 'dienst').length;
+            const heute = i === todayIndex;
+            return (
+              <th key={i} className="pb-2 text-center">
+                <div
+                  className={`mx-1 rounded-lg px-2 py-1 ${heute ? 'bg-lw-warn/20 text-lw-warn' : 'text-lw-text2'}`}
+                >
+                  <span className="text-2xl font-extrabold">{DAY_SHORT[i]}</span>
+                  <span className="ml-2 text-lg">{formatDayMonth(d)}</span>
+                  <span className="ml-2 text-lg font-bold opacity-70">{anzahl}</span>
+                </div>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+
+      {gruppen.map((group) => (
+        <tbody key={group.no}>
+          <tr>
+            <td colSpan={8} className="pt-2 pb-1">
+              <div
+                className="rounded-md px-3 py-0.5 text-lg font-extrabold tracking-wide uppercase"
+                style={{ background: tint(group.color, 20), color: group.color }}
+              >
+                {group.name}
+              </div>
+            </td>
+          </tr>
+
+          {employees
             .filter((e) => e.groupNo === group.no)
-            .map((emp) => ({ emp, day: weekOf(emp.id)[i] }))
-            .filter((x) => x.day.status !== 'frei' && x.day.status !== 'nein'),
-        })).filter((b) => b.leute.length > 0);
-
-        const imDienst = bereiche.reduce(
-          (n, b) => n + b.leute.filter((x) => x.day.status === 'dienst').length,
-          0,
-        );
-        const heute = i === todayIndex;
-
-        return (
-          <section
-            key={i}
-            className="overflow-hidden rounded-xl"
-            style={{ background: heute ? 'rgba(224,160,56,0.10)' : 'var(--color-lw-card2)' }}
-          >
-            <div
-              className={`flex items-baseline gap-2 px-3 py-1.5 ${
-                heute ? 'bg-lw-warn/20 text-lw-warn' : 'text-lw-text2'
-              }`}
-            >
-              <span className="text-2xl font-extrabold">{DAY_SHORT[i]}</span>
-              <span className="text-lg">{formatDayMonth(date)}</span>
-              <span className="ml-auto text-lg font-bold">{imDienst}</span>
-            </div>
-
-            <div className="space-y-1.5 p-1.5">
-              {bereiche.map(({ group, leute }) => (
-                <div key={group.no}>
-                  <div
-                    className="mb-1 rounded px-2 py-px text-[13px] font-extrabold tracking-wide uppercase"
-                    style={{ background: tint(group.color, 20), color: group.color }}
+            .map((emp, rowIndex) => {
+              const week = weekOf(emp.id);
+              const rowBg = tint(group.color, rowIndex % 2 === 0 ? 7 : 13);
+              const fuge = rowIndex === 0 ? undefined : '3px solid #ffffff';
+              return (
+                <tr key={emp.id}>
+                  <th
+                    scope="row"
+                    className="px-3 py-1 text-left text-xl font-bold whitespace-nowrap"
+                    style={{ background: rowBg, borderLeft: `4px solid ${group.color}`, borderTop: fuge }}
                   >
-                    {group.name}
-                  </div>
-                  <div className="space-y-1">
-                    {leute.map(({ emp, day }) => (
-                      <div key={emp.id} className="rounded-lg bg-white px-2 py-1">
-                        <div className="truncate text-[17px] leading-tight font-bold">{emp.name}</div>
-                        {day.status === 'dienst' ? (
-                          <div
-                            className="tabular text-xl leading-tight font-extrabold whitespace-nowrap"
+                    {emp.name}
+                  </th>
+                  {week.map((day, i) => (
+                    <td
+                      key={i}
+                      className="px-1 py-1"
+                      style={{ background: rowBg, borderTop: fuge }}
+                    >
+                      {day.status === 'dienst' ? (
+                        <div className="rounded-lg bg-white px-2 py-1 text-center">
+                          <span
+                            className="tabular text-[22px] leading-tight font-extrabold whitespace-nowrap"
                             style={{ color: group.color }}
                           >
                             {day.b}
                             <span className="mx-px font-normal text-lw-text3">–</span>
                             {day.e}
-                          </div>
-                        ) : (
-                          <div
-                            className={`text-lg leading-tight font-bold ${
-                              day.status === 'urlaub' ? 'text-lw-ok' : 'text-lw-bad'
-                            }`}
-                          >
-                            {STATUS_PILL[day.status].label}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      })}
-    </div>
+                          </span>
+                        </div>
+                      ) : day.status === 'urlaub' || day.status === 'krank' ? (
+                        <div
+                          className={`rounded-lg px-2 py-1 text-center text-lg font-bold ${
+                            day.status === 'urlaub' ? 'text-lw-ok' : 'text-lw-bad'
+                          }`}
+                          style={{ background: '#ffffff' }}
+                        >
+                          {STATUS_PILL[day.status].label}
+                        </div>
+                      ) : (
+                        // Frei bleibt leer. Das Wort in jeder zweiten Zelle war
+                        // die halbe Unruhe und hat nichts erzaehlt.
+                        <div className="py-1 text-center text-lw-line2">·</div>
+                      )}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+        </tbody>
+      ))}
+    </table>
   );
 }
 
