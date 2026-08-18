@@ -706,16 +706,6 @@ function TvView({
   const boxRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [fitted, setFitted] = useState({ scale: 1, dx: 0, dy: 0 });
-  const [bild, setBild] = useState<'heute' | 'woche'>(todayIndex >= 0 ? 'heute' : 'woche');
-
-  // Der Wechsel laeuft von allein: wer vorbeigeht, soll nicht warten muessen.
-  // Der Tag steht laenger als die Woche — er wird oefter gebraucht.
-  useEffect(() => {
-    if (todayIndex < 0) return;
-    const dauer = bild === 'heute' ? 18000 : 12000;
-    const t = window.setTimeout(() => setBild(bild === 'heute' ? 'woche' : 'heute'), dauer);
-    return () => window.clearTimeout(t);
-  }, [bild, todayIndex]);
 
   const fit = useCallback(() => {
     const box = boxRef.current;
@@ -745,7 +735,7 @@ function TvView({
       ro.disconnect();
       window.removeEventListener('resize', fit);
     };
-  }, [fit, bild]);
+  }, [fit]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
@@ -772,59 +762,25 @@ function TvView({
 
       {/* Der Rahmen misst ohne eigene Polsterung, damit die Rechnung aufgeht;
           die Luft steckt im Inhalt. */}
-      {todayIndex >= 0 && (
-        <div className="absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 gap-2">
-          {(['heute', 'woche'] as const).map((b) => (
-            <button
-              key={b}
-              onClick={() => setBild(b)}
-              aria-label={b === 'heute' ? 'Heute zeigen' : 'Ganze Woche zeigen'}
-              className={`h-2.5 w-2.5 rounded-full transition ${
-                bild === b ? 'bg-lw-text2' : 'bg-lw-line2'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
       <div ref={boxRef} className="flex-1 overflow-hidden">
         <div
           ref={innerRef}
           /* Der Tag wird schmaler aufgebaut als die Woche: er hat weniger
              Zeilen und darf deshalb weiter aufgeblasen werden, bis er die
              Hoehe ausfuellt. Bei gleicher Breite bliebe das halbe Bild leer. */
-          className="plan-tv origin-top-left px-6 py-2"
-          style={{
-            width: bild === 'heute' ? 1250 : 1860,
-            transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})`,
-          }}
+          className="plan-tv w-[1820px] origin-top-left px-6 py-3"
+          style={{ transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})` }}
         >
-          <div className="mb-1 flex items-baseline gap-4">
-            <span className="text-3xl font-extrabold">
-              {bild === 'heute' && todayIndex >= 0
-                ? `Heute · ${DAY_NAMES[todayIndex]}`
-                : 'Die ganze Woche'}
-            </span>
+          <div className="mb-2 flex items-baseline gap-4">
+            <span className="text-3xl font-extrabold">Dienstplan</span>
             <span className="text-3xl font-bold text-lw-text2">KW {isoWeekNumber(monday)}</span>
             <span className="ml-auto text-2xl text-lw-text2">
-              {bild === 'heute' && todayIndex >= 0
-                ? formatDayMonth(days[todayIndex]) + monday.getFullYear()
-                : `${formatDayMonth(monday)} – ${formatDayMonth(days[6])}${monday.getFullYear()}`}
+              {formatDayMonth(monday)} – {formatDayMonth(days[6])}
+              {monday.getFullYear()}
             </span>
           </div>
 
-          {bild === 'heute' && todayIndex >= 0 ? (
-            <TvHeute employees={employees} weekOf={weekOf} dayIndex={todayIndex} />
-          ) : (
-            <WeekGrid
-              employees={employees}
-              days={days}
-              todayIndex={todayIndex}
-              weekOf={weekOf}
-              canEdit={false}
-              onPick={() => {}}
-            />
-          )}
+          <TvWoche employees={employees} days={days} todayIndex={todayIndex} weekOf={weekOf} />
         </div>
       </div>
     </div>
@@ -832,75 +788,101 @@ function TvView({
 }
 
 /**
- * Der heutige Tag, gross.
+ * Die ganze Woche als Kacheln — das Bild fuer die Wand.
  *
- * Das eigentliche Bild fuer die Wand. Aus vier Metern wird nicht gelesen,
- * sondern erkannt — und erkannt werden koennen nur wenige Zeilen. Statt 133
- * Feldern stehen hier die zwoelf bis fuenfzehn Namen, die heute im Haus sind,
- * nach Bereichen in Spalten. Die Woche laeuft daneben weiter und kommt im
- * Wechsel dran; nachschlagen kann man sie am Handy oder auf dem Ausdruck.
+ * Nicht als Kreuztabelle: dort steht fuer jeden Menschen an jedem Tag ein
+ * Feld, also auch dann, wenn er frei hat. Das sind bei neunzehn Leuten 133
+ * Felder, von denen die Haelfte nichts sagt — daher die Unruhe.
+ *
+ * Hier bekommt jeder Tag eine Spalte, und darin steht nur, wer arbeitet. Aus
+ * 133 Feldern werden rund achtzig Kacheln, jede mit Namen und Zeit in
+ * Bereichsfarbe. Die Woche bleibt vollstaendig auf einen Blick, und der Platz
+ * geht an die Schriftgroesse statt an leere Zellen.
  */
-function TvHeute({
+function TvWoche({
   employees,
+  days,
+  todayIndex,
   weekOf,
-  dayIndex,
 }: {
   employees: Employee[];
+  days: Date[];
+  todayIndex: number;
   weekOf: (id: string) => ShiftDay[];
-  dayIndex: number;
 }) {
-  const spalten = GROUPS.map((group) => {
-    const leute = employees
-      .filter((e) => e.groupNo === group.no)
-      .map((emp) => ({ emp, day: weekOf(emp.id)[dayIndex] }));
-    return {
-      group,
-      dienst: leute.filter((x) => x.day.status === 'dienst'),
-      abwesend: leute.filter((x) => x.day.status === 'urlaub' || x.day.status === 'krank'),
-    };
-  }).filter((s) => s.dienst.length > 0 || s.abwesend.length > 0);
-
-  if (spalten.length === 0) {
-    return <p className="py-24 text-center text-4xl text-lw-text3">Heute ist niemand eingeteilt.</p>;
-  }
-
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${spalten.length}, 1fr)` }}>
-      {spalten.map(({ group, dienst, abwesend }) => (
-        <section key={group.no} className="overflow-hidden rounded-2xl" style={{ background: tint(group.color, 8) }}>
-          <div
-            className="flex items-baseline gap-2 px-4 py-2"
-            style={{ background: tint(group.color, 20), color: group.color }}
+    <div className="grid grid-cols-7 gap-2">
+      {days.map((date, i) => {
+        const bereiche = GROUPS.map((group) => ({
+          group,
+          leute: employees
+            .filter((e) => e.groupNo === group.no)
+            .map((emp) => ({ emp, day: weekOf(emp.id)[i] }))
+            .filter((x) => x.day.status !== 'frei' && x.day.status !== 'nein'),
+        })).filter((b) => b.leute.length > 0);
+
+        const imDienst = bereiche.reduce(
+          (n, b) => n + b.leute.filter((x) => x.day.status === 'dienst').length,
+          0,
+        );
+        const heute = i === todayIndex;
+
+        return (
+          <section
+            key={i}
+            className="overflow-hidden rounded-xl"
+            style={{ background: heute ? 'rgba(224,160,56,0.10)' : 'var(--color-lw-card2)' }}
           >
-            <span className="text-2xl font-extrabold tracking-wide uppercase">{group.name}</span>
-            <span className="ml-auto text-xl font-bold">{dienst.length}</span>
-          </div>
+            <div
+              className={`flex items-baseline gap-2 px-3 py-1.5 ${
+                heute ? 'bg-lw-warn/20 text-lw-warn' : 'text-lw-text2'
+              }`}
+            >
+              <span className="text-2xl font-extrabold">{DAY_SHORT[i]}</span>
+              <span className="text-lg">{formatDayMonth(date)}</span>
+              <span className="ml-auto text-lg font-bold">{imDienst}</span>
+            </div>
 
-          <div className="space-y-2 p-3">
-            {dienst.map(({ emp, day }) => (
-              <div key={emp.id} className="rounded-xl bg-white px-3 py-2">
-                <div className="truncate text-xl font-bold">{emp.name}</div>
-                <div
-                  className="tabular text-[26px] leading-tight font-extrabold whitespace-nowrap"
-                  style={{ color: group.color }}
-                >
-                  {day.b}
-                  <span className="mx-0.5 font-normal text-lw-text3">–</span>
-                  {day.e}
+            <div className="space-y-1.5 p-1.5">
+              {bereiche.map(({ group, leute }) => (
+                <div key={group.no}>
+                  <div
+                    className="mb-1 rounded px-2 py-px text-[13px] font-extrabold tracking-wide uppercase"
+                    style={{ background: tint(group.color, 20), color: group.color }}
+                  >
+                    {group.name}
+                  </div>
+                  <div className="space-y-1">
+                    {leute.map(({ emp, day }) => (
+                      <div key={emp.id} className="rounded-lg bg-white px-2 py-1">
+                        <div className="truncate text-[17px] leading-tight font-bold">{emp.name}</div>
+                        {day.status === 'dienst' ? (
+                          <div
+                            className="tabular text-xl leading-tight font-extrabold whitespace-nowrap"
+                            style={{ color: group.color }}
+                          >
+                            {day.b}
+                            <span className="mx-px font-normal text-lw-text3">–</span>
+                            {day.e}
+                          </div>
+                        ) : (
+                          <div
+                            className={`text-lg leading-tight font-bold ${
+                              day.status === 'urlaub' ? 'text-lw-ok' : 'text-lw-bad'
+                            }`}
+                          >
+                            {STATUS_PILL[day.status].label}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-
-            {abwesend.length > 0 && (
-              <div className="px-1 pt-1 text-lg text-lw-text3">
-                {abwesend
-                  .map(({ emp, day }) => `${emp.name} (${STATUS_PILL[day.status].label})`)
-                  .join(' · ')}
-              </div>
-            )}
-          </div>
-        </section>
-      ))}
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
