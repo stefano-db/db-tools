@@ -64,6 +64,16 @@ const PRESETS: Record<number, [string, string][]> = {
  * Urlaub und Krank sind Ausnahmen und duerfen auffallen; frei ist der
  * Normalfall und bleibt still.
  */
+/**
+ * Abstufungen einer Bereichsfarbe.
+ *
+ * Die Farbe ordnet den Plan — man findet seinen Bereich, ohne zu lesen. Auf
+ * hellem Grund darf sie aber nicht als volle Flaeche unter der Schrift liegen,
+ * sonst leidet die Lesbarkeit. Also: kraeftig im Band, sehr leicht in den
+ * Zeilen, und die Schichtkarte bleibt weiss und hebt sich davon ab.
+ */
+const tint = (color: string, percent: number) => `color-mix(in srgb, ${color} ${percent}%, #ffffff)`;
+
 const STATUS_PILL: Record<ShiftStatus, { label: string; cls: string }> = {
   dienst: { label: 'Dienst', cls: '' },
   frei: { label: 'frei', cls: 'text-lw-text3' },
@@ -247,7 +257,7 @@ export function RosterDraftPage() {
               </p>
             )}
 
-            <label className="flex flex-wrap items-center gap-2 rounded-lg bg-lw-card2 px-4 py-2.5 text-sm">
+            <label className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-lw-card2 px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={showExample}
@@ -402,7 +412,9 @@ function Toolbar({
         )}
       </div>
 
-      <div className="ml-auto flex flex-wrap items-center gap-2">
+      {/* Am Handy zaehlt der Blick auf den Tag. Drucken, CSV und Kopieren sind
+          Schreibtischarbeit und wuerden hier nur den Plan nach unten druecken. */}
+      <div className="ml-auto hidden flex-wrap items-center gap-2 sm:flex">
         {canEdit && (
           <button
             onClick={onUndo}
@@ -453,21 +465,28 @@ function WeekGrid({
 
   return (
     <div className="db-scroll-x overflow-x-auto">
-      <table className="w-full min-w-[52rem] border-separate border-spacing-0 text-sm">
+      <table className="w-full min-w-[58rem] border-separate border-spacing-0 text-sm">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-lw-bg px-3 pb-2 text-left text-xs font-semibold tracking-wide text-lw-text3 uppercase">
+            <th className="sticky left-0 z-10 bg-lw-bg px-3 pb-3 text-left text-xs font-semibold tracking-wide text-lw-text3 uppercase">
               Name
             </th>
             {days.map((d, i) => (
-              <th key={i} className="px-1.5 pb-2 text-center">
-                <div className={`text-xs font-bold ${i === todayIndex ? 'text-lw-warn' : 'text-lw-text2'}`}>
-                  {DAY_SHORT[i]}
-                </div>
-                <div className="text-[11px] text-lw-text3">{formatDayMonth(d)}</div>
+              <th key={i} className="px-2 pb-3 text-center">
+                {i === todayIndex ? (
+                  <div className="mx-auto inline-block rounded-md bg-lw-warn/15 px-2 py-0.5">
+                    <div className="text-sm font-bold text-lw-warn">{DAY_SHORT[i]}</div>
+                    <div className="text-xs text-lw-warn/80">{formatDayMonth(d)}</div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm font-bold text-lw-text2">{DAY_SHORT[i]}</div>
+                    <div className="text-xs text-lw-text3">{formatDayMonth(d)}</div>
+                  </>
+                )}
               </th>
             ))}
-            <th className="px-2 pb-2 text-right text-xs font-semibold tracking-wide text-lw-text3 uppercase">
+            <th className="px-3 pb-3 text-right text-xs font-semibold tracking-wide text-lw-text3 uppercase">
               Woche
             </th>
           </tr>
@@ -479,13 +498,14 @@ function WeekGrid({
           return (
             <tbody key={group.no}>
               <tr>
-                <td colSpan={9} className="pt-4 pb-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="h-3 w-1 rounded-full" style={{ background: group.color }} />
-                    <span className="text-xs font-bold tracking-wide uppercase" style={{ color: group.color }}>
-                      {group.name}
-                    </span>
-                    <span className="ml-auto text-xs text-lw-text3">{formatMinutes(total)} h</span>
+                <td colSpan={9} className="pt-6 pb-2">
+                  <div
+                    className="flex items-center gap-3 rounded-lg px-3 py-2"
+                    style={{ background: tint(group.color, 18), color: group.color }}
+                  >
+                    <span className="text-sm font-extrabold tracking-wide uppercase">{group.name}</span>
+                    <span className="text-xs opacity-70">{rows.length} Personen</span>
+                    <span className="ml-auto text-sm font-bold">{formatMinutes(total)} h</span>
                   </div>
                 </td>
               </tr>
@@ -493,30 +513,29 @@ function WeekGrid({
               {rows.map((emp) => {
                 const week = weekOf(emp.id);
                 const minutes = weekMinutes(week);
+                const rowBg = tint(group.color, 8);
                 return (
-                  <tr key={emp.id} className="group">
+                  <tr key={emp.id}>
                     <th
                       scope="row"
-                      className="sticky left-0 z-10 border-t border-lw-line bg-lw-bg py-1 pr-3 text-left font-semibold whitespace-nowrap"
+                      className="sticky left-0 z-10 py-2.5 pr-4 pl-3 text-left font-semibold whitespace-nowrap"
+                      style={{ background: rowBg, borderLeft: `3px solid ${group.color}` }}
                     >
-                      <span
-                        className="mr-2 inline-block h-2.5 w-1 rounded-full align-middle"
-                        style={{ background: group.color }}
-                      />
                       {emp.name}
                     </th>
                     {week.map((day, i) => (
-                      <td key={i} className="border-t border-lw-line px-0.5 py-1">
+                      <td key={i} className="px-1 py-2.5" style={{ background: rowBg }}>
                         <DayCell
                           day={day}
+                          color={group.color}
                           isToday={i === todayIndex}
                           canEdit={canEdit}
                           onPick={(rect) => onPick(emp.id, i, rect)}
                         />
                       </td>
                     ))}
-                    <td className="border-t border-lw-line px-2 py-1 text-right">
-                      <span className="tabular font-bold">{formatMinutes(minutes)}</span>
+                    <td className="px-3 py-2.5 text-right" style={{ background: rowBg }}>
+                      <span className="tabular text-base font-bold">{formatMinutes(minutes)}</span>
                       {emp.targetHours > 0 && (
                         <span className="ml-1 text-xs text-lw-text3">/ {emp.targetHours}:00</span>
                       )}
@@ -541,11 +560,13 @@ function WeekGrid({
  */
 function DayCell({
   day,
+  color,
   isToday,
   canEdit,
   onPick,
 }: {
   day: ShiftDay;
+  color: string;
   isToday: boolean;
   canEdit: boolean;
   onPick: (rect: DOMRect) => void;
@@ -553,25 +574,29 @@ function DayCell({
   const ref = useRef<HTMLButtonElement>(null);
   const minutes = shiftMinutes(day);
   const pill = STATUS_PILL[day.status];
+  void isToday; // Der heutige Tag wird einmal in der Kopfzeile markiert, nicht an jeder Zelle.
 
-  const base = `w-full rounded-lg px-1 py-1 text-center transition ${
-    isToday ? 'bg-lw-warn/[0.06]' : ''
-  }`;
+  const base = 'block w-full rounded-lg text-center transition';
 
   const body =
     day.status === 'dienst' ? (
-      <div className="lw-card px-1 py-1">
-        <div className="tabular text-[12.5px] leading-tight font-bold whitespace-nowrap">
+      // Weiss auf der eingefaerbten Zeile: die Schicht tritt hervor, der Rand
+      // in der Bereichsfarbe haelt sie sichtbar bei ihrem Bereich.
+      <div
+        className="rounded-lg bg-white px-2 py-2"
+        style={{ boxShadow: `inset 0 0 0 1px ${tint(color, 30)}` }}
+      >
+        <div className="tabular text-sm leading-snug font-bold whitespace-nowrap">
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
-        <div className="text-[10px] leading-tight text-lw-text3">
-          {minutes > 0 ? formatMinutes(minutes) : ' '}
+        <div className="text-[11px] leading-tight text-lw-text3">
+          {minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
         </div>
       </div>
     ) : (
-      <div className={`rounded px-1 py-[7px] text-[12px] font-semibold ${pill.cls}`}>{pill.label}</div>
+      <div className={`rounded-lg px-2 py-3.5 text-xs font-semibold ${pill.cls}`}>{pill.label}</div>
     );
 
   if (!canEdit) return <div className={base}>{body}</div>;
@@ -580,7 +605,7 @@ function DayCell({
     <button
       ref={ref}
       onClick={() => ref.current && onPick(ref.current.getBoundingClientRect())}
-      className={`${base} cursor-pointer hover:bg-lw-line/40`}
+      className={`${base} cursor-pointer hover:brightness-[0.97]`}
     >
       {body}
     </button>
@@ -616,7 +641,7 @@ function DayView({
     .filter((x) => x.day.status === 'dienst' || x.day.status === 'urlaub' || x.day.status === 'krank');
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="db-scroll-x -mx-1 flex gap-1 overflow-x-auto px-1">
         {days.map((d, i) => (
           <button
@@ -644,16 +669,22 @@ function DayView({
           Für {DAY_NAMES[sel]} ist niemand eingeteilt.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {GROUPS.filter((g) => onDuty.some((x) => x.emp.groupNo === g.no)).map((group) => (
             <div key={group.no}>
-              <div className="mb-1 flex items-baseline gap-2">
-                <span className="h-3 w-1 rounded-full" style={{ background: group.color }} />
-                <span className="text-xs font-bold tracking-wide uppercase" style={{ color: group.color }}>
-                  {group.name}
+              <div
+                className="mb-2 flex items-center gap-3 rounded-lg px-3 py-2"
+                style={{ background: tint(group.color, 18), color: group.color }}
+              >
+                <span className="text-sm font-extrabold tracking-wide uppercase">{group.name}</span>
+                <span className="ml-auto text-xs opacity-70">
+                  {onDuty.filter((x) => x.emp.groupNo === group.no).length} im Dienst
                 </span>
               </div>
-              <div className="lw-card divide-y divide-lw-line overflow-hidden">
+              <div
+                className="divide-y divide-white/70 overflow-hidden rounded-xl"
+                style={{ background: tint(group.color, 8), borderLeft: `3px solid ${group.color}` }}
+              >
                 {onDuty
                   .filter((x) => x.emp.groupNo === group.no)
                   .map(({ emp, day }) => {
@@ -661,7 +692,7 @@ function DayView({
                     return (
                       <div
                         key={emp.id}
-                        className={`flex items-center gap-3 px-3 py-2.5 ${mine ? 'bg-lw-warn/10' : ''}`}
+                        className={`flex items-center gap-3 px-3 py-3 ${mine ? 'bg-lw-warn/15' : ''}`}
                       >
                         <span className="font-semibold">{emp.name}</span>
                         {mine && (
