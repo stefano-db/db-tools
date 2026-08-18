@@ -53,6 +53,12 @@
   const DB = {
     userId: null,
     canEdit: false,
+    /**
+     * Was zuletzt fuer jede Woche geschrieben oder gelesen wurde: Montagsdatum
+     * -> { json, version }. Daran erkennt das Speichern, was sich wirklich
+     * geaendert hat, und mit welcher Fassung es aufsetzt.
+     */
+    stand: new Map(),
     /** Montagsdatum -> Wochenversatz, für den Weg zurück. */
     offsetOf: new Map(),
 
@@ -118,9 +124,16 @@
 
       // Wochen unter ihrem Versatz ablegen, damit der Editor nichts merkt.
       state.weeks = {};
+      DB.stand.clear();
       for (const row of weekRes.data ?? []) {
         const off = DB.offsetOf.get(row.week_start);
         if (off === undefined) continue;
+        // Stand und Fassung merken: nur so laesst sich spaeter erkennen, was
+        // sich wirklich geaendert hat und auf welcher Fassung es aufsetzt.
+        DB.stand.set(row.week_start, {
+          json: JSON.stringify(row.data ?? {}),
+          version: row.version ?? 1,
+        });
         state.weeks[off] = state.emps.map((e) => {
           const saved = row.data?.[e.id];
           return saved
@@ -143,49 +156,113 @@
     },
 
     /**
-     * Speichern. Gesammelt und leicht verzögert, weil die Oberfläche bei jeder
-     * Eingabe speichert — sonst gäbe es pro Tastendruck eine Anfrage.
+     * Speichern.
+     *
+     * Drei Dinge, die vorher fehlten und bei einem Dienstplan nicht fehlen
+     * duerfen:
+     *
+     *  - Es wird nur geschrieben, was sich geaendert hat. Vorher ging bei jeder
+     *    Speicherung der gesamte Speicherinhalt hinaus — also auch die 24
+     *    Wochen, die man nur beim Blaettern gesehen hat. Hatte inzwischen
+     *    jemand anderes eine davon bearbeitet, war seine Arbeit weg, ohne dass
+     *    es jemand bemerkte.
+     *
+     *  - Jede Woche wird mit ihrer Fassungsnummer geschrieben. Hat inzwischen
+     *    jemand anderes gespeichert, lehnt die Datenbank ab und schickt den
+     *    neuen Stand zurueck, statt ihn ueberschreiben zu lassen.
+     *
+     *  - Der Zustand wird gemeldet. Vorher sprang die Anzeige sofort auf
+     *    „Gespeichert", waehrend die Anfrage noch lief — und blieb dort stehen,
+     *    wenn sie fehlschlug.
      */
     save(state) {
       if (!DB.canEdit) return;
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        try {
-          const sb = await getClient();
+      DB.melde('wartet');
+      saveTimer = setTimeout(() => DB.schreibe(state), 700);
+    },
 
-          const rows = [];
-          for (const [off, list] of Object.entries(state.weeks)) {
-            const monday = mondayFor(Number(off));
-            const data = {};
-            state.emps.forEach((e, i) => {
-              if (list[i]) data[e.id] = { d: list[i].d, tot: list[i].tot };
-            });
-            rows.push({
-              week_start: monday,
-              data,
-              updated_at: new Date().toISOString(),
-              updated_by: DB.userId,
-            });
-          }
-          if (rows.length) {
-            const { error } = await sb.from('roster_weeks').upsert(rows);
-            if (error) throw new Error(error.message);
+    /** Wartende Aenderung sofort hinausschicken — etwa beim Schliessen. */
+    flush(state) {
+      if (!DB.canEdit) return Promise.resolve();
+      clearTimeout(saveTimer);
+      return DB.schreibe(state);
+    },
+
+    melde(zustand, text) {
+      if (typeof DB.beiStatus === 'function') DB.beiStatus(zustand, text);
+    },
+
+    async schreibe(state) {
+      try {
+        const sb = await getClient();
+        DB.melde('laeuft');
+
+        for (const [off, list] of Object.entries(state.weeks)) {
+          const monday = mondayFor(Number(off));
+          const data = {};
+          state.emps.forEach((e, i) => {
+            if (list[i]) data[e.id] = { d: list[i].d, tot: list[i].tot };
+          });
+
+          const json = JSON.stringify(data);
+          const bekannt = DB.stand.get(monday);
+          // Unveraendert gegenueber dem eigenen letzten Stand: nicht anfassen.
+          if (bekannt && bekannt.json === json) continue;
+
+          const { data: antwort, error } = await sb.rpc('roster_week_speichern', {
+            p_week_start: monday,
+            p_data: data,
+            p_version: bekannt ? bekannt.version : 0,
+          });
+          if (error) throw new Error(error.message);
+
+          if (antwort && antwort.ok === false) {
+            // Jemand anderes war schneller. Nicht ueberschreiben, sondern den
+            // fremden Stand uebernehmen und sichtbar machen.
+            DB.uebernimm(state, Number(off), monday, antwort);
+            DB.melde(
+              'konflikt',
+              'Diese Woche wurde inzwischen von jemand anderem geändert. Der neue Stand ist geladen.',
+            );
+            continue;
           }
 
-          const { error: setError } = await sb
-            .from('roster_settings')
-            .update({
-              group_names: window.GRP_NAMES,
-              group_colors: window.GRP_COLORS,
-              updated_at: new Date().toISOString(),
-              updated_by: DB.userId,
-            })
-            .eq('id', true);
-          if (setError) throw new Error(setError.message);
-        } catch (err) {
-          notify('⚠️ Nicht gespeichert: ' + err.message);
+          DB.stand.set(monday, { json, version: (antwort && antwort.version) || 1 });
         }
-      }, 700);
+
+        const { error: setError } = await sb
+          .from('roster_settings')
+          .update({
+            group_names: window.GRP_NAMES,
+            group_colors: window.GRP_COLORS,
+            updated_at: new Date().toISOString(),
+            updated_by: DB.userId,
+          })
+          .eq('id', true);
+        if (setError) throw new Error(setError.message);
+
+        DB.melde('gespeichert');
+      } catch (err) {
+        DB.melde('fehler', String((err && err.message) || err));
+        notify('⚠️ Nicht gespeichert: ' + ((err && err.message) || err));
+      }
+    },
+
+    /** Fremden Stand in die laufende Ansicht holen. */
+    uebernimm(state, off, monday, antwort) {
+      const fremd = antwort.data || {};
+      state.weeks[off] = state.emps.map((e) => {
+        const eintrag = fremd[e.id];
+        return eintrag
+          ? { d: eintrag.d, tot: eintrag.tot }
+          : { d: Array.from({ length: 7 }, () => ({ status: 'nein', b: '', e: '', std: '' })), tot: '0:00' };
+      });
+      DB.stand.set(monday, {
+        json: JSON.stringify(fremd),
+        version: antwort.version,
+      });
+      if (typeof DB.beiFremderAenderung === 'function') DB.beiFremderAenderung(off);
     },
 
     /** Mitarbeiterliste abgleichen — nach Anlegen, Löschen oder Umbenennen. */

@@ -562,6 +562,8 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
 /* Save dot */
 .save-dot { width:7px; height:7px; border-radius:50%; background:#20a860; display:inline-block; margin-left:4px; }
 .save-dot.unsaved { background:#c8a020; animation:sdpulse 1.5s infinite; }
+/* Ein fehlgeschlagenes Speichern darf nicht aussehen wie ein gelungenes. */
+.save-dot.fehler { background:#e05050; animation:none; }
 @keyframes sdpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
 .toast {
@@ -1295,9 +1297,10 @@ const STORE_KEY = 'dienstplan_v2';
 
 function saveData(){
   saveWeek();
+  // Die Anzeige wird nicht mehr hier gesetzt: vorher sprang sie auf
+  // „Gespeichert", waehrend die Anfrage noch lief — und blieb dort stehen,
+  // wenn sie fehlschlug. Jetzt meldet die Datenschicht, was wirklich ist.
   DB.save({emps, weeks});
-  const dot = document.getElementById('saveDot');
-  if(dot){ dot.classList.remove('unsaved'); dot.title='Gespeichert'; }
 }
 
 function loadData(){ /* wird von DB.boot() befuellt */ return true; }
@@ -1693,6 +1696,33 @@ function printEmpty() {
   window.getWeek = getWeek;
 
   const state = {emps, weeks};
+
+  // Was die Datenschicht meldet, steht am Punkt neben dem Titel. Ein
+  // Dienstplan, der stillschweigend nicht speichert, ist schlimmer als einer,
+  // der gar nicht erst laedt.
+  DB.beiStatus = (zustand, text) => {
+    const dot = document.getElementById('saveDot');
+    if(!dot) return;
+    dot.classList.remove('unsaved','fehler');
+    if(zustand==='wartet' || zustand==='laeuft'){ dot.classList.add('unsaved'); dot.title='Wird gespeichert…'; }
+    else if(zustand==='gespeichert'){ dot.title='Gespeichert'; }
+    else if(zustand==='fehler'){ dot.classList.add('fehler'); dot.title='Nicht gespeichert: '+(text||''); }
+    else if(zustand==='konflikt'){ dot.classList.add('unsaved'); dot.title=text||''; toast(text||''); }
+  };
+
+  // Hat jemand anderes dieselbe Woche geaendert, wird sein Stand uebernommen
+  // und angezeigt — nicht ueberschrieben.
+  DB.beiFremderAenderung = (off) => {
+    if(Number(off) === weekOff){ loadWeek(); render(); }
+  };
+
+  // Der Browser wird geschlossen, das Handy gesperrt, der Reiter gewechselt:
+  // dann muss die wartende Aenderung raus, sonst verschluckt die Verzoegerung
+  // die letzte Eingabe.
+  const raus = () => { try{ DB.flush({emps, weeks}); }catch(e){} };
+  window.addEventListener('pagehide', raus);
+  document.addEventListener('visibilitychange', () => { if(document.visibilityState==='hidden') raus(); });
+
   try{
     if(!(await DB.boot(state))) return;
   }catch(err){

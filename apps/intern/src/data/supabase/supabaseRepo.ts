@@ -167,12 +167,23 @@ export class SupabaseRepository implements Repository {
    * RLS sehen darf — deshalb ist der Export Administratoren vorbehalten.
    */
   async exportBackup(): Promise<BackupBundle> {
+    // Vollstaendig heisst vollstaendig. Der Dienstplan fehlte hier, solange er
+    // eine eigenstaendige Seite war — laeuft der Betrieb darueber, waere eine
+    // Sicherung ohne ihn keine.
     const tables = [
+      // Plattform
       'profiles', 'app_modules', 'role_module_access', 'user_module_access',
-      'app_settings', 'maintenance_settings', 'lane_pairs', 'lanes',
-      'lane_counter_epochs', 'frame_readings', 'maintenance_types',
-      'maintenance_tasks', 'maintenance_records', 'maintenance_record_tasks',
+      'department_module_access', 'app_settings',
+      // Bahnwartung
+      'maintenance_settings', 'lane_pairs', 'lanes', 'lane_counter_epochs',
+      'frame_readings', 'maintenance_types', 'maintenance_tasks',
+      'maintenance_records', 'maintenance_record_tasks',
       'lane_issues', 'lane_issue_attachments',
+      // Dienstplan — samt Historie, damit auch zurueckliegende Staende erhalten bleiben
+      'roster_employees', 'roster_weeks', 'roster_week_history', 'roster_settings',
+      'roster_share_links', 'roster_seen',
+      // Dokumente und Urkunden
+      'documents', 'cert_settings', 'cert_documents',
     ];
     const bundle: BackupBundle = {};
     for (const table of tables) {
