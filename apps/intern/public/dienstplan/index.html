@@ -778,6 +778,7 @@ body.readonly .ro-hint { display:flex; }
   </div>
   <div class="tb-right">
     <button class="btn btn-undo" id="btnUndo" onclick="doUndo()" title="Rückgängig">↩ Rückgängig</button>
+    <button class="btn" onclick="zeigeVerlauf()" title="Frühere Stände dieser Woche">🕘 Verlauf</button>
     <button class="btn" onclick="window.print()">🖨 Drucken</button>
     <button class="btn" onclick="printEmpty()" title="Leeren Plan zum handschriftlichen Ausfüllen drucken">🖨 Leerer Plan</button>
     <button class="btn" onclick="doExport()">⬇ CSV</button>
@@ -881,6 +882,24 @@ body.readonly .ro-hint { display:flex; }
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- VERLAUF: frühere Stände der angezeigten Woche -->
+<div id="verlaufHuelle" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.55);"
+     onclick="if(event.target===this) schliesseVerlauf()">
+  <div style="max-width:560px;margin:8vh auto;background:var(--surface);border:1px solid var(--border2);
+              border-radius:14px;padding:18px;max-height:76vh;overflow:auto;">
+    <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
+      <strong style="font-size:16px">Frühere Stände</strong>
+      <span id="verlaufWoche" style="color:var(--text3);font-size:12px"></span>
+      <button class="btn" style="margin-left:auto" onclick="schliesseVerlauf()">Schließen</button>
+    </div>
+    <p style="color:var(--text2);font-size:12px;margin:0 0 12px">
+      Jede Änderung legt den vorigen Stand ab. Wiederherstellen ist selbst wieder eine Änderung —
+      der jetzige Stand bleibt also erhalten.
+    </p>
+    <div id="verlaufListe"></div>
+  </div>
+</div>
 
 <script src="supabase.js"></script>
 <script src="db.js"></script>
@@ -1410,6 +1429,58 @@ function doExport(){
   a.click(); toast('⬇️ CSV exportiert');
 }
 
+/**
+ * Frühere Stände der angezeigten Woche.
+ *
+ * Absichtlich je Woche und nicht global: „welche Woche will ich zurückholen"
+ * ist die Frage, die jemand stellt — nicht „was ist in der Datenbank passiert".
+ */
+async function zeigeVerlauf(){
+  const huelle = document.getElementById('verlaufHuelle');
+  const liste  = document.getElementById('verlaufListe');
+  const tage   = getWeek(weekOff);
+  document.getElementById('verlaufWoche').textContent = `KW ${getKW(tage[0])} · ${fmtD(tage[0])} – ${fmtD(tage[6])}`;
+  liste.innerHTML = '<p style="color:var(--text3);font-size:13px">Wird geladen…</p>';
+  huelle.style.display = 'block';
+
+  try{
+    const monday = `${tage[0].getFullYear()}-${String(tage[0].getMonth()+1).padStart(2,'0')}-${String(tage[0].getDate()).padStart(2,'0')}`;
+    const eintraege = await DB.verlauf(monday);
+    if(!eintraege.length){
+      liste.innerHTML = '<p style="color:var(--text3);font-size:13px">Für diese Woche gibt es noch keine früheren Stände.</p>';
+      return;
+    }
+    window.__verlauf = eintraege;
+    liste.innerHTML = eintraege.map((e,i)=>{
+      const d = new Date(e.wann);
+      const wann = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+        <span style="font-weight:600">${wann}</span>
+        <span style="color:var(--text2);font-size:12px">${e.schichten} Schichten${e.wer ? ' · ' + e.wer : ''}</span>
+        <button class="btn" style="margin-left:auto" onclick="holeZurueck(${i})">Wiederherstellen</button>
+      </div>`;
+    }).join('');
+  }catch(err){
+    liste.innerHTML = `<p style="color:#e05050;font-size:13px">Verlauf nicht abrufbar: ${String(err&&err.message||err)}</p>`;
+  }
+}
+
+function schliesseVerlauf(){ document.getElementById('verlaufHuelle').style.display='none'; }
+
+async function holeZurueck(i){
+  const eintrag = (window.__verlauf||[])[i];
+  if(!eintrag) return;
+  if(!confirm('Diesen Stand wiederherstellen? Der jetzige Stand bleibt im Verlauf erhalten.')) return;
+  try{
+    await DB.wiederherstellen({emps, weeks}, weekOff, eintrag);
+    loadWeek(); render();
+    schliesseVerlauf();
+    toast('Stand wiederhergestellt.');
+  }catch(err){
+    toast('⚠️ ' + String(err&&err.message||err));
+  }
+}
+
 function toast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
@@ -1708,6 +1779,8 @@ function printEmpty() {
     else if(zustand==='gespeichert'){ dot.title='Gespeichert'; }
     else if(zustand==='fehler'){ dot.classList.add('fehler'); dot.title='Nicht gespeichert: '+(text||''); }
     else if(zustand==='konflikt'){ dot.classList.add('unsaved'); dot.title=text||''; toast(text||''); }
+    else if(zustand==='fremd'){ dot.title='Aktualisiert'; toast(text||''); }
+    else if(zustand==='fremd-gewarnt'){ dot.classList.add('fehler'); dot.title=text||''; toast('⚠️ '+(text||'')); }
   };
 
   // Hat jemand anderes dieselbe Woche geaendert, wird sein Stand uebernommen
@@ -1725,6 +1798,8 @@ function printEmpty() {
 
   try{
     if(!(await DB.boot(state))) return;
+    // Ab jetzt mithoeren, was andere aendern.
+    DB.horche(state);
   }catch(err){
     document.body.innerHTML='<div style="padding:48px;font-family:Inter,system-ui">'+
       '<h1>Dienstplan konnte nicht geladen werden</h1><p>'+String(err&&err.message||err)+'</p>'+

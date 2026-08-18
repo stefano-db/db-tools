@@ -26,24 +26,87 @@ export function PublicPlanPage() {
   const { token = '' } = useParams();
   const [plan, setPlan] = useState<PublicRoster | null>(null);
   const [zustand, setZustand] = useState<'laedt' | 'da' | 'ungueltig' | 'fehler'>('laedt');
+  /** Gesetzt, wenn gerade der gespeicherte Stand gezeigt wird statt eines frischen. */
+  const [ausGedaechtnis, setAusGedaechtnis] = useState<string | null>(null);
 
   useEffect(() => {
     document.body.classList.add('db-plan-oeffentlich');
     return () => document.body.classList.remove('db-plan-oeffentlich');
   }, []);
 
+  /**
+   * Laden — und den letzten guten Stand behalten.
+   *
+   * Diese Seite haengt an einer Wand und laeuft tagelang. Zwei Dinge muessen
+   * deshalb sitzen:
+   *
+   *  - Sie holt sich regelmaessig neue Daten. Ein Plan von gestern, der wie
+   *    heute aussieht, ist schlimmer als gar keiner.
+   *  - Faellt das Netz aus, zeigt sie den letzten bekannten Stand mit
+   *    Zeitangabe statt einer Fehlermeldung. Wer davorsteht, braucht die
+   *    Schichten, nicht die Nachricht, dass gerade etwas klemmt.
+   *
+   * Was sie NICHT tut: einen zurueckgezogenen Link aus dem Gedaechtnis
+   * bedienen. Sagt der Server „ungueltig", ist Schluss — sonst waere das
+   * Zurueckziehen wirkungslos. Und aelter als einen Tag wird nichts gezeigt.
+   */
   useEffect(() => {
     let aktiv = true;
-    repository
-      .publicRoster(token)
-      .then((p) => {
-        if (!aktiv) return;
-        setPlan(p);
-        setZustand(p ? 'da' : 'ungueltig');
-      })
-      .catch(() => aktiv && setZustand('fehler'));
+    const schluessel = `dienstplan-stand-${token}`;
+    const HOECHSTALTER = 24 * 60 * 60 * 1000;
+
+    const holen = () => {
+      repository
+        .publicRoster(token)
+        .then((p) => {
+          if (!aktiv) return;
+          if (p) {
+            setPlan(p);
+            setZustand('da');
+            setAusGedaechtnis(null);
+            try {
+              localStorage.setItem(schluessel, JSON.stringify({ p, wann: Date.now() }));
+            } catch {
+              // Kein Speicherplatz: dann eben ohne Gedaechtnis weiterlaufen.
+            }
+          } else {
+            // Ausdrueckliche Absage — der Link gilt nicht mehr.
+            try {
+              localStorage.removeItem(schluessel);
+            } catch {
+              /* egal */
+            }
+            setPlan(null);
+            setZustand('ungueltig');
+          }
+        })
+        .catch(() => {
+          if (!aktiv) return;
+          try {
+            const roh = localStorage.getItem(schluessel);
+            const alt = roh ? JSON.parse(roh) : null;
+            if (alt && Date.now() - alt.wann < HOECHSTALTER) {
+              setPlan(alt.p);
+              setZustand('da');
+              setAusGedaechtnis(new Date(alt.wann).toLocaleString('de-DE'));
+              return;
+            }
+          } catch {
+            /* dann eben die Fehlermeldung */
+          }
+          setZustand((z) => (z === 'da' ? 'da' : 'fehler'));
+        });
+    };
+
+    holen();
+    const takt = window.setInterval(holen, 60000);
+    const beiSichtbar = () => document.visibilityState === 'visible' && holen();
+    document.addEventListener('visibilitychange', beiSichtbar);
+
     return () => {
       aktiv = false;
+      window.clearInterval(takt);
+      document.removeEventListener('visibilitychange', beiSichtbar);
     };
   }, [token]);
 
@@ -89,6 +152,11 @@ export function PublicPlanPage() {
 
   return (
     <div className="flex h-screen flex-col bg-lw-bg text-lw-text">
+      {ausGedaechtnis && (
+        <div className="bg-lw-warn/15 px-4 py-1.5 text-center text-sm font-semibold text-lw-warn">
+          ▲ Keine Verbindung — angezeigt wird der Stand von {ausGedaechtnis}
+        </div>
+      )}
       <PlanFlaeche breite={1820}>
         <TvMatrix
           employees={employees}

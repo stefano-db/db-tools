@@ -252,6 +252,70 @@
       }
     },
 
+    /**
+     * Zuhoeren, waehrend andere arbeiten.
+     *
+     * Ohne das erfaehrt man von einer fremden Aenderung erst beim eigenen
+     * Speichern — und hat bis dahin womoeglich eine halbe Stunde auf einem
+     * ueberholten Stand geplant.
+     *
+     * Zwei Faelle werden unterschieden: Hat man die betroffene Woche selbst
+     * noch nicht angefasst, wird der fremde Stand uebernommen. Hat man dort
+     * ungespeicherte Eingaben, wird nichts angefasst — man wird gewarnt. Fremde
+     * Arbeit ueberschreiben ist schlimm; eigene Eingaben unter den Haenden
+     * wegzuziehen ist es auch.
+     */
+    async horche(state) {
+      const sb = await getClient();
+      DB.kanal = sb
+        .channel('dienstplan-wochen')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'roster_weeks' },
+          (nutzlast) => {
+            const row = nutzlast.new;
+            if (!row || !row.week_start) return;
+            const off = DB.offsetOf.get(row.week_start);
+            if (off === undefined) return;
+
+            const fremdJson = JSON.stringify(row.data ?? {});
+            const bekannt = DB.stand.get(row.week_start);
+
+            // Die eigene Schreibung kommt auch zurueck — dann nur die Fassung
+            // nachziehen, sonst wuerde jede Speicherung eine Meldung ausloesen.
+            if (bekannt && bekannt.json === fremdJson) {
+              DB.stand.set(row.week_start, { json: fremdJson, version: row.version });
+              return;
+            }
+
+            if (DB.hatUngespeichertes(state, off)) {
+              DB.melde(
+                'fremd-gewarnt',
+                'Diese Woche wurde gerade von jemand anderem geändert. Deine Eingaben sind noch nicht gespeichert.',
+              );
+              return;
+            }
+
+            DB.uebernimm(state, off, row.week_start, { data: row.data ?? {}, version: row.version });
+            DB.melde('fremd', 'Der Plan wurde von jemand anderem geändert. Die Ansicht ist aktualisiert.');
+          },
+        )
+        .subscribe();
+    },
+
+    /** Weicht die Woche im Speicher vom zuletzt geschriebenen Stand ab? */
+    hatUngespeichertes(state, off) {
+      const monday = mondayFor(Number(off));
+      const list = state.weeks[off];
+      if (!list) return false;
+      const data = {};
+      state.emps.forEach((e, i) => {
+        if (list[i]) data[e.id] = { d: list[i].d, tot: list[i].tot };
+      });
+      const bekannt = DB.stand.get(monday);
+      return !bekannt || bekannt.json !== JSON.stringify(data);
+    },
+
     /** Fremden Stand in die laufende Ansicht holen. */
     uebernimm(state, off, monday, antwort) {
       const fremd = antwort.data || {};
@@ -266,6 +330,81 @@
         version: antwort.version,
       });
       if (typeof DB.beiFremderAenderung === 'function') DB.beiFremderAenderung(off);
+    },
+
+    /**
+     * Frueherer Stand einer Woche.
+     *
+     * Zurueckgegeben wird, was vor einer Aenderung dastand, neueste zuerst.
+     * Wer es war, steht dabei, soweit das Konto noch existiert — bei einer
+     * versehentlich geleerten Woche will man wissen, wen man fragen kann.
+     */
+    async verlauf(monday) {
+      const sb = await getClient();
+      const { data, error } = await sb
+        .from('roster_week_history')
+        .select('id, data, version, replaced_at, replaced_by')
+        .eq('week_start', monday)
+        .order('replaced_at', { ascending: false })
+        .limit(25);
+      if (error) throw new Error(error.message);
+
+      const ids = [...new Set((data ?? []).map((r) => r.replaced_by).filter(Boolean))];
+      let namen = {};
+      if (ids.length) {
+        const { data: leute } = await sb.from('profiles').select('id, display_name').in('id', ids);
+        for (const l of leute ?? []) namen[l.id] = l.display_name;
+      }
+
+      return (data ?? []).map((r) => ({
+        id: r.id,
+        data: r.data,
+        version: r.version,
+        wann: r.replaced_at,
+        wer: namen[r.replaced_by] || null,
+        schichten: DB.zaehleSchichten(r.data),
+      }));
+    },
+
+    /** Wie viele Dienste stehen in diesem Stand? Macht Staende vergleichbar. */
+    zaehleSchichten(data) {
+      let n = 0;
+      for (const eintrag of Object.values(data || {})) {
+        for (const tag of (eintrag && eintrag.d) || []) {
+          if (tag && tag.status === 'dienst') n++;
+        }
+      }
+      return n;
+    },
+
+    /**
+     * Einen frueheren Stand zurueckholen.
+     *
+     * Bewusst ueber denselben Weg wie jede andere Aenderung: der jetzige Stand
+     * wandert dabei selbst in die Historie. Ein Zurueckholen ist damit
+     * genauso widerrufbar wie das, was es rueckgaengig macht.
+     */
+    async wiederherstellen(state, off, eintrag) {
+      const sb = await getClient();
+      const monday = mondayFor(Number(off));
+      const bekannt = DB.stand.get(monday);
+
+      const { data: antwort, error } = await sb.rpc('roster_week_speichern', {
+        p_week_start: monday,
+        p_data: eintrag.data,
+        p_version: bekannt ? bekannt.version : 0,
+      });
+      if (error) throw new Error(error.message);
+      if (antwort && antwort.ok === false) {
+        throw new Error(
+          antwort.grund === 'keine_berechtigung'
+            ? 'Keine Berechtigung, den Plan zu ändern.'
+            : 'Die Woche wurde inzwischen geändert. Bitte neu laden und noch einmal versuchen.',
+        );
+      }
+
+      DB.uebernimm(state, off, monday, { data: eintrag.data, version: antwort.version });
+      DB.melde('gespeichert');
     },
 
     /** Mitarbeiterliste abgleichen — nach Anlegen, Löschen oder Umbenennen. */
