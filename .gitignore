@@ -2,6 +2,8 @@ node_modules/
 dist/
 .env
 .env.local
+# Probelaeufe ohne Anmeldung (nur zum Ansehen auf dem eigenen Rechner)
+.env.demo
 .DS_Store
 *.log
 .claude/settings.local.json
