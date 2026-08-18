@@ -564,6 +564,11 @@ tr.drag-over td { border-top: 2px solid var(--accent) !important; }
 .save-dot.unsaved { background:#c8a020; animation:sdpulse 1.5s infinite; }
 /* Ein fehlgeschlagenes Speichern darf nicht aussehen wie ein gelungenes. */
 .save-dot.fehler { background:#e05050; animation:none; }
+/* Der Punkt allein reicht nicht: ob der Dienstplan gespeichert ist, muss man
+   lesen koennen, nicht deuten muessen. */
+.save-text { font-size:11px; color:var(--text3); }
+.save-text.arbeitet { color:#c8a020; }
+.save-text.fehler { color:#e05050; font-weight:700; }
 @keyframes sdpulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
 .toast {
@@ -775,6 +780,7 @@ body.readonly .ro-hint { display:flex; }
     <a href="/" class="tb-title" title="Zurück zur Übersicht" style="text-decoration:none;color:inherit">Dienstplan</a>
     <span class="kw-pill" id="kwPill">KW 10</span>
     <span class="save-dot" id="saveDot" title="Gespeichert"></span>
+    <span class="save-text" id="saveText">Gespeichert</span>
   </div>
   <div class="tb-right">
     <button class="btn btn-undo" id="btnUndo" onclick="doUndo()" title="Rückgängig">↩ Rückgängig</button>
@@ -1773,14 +1779,22 @@ function printEmpty() {
   // der gar nicht erst laedt.
   DB.beiStatus = (zustand, text) => {
     const dot = document.getElementById('saveDot');
-    if(!dot) return;
+    const txt = document.getElementById('saveText');
+    if(!dot || !txt) return;
     dot.classList.remove('unsaved','fehler');
-    if(zustand==='wartet' || zustand==='laeuft'){ dot.classList.add('unsaved'); dot.title='Wird gespeichert…'; }
-    else if(zustand==='gespeichert'){ dot.title='Gespeichert'; }
-    else if(zustand==='fehler'){ dot.classList.add('fehler'); dot.title='Nicht gespeichert: '+(text||''); }
-    else if(zustand==='konflikt'){ dot.classList.add('unsaved'); dot.title=text||''; toast(text||''); }
-    else if(zustand==='fremd'){ dot.title='Aktualisiert'; toast(text||''); }
-    else if(zustand==='fremd-gewarnt'){ dot.classList.add('fehler'); dot.title=text||''; toast('⚠️ '+(text||'')); }
+    txt.classList.remove('arbeitet','fehler');
+    const setze = (klasse, wort, hinweis) => {
+      if(klasse){ dot.classList.add(klasse); txt.classList.add(klasse==='unsaved'?'arbeitet':klasse); }
+      txt.textContent = wort;
+      dot.title = hinweis || wort;
+      txt.title = hinweis || wort;
+    };
+    if(zustand==='wartet' || zustand==='laeuft') setze('unsaved','Wird gespeichert…');
+    else if(zustand==='gespeichert')            setze(null,'Gespeichert');
+    else if(zustand==='fehler')                 setze('fehler','NICHT gespeichert', 'Nicht gespeichert: '+(text||''));
+    else if(zustand==='konflikt'){              setze('unsaved','Neuer Stand geladen', text); toast(text||''); }
+    else if(zustand==='fremd'){                 setze(null,'Aktualisiert', text); toast(text||''); }
+    else if(zustand==='fremd-gewarnt'){         setze('fehler','Achtung: fremde Änderung', text); toast('⚠️ '+(text||'')); }
   };
 
   // Hat jemand anderes dieselbe Woche geaendert, wird sein Stand uebernommen
