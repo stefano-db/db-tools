@@ -218,6 +218,9 @@
           if (error) throw new Error(error.message);
 
           if (antwort && antwort.ok === false) {
+            if (antwort.grund === 'keine_berechtigung') {
+              throw new Error('Keine Berechtigung, den Plan zu ändern.');
+            }
             // Jemand anderes war schneller. Nicht ueberschreiben, sondern den
             // fremden Stand uebernehmen und sichtbar machen.
             DB.uebernimm(state, Number(off), monday, antwort);
