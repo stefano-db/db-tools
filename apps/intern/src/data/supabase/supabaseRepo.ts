@@ -29,6 +29,34 @@ function mondayOfCurrentWeek(): string {
 }
 
 /**
+ * Rohmeldungen der Anmeldung in Sätze übersetzen, die im Center weiterhelfen.
+ *
+ * „Failed to fetch" steht auf der Anmeldemaske, die jeder im Haus benutzt —
+ * dort ist eine englische Fehlermeldung aus dem Netzwerkstapel keine Auskunft,
+ * sondern eine Sackgasse. Unbekanntes wird durchgereicht: lieber eine fremde
+ * Meldung als eine erfundene.
+ */
+function anmeldeFehlerText(roh: string): string {
+  const m = roh.toLowerCase();
+  if (m.includes('invalid login') || m.includes('invalid credentials')) {
+    return 'Benutzername oder Passwort stimmt nicht.';
+  }
+  if (m.includes('failed to fetch') || m.includes('networkerror') || m.includes('load failed')) {
+    return 'Keine Verbindung zum Server. Prüfe das WLAN und versuche es noch einmal.';
+  }
+  if (m.includes('email not confirmed')) {
+    return 'Dieses Konto ist noch nicht bestätigt. Melde dich bei deiner Bereichsleitung.';
+  }
+  if (m.includes('too many requests') || m.includes('rate limit')) {
+    return 'Zu viele Versuche. Warte einen Moment und versuche es dann noch einmal.';
+  }
+  if (m.includes('unbekannt') || m.includes('not found')) {
+    return 'Diesen Benutzernamen gibt es nicht.';
+  }
+  return roh;
+}
+
+/**
  * Supabase-Umsetzung der Datenschicht.
  *
  * Liest bewusst nur Fakten: aktueller Stand, Anker und Wochenrate kommen aus den
@@ -109,19 +137,21 @@ export class SupabaseRepository implements Repository {
   }
 
   async signIn(login: string, password: string): Promise<void> {
-    const { error } = await this.client.auth.signInWithPassword({
-      email: await this.toEmail(login),
-      password,
-    });
-    if (error) {
-      // Supabase meldet aus Sicherheitsgründen bewusst unspezifisch; für den
-      // Mechaniker am Tablet ist die englische Rohmeldung wertlos.
-      throw new Error(
-        error.message.toLowerCase().includes('invalid login')
-          ? 'Benutzername oder Passwort stimmt nicht.'
-          : error.message,
-      );
+    // Ein Netzfehler beim Anmelden sieht fuer Supabase aus wie jeder andere;
+    // fuer den Menschen davor ist es der Unterschied zwischen „falsch getippt"
+    // und „das WLAN ist weg".
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new Error('Keine Verbindung. Prüfe das WLAN und versuche es noch einmal.');
     }
+    let email: string;
+    try {
+      email = await this.toEmail(login);
+    } catch (err) {
+      throw new Error(anmeldeFehlerText(err instanceof Error ? err.message : String(err)));
+    }
+
+    const { error } = await this.client.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(anmeldeFehlerText(error.message));
   }
 
   async signOut(): Promise<void> {
