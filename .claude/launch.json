@@ -12,6 +12,14 @@
       ],
       "port": 5178,
       "url": "http://localhost:5178"
+    },
+    {
+      "name": "operator12-cloud",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/private/tmp/claude-501/-Users-stefanobassotto-Desktop-Claude/10e7145d-1b1f-4456-8c81-87f933d54ee8/scratchpad/serve2.js"
+      ],
+      "port": 8643
     }
   ]
 }

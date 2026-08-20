@@ -19,7 +19,7 @@
 -- =============================================================================
 
 -- --- Wissen ------------------------------------------------------------------
-create table chat_wissen (
+create table if not exists chat_wissen (
   id          uuid primary key default gen_random_uuid(),
   titel       text not null check (length(btrim(titel)) > 0),
   inhalt      text not null check (length(btrim(inhalt)) > 0),
@@ -34,14 +34,14 @@ create table chat_wissen (
 
 -- Volltext auf Deutsch: „Schichten" findet „Schicht", „Bahnen" findet „Bahn".
 -- Der Titel wiegt am schwersten, dann die Schlagworte, dann der Text.
-alter table chat_wissen add column suchtext tsvector
+alter table chat_wissen add column if not exists suchtext tsvector
   generated always as (
-    setweight(to_tsvector('german', coalesce(titel, '')), 'A') ||
-    setweight(to_tsvector('german', array_to_string(schlagworte, ' ')), 'B') ||
-    setweight(to_tsvector('german', coalesce(inhalt, '')), 'C')
+    setweight(to_tsvector('german'::regconfig, coalesce(titel, '')), 'A') ||
+    setweight(to_tsvector('german'::regconfig, array_to_string(schlagworte, ' ')), 'B') ||
+    setweight(to_tsvector('german'::regconfig, coalesce(inhalt, '')), 'C')
   ) stored;
 
-create index chat_wissen_suche_idx on chat_wissen using gin (suchtext);
+create index if not exists chat_wissen_suche_idx on chat_wissen using gin (suchtext);
 
 comment on table chat_wissen is
   'Was der Chat weiss. Gepflegt von Leitungen und Administratoren; die Suche '
@@ -49,7 +49,7 @@ comment on table chat_wissen is
   'die Formulierung uebernimmt.';
 
 -- --- Fragen ------------------------------------------------------------------
-create table chat_fragen (
+create table if not exists chat_fragen (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid references profiles(id) on delete set null,
   frage       text not null,
@@ -60,7 +60,7 @@ create table chat_fragen (
   created_at  timestamptz not null default now()
 );
 
-create index chat_fragen_offen_idx on chat_fragen (created_at desc) where treffer = 0;
+create index if not exists chat_fragen_offen_idx on chat_fragen (created_at desc) where treffer = 0;
 
 comment on table chat_fragen is
   'Jede gestellte Frage, auch die unbeantwortete. Zeigt, wo das Wissen fehlt.';
@@ -74,19 +74,24 @@ comment on table chat_fragen is
 alter table chat_wissen enable row level security;
 alter table chat_fragen enable row level security;
 
+drop policy if exists lesen_alle on chat_wissen;
 create policy lesen_alle on chat_wissen for select to authenticated
   using (public.is_staff() and aktiv);
 
+drop policy if exists pflegen_leitung on chat_wissen;
 create policy pflegen_leitung on chat_wissen for all to authenticated
   using (public.is_lead() or public.is_admin())
   with check (public.is_lead() or public.is_admin());
 
 -- Die eigene Frage darf jeder stellen und sehen; die Leitung sieht alle, sonst
 -- bliebe die Luecke im Wissen unentdeckt.
+drop policy if exists eigene_fragen on chat_fragen;
 create policy eigene_fragen on chat_fragen for insert to authenticated
   with check (user_id = auth.uid());
+drop policy if exists eigene_lesen on chat_fragen;
 create policy eigene_lesen on chat_fragen for select to authenticated
   using (user_id = auth.uid() or public.is_lead() or public.is_admin());
+drop policy if exists eigene_rueckmeldung on chat_fragen;
 create policy eigene_rueckmeldung on chat_fragen for update to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
@@ -105,10 +110,10 @@ security invoker
 set search_path = public
 as $$
   select w.id, w.titel, w.inhalt, w.bereich,
-         ts_rank(w.suchtext, websearch_to_tsquery('german', p_frage)) as rang
+         ts_rank(w.suchtext, websearch_to_tsquery('german'::regconfig, p_frage)) as rang
     from chat_wissen w
    where w.aktiv
-     and w.suchtext @@ websearch_to_tsquery('german', p_frage)
+     and w.suchtext @@ websearch_to_tsquery('german'::regconfig, p_frage)
    order by rang desc
    limit greatest(p_grenze, 1);
 $$;
@@ -127,6 +132,8 @@ grant execute on function public.chat_suche(text, int) to authenticated;
 --  Eintraege beschreiben das Programm selbst — das ist das Wissen, das heute
 --  schon feststeht und nicht erst gesammelt werden muss.
 -- =============================================================================
+create unique index if not exists chat_wissen_titel_idx on chat_wissen (titel);
+
 insert into chat_wissen (titel, inhalt, schlagworte) values
 ('Dienstplan ansehen',
  'Den aktuellen Plan findest du in der Seitenleiste unter „Dienstplan". Deine eigenen Schichten stehen zusätzlich auf der Übersicht unter „Nächste Schicht" und „Diese Woche". Am Fernseher im Center hängt derselbe Plan. Wenn dort keine Schicht steht, ist dein Konto noch keinem Namen im Plan zugeordnet — das erledigt deine Bereichsleitung in der Verwaltung.',
@@ -158,4 +165,14 @@ insert into chat_wissen (titel, inhalt, schlagworte) values
 
 ('Dienstplan teilen und drucken',
  'Im Dienstplan-Entwurf unter „Teilen & Drucken": Ein Bild für die Signal-Gruppe, ein Link zum Anpinnen, der immer die laufende Woche zeigt, oder Drucken auf A4 quer. Im Druckfenster statt eines Druckers „Als PDF sichern" wählen, wenn du eine Datei brauchst.',
- array['teilen','drucken','signal','pdf','a4']);
+ array['teilen','drucken','signal','pdf','a4'])
+on conflict (titel) do nothing;
+
+-- =============================================================================
+--  Schnittstelle auffrischen
+-- -----------------------------------------------------------------------------
+--  PostgREST haelt sich einen Plan des Schemas. Ohne diesen Hinweis kann eine
+--  neue Funktion vorhanden sein und trotzdem als unbekannt gemeldet werden —
+--  genau die Meldung, die den Chat verstummen liess.
+-- =============================================================================
+notify pgrst, 'reload schema';
