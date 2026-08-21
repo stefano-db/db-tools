@@ -275,7 +275,71 @@ function WeekCard({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2">
+      {/* Am Handy sieben Zeilen statt sieben Spalten.
+          Nebeneinander bleibt auf 375 Punkten nur Platz fuer die Anfangszeit;
+          untereinander steht die ganze Schicht da, und alle sieben Tage sind
+          trotzdem auf einen Blick sichtbar — 44 Punkte je Zeile, das passt
+          ohne Scrollen. */}
+      <div className="mt-4 space-y-1.5 sm:hidden">
+        {days.map((d, i) => {
+          const eintrag = week?.days[i];
+          const dienst = eintrag?.status === 'dienst' && eintrag.b;
+          const istHeute = d.toDateString() === today;
+          const gewaehlt = i === tag;
+          return (
+            <button
+              key={d.toISOString()}
+              onClick={() => setzeTag(i)}
+              aria-pressed={gewaehlt}
+              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
+                gewaehlt ? 'border-db-gold bg-db-gold/10' : 'border-db-line'
+              }`}
+            >
+              <span
+                className={`w-7 text-sm font-bold ${istHeute ? 'text-db-gold' : 'text-db-text2'}`}
+              >
+                {WEEKDAYS[i].slice(0, 2)}
+              </span>
+              <span className="db-num text-sm text-db-text3">
+                {d.getDate()}.{d.getMonth() + 1}.
+              </span>
+              {istHeute && (
+                <span className="rounded bg-db-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-db-gold">
+                  heute
+                </span>
+              )}
+              <span className="ml-auto text-right">
+                {dienst ? (
+                  <span className="db-num text-base font-bold text-db-gold">
+                    {eintrag!.b} – {eintrag!.e}
+                  </span>
+                ) : (
+                  <span
+                    className={`text-sm font-semibold ${
+                      eintrag?.status === 'urlaub'
+                        ? 'text-db-ok'
+                        : eintrag?.status === 'krank'
+                          ? 'text-db-bad'
+                          : 'text-db-text3'
+                    }`}
+                  >
+                    {!week
+                      ? '—'
+                      : eintrag?.status === 'urlaub'
+                        ? 'Urlaub'
+                        : eintrag?.status === 'krank'
+                          ? 'Krank'
+                          : 'frei'}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Ab Tablet ist Platz fuer sieben Kaesten nebeneinander. */}
+      <div className="mt-4 hidden grid-cols-7 gap-1 sm:grid sm:gap-2">
         {days.map((d, i) => {
           const isToday = d.toDateString() === today;
           const gewaehlt = i === tag;
