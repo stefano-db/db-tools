@@ -496,7 +496,7 @@ body.db-breit .db-kopfzeile {
    Rechner unten in der Ecke — zwei Werte, die sich mit Hilfsklassen allein
    nicht sauber ausdruecken lassen. */
 .pinny-blase {
-  bottom: calc(6rem + env(safe-area-inset-bottom));
+  bottom: calc(4.75rem + env(safe-area-inset-bottom));
 }
 @media (min-width: 1024px) {
   .pinny-blase {

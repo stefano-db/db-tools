@@ -137,7 +137,7 @@ export function AppLayout() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-6xl px-4 pt-6 pb-28 sm:px-8 lg:pb-10" key={location.pathname}>
+        <main className="mx-auto max-w-6xl px-4 pt-6 pb-36 sm:px-8 lg:pb-10" key={location.pathname}>
           {/* Auf jeder Unterseite ein sichtbarer Rueckweg — nicht jeder findet
               ihn in der Seitenleiste, und am Handy gibt es keine. */}
           {location.pathname !== '/' && (

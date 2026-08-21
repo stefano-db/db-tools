@@ -519,9 +519,12 @@ async function buildAudio (groups, project, dest, onProgress) {
 
   const finalInputs = []
   if (spB && duB) {
-    // Sprache doppelt: einmal hoeren, einmal als Steuersignal fuer den Kompressor
+    // Sprache doppelt: einmal hoeren, einmal als Steuersignal fuer den
+    // Kompressor. Das Steuersignal wird mit Stille verlaengert (apad),
+    // sonst endet die Musik zusammen mit der letzten Sprachstelle.
     filters.push(`${spB}asplit=2[sp1][sp2]`)
-    filters.push(`${duB}[sp2]sidechaincompress=threshold=0.02:ratio=8:attack=120:release=700[dud]`)
+    filters.push(`[sp2]apad=whole_dur=${t3(total + 0.5)}[sp2p]`)
+    filters.push(`${duB}[sp2p]sidechaincompress=threshold=0.0125:ratio=12:attack=100:release=600[dud]`)
     finalInputs.push('[sp1]', '[dud]')
   } else {
     if (spB) finalInputs.push(spB)
@@ -568,7 +571,7 @@ export async function exportProject (project, { outFile, tmpDir, quality = 'hoch
   const track = id => project.tracks.find(t => t.id === id)?.clips ?? []
 
   // --- 1. Hauptspur in einzelne Stuecke rendern -------------------------
-  const main = track('V1').filter(c => mediaById.has(c.mediaId))
+  const main = track('V1').filter(c => mediaById.get(c.mediaId)?.hasVideo)
   const pieces = []
   let cursor = 0
   let done = 0
@@ -621,7 +624,7 @@ export async function exportProject (project, { outFile, tmpDir, quality = 'hoch
   const overlays = project.tracks
     .filter(t => t.type === 'video' && t.id !== 'V1')
     .flatMap(t => t.clips)
-    .filter(c => mediaById.has(c.mediaId) && !preSet.has(c.id))
+    .filter(c => mediaById.get(c.mediaId)?.hasVideo && !preSet.has(c.id))
     .sort((a, b) => a.start - b.start)
     .map(c => ({ clip: c, media: mediaById.get(c.mediaId) }))
   if (overlays.length) {

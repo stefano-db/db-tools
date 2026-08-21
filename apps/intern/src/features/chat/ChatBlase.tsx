@@ -70,12 +70,12 @@ export function ChatBlase() {
         <button
           onClick={() => setOffen((o) => !o)}
           aria-label={offen ? 'Pinny schließen' : 'Pinny fragen'}
-          className="db-figur-schein grid h-14 w-14 place-items-center rounded-full shadow-xl ring-2 ring-db-gold/60 transition hover:ring-db-gold"
+          className="db-figur-schein grid h-12 w-12 place-items-center rounded-full shadow-xl ring-2 ring-db-gold/60 transition hover:ring-db-gold"
         >
           {offen ? (
             <span className="text-xl text-db-text2">✕</span>
           ) : (
-            <Mascot name="winken" size={52} variante="kopf" />
+            <Mascot name="winken" size={44} variante="kopf" />
           )}
         </button>
       </div>

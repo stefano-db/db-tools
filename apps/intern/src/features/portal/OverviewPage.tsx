@@ -230,13 +230,15 @@ function WeekCard({
               aria-pressed={gewaehlt}
               className={`rounded-lg border px-0.5 py-2 text-center transition sm:rounded-xl sm:px-2 ${
                 gewaehlt
-                  ? 'border-db-gold bg-db-card2'
-                  : isToday
-                    ? 'border-db-gold/40'
-                    : 'border-db-line hover:border-db-gold/40'
+                  ? 'border-db-gold bg-db-gold/10 ring-1 ring-db-gold'
+                  : 'border-db-line hover:border-db-gold/40'
               }`}
             >
-              <div className="text-[9px] tracking-wide text-db-text3 uppercase sm:text-[10px]">
+              <div
+                className={`text-[9px] tracking-wide uppercase sm:text-[10px] ${
+                  isToday ? 'font-bold text-db-gold' : 'text-db-text3'
+                }`}
+              >
                 {d.toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2)}
               </div>
               <div
@@ -331,8 +333,19 @@ function currentWeek(): Date[] {
 }
 
 /** Farbe und Zeiten eines Tages. Ohne Zuordnung bleibt der Balken grau. */
+/**
+ * Was an einem Tag ansteht, klein genug für sieben nebeneinander.
+ *
+ * Vorher stand hier nur ein Balken, und die Zeit erschien erst ab Tabletbreite
+ * — am Handy war die Woche damit nicht zu lesen, sondern nur zu erahnen. Jetzt
+ * steht auf jedem Tag, woran man ihn erkennt: die Anfangszeit bei Dienst, das
+ * Wort bei Urlaub und Krank, ein stilles „frei" sonst. Der Balken bleibt als
+ * Farbe darüber, damit die Woche auch im Vorbeischauen eine Form hat.
+ */
 function DayBar({ day }: { day?: ShiftDay }) {
-  const color =
+  const dienst = day?.status === 'dienst' && day.b;
+
+  const farbe =
     day?.status === 'dienst'
       ? 'bg-db-gold'
       : day?.status === 'urlaub'
@@ -341,14 +354,26 @@ function DayBar({ day }: { day?: ShiftDay }) {
           ? 'bg-db-bad'
           : 'bg-db-line';
 
+  const text = dienst
+    ? { wort: day!.b, klasse: 'text-db-gold' }
+    : day?.status === 'urlaub'
+      ? { wort: 'Urlaub', klasse: 'text-db-ok' }
+      : day?.status === 'krank'
+        ? { wort: 'Krank', klasse: 'text-db-bad' }
+        : day
+          ? { wort: 'frei', klasse: 'text-db-text3' }
+          : { wort: '·', klasse: 'text-db-text3' };
+
   return (
     <>
-      <div className={`mt-2 h-1 rounded-full ${color}`} />
-      {day?.status === 'dienst' && day.b && (
-        <div className="db-num mt-1 hidden text-[10px] leading-tight text-db-text2 sm:block">
-          {day.b}
-          <br />
-          {day.e}
+      <div className={`mt-1.5 h-1 rounded-full ${farbe}`} />
+      <div className={`db-num mt-1 text-[10px] leading-tight font-semibold ${text.klasse}`}>
+        {text.wort}
+      </div>
+      {/* Auf breiten Schirmen ist Platz für das Ende — am Handy nicht. */}
+      {dienst && (
+        <div className="db-num hidden text-[10px] leading-tight text-db-text3 sm:block">
+          {day!.e}
         </div>
       )}
     </>
