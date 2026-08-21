@@ -116,7 +116,11 @@ export function DocumentsPage() {
             <h2 className="mb-2 text-sm font-semibold tracking-wide text-db-text3 uppercase">
               {category}
             </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Dicht genug, dass man eine Liste sieht und nicht einen Stapel.
+                Am schmalsten Handy zwei nebeneinander — bei drei bliebe je
+                Kachel gut ein Daumen Breite, und Titel wie Knoepfe waeren nicht
+                mehr zu treffen. Ab Tablet drei, am Rechner vier bis fuenf. */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {list.map((d) => (
                 <DocumentCard
                   key={d.id}
@@ -240,7 +244,7 @@ function DocumentCard({
         ref={ref}
         onClick={() => run(() => openForPrint(doc))}
         title="Öffnen und drucken"
-        className="relative grid h-44 cursor-pointer place-items-center overflow-hidden bg-db-card2"
+        className="relative grid h-28 cursor-pointer place-items-center overflow-hidden bg-db-card2 sm:h-32"
       >
         {visible && doc.previewUrl && isImage && (
           <img
@@ -264,7 +268,7 @@ function DocumentCard({
         )}
         {(!visible || (!isImage && !isPdf)) && (
           <div className="text-center">
-            <div className="text-5xl">{icon(doc.mimeType)}</div>
+            <div className="text-4xl">{icon(doc.mimeType)}</div>
             {!isImage && !isPdf && (
               <div className="mt-1 text-xs text-db-text3">keine Vorschau möglich</div>
             )}
@@ -272,12 +276,12 @@ function DocumentCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-3">
-        <div className="font-medium">{doc.title}</div>
-        <div className="text-xs text-db-text3">
+      <div className="flex flex-1 flex-col p-2.5">
+        <div className="text-sm font-medium">{doc.title}</div>
+        <div className="truncate text-xs text-db-text3" title={doc.fileName}>
           {doc.fileName} · {formatSize(doc.sizeBytes)}
         </div>
-        {doc.description && <div className="mt-1 text-sm text-db-text2">{doc.description}</div>}
+        {doc.description && <div className="mt-1 text-xs text-db-text2">{doc.description}</div>}
         <div className="mt-1 text-xs text-db-text3">
           {doc.lastPrintedAt ? (
             <>
@@ -288,11 +292,11 @@ function DocumentCard({
           )}
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           <button
             disabled={busy}
             onClick={() => run(() => openForPrint(doc))}
-            className="flex-1 db-btn-gold px-3 py-2 text-sm disabled:opacity-40"
+            className="flex-1 db-btn-gold px-2 py-1.5 text-xs whitespace-nowrap disabled:opacity-40"
           >
             🖨 Drucken
           </button>
@@ -304,7 +308,7 @@ function DocumentCard({
                 window.open(url, '_blank', 'noopener,noreferrer');
               })
             }
-            className="db-btn-ghost px-3 py-2 text-sm"
+            className="db-btn-ghost px-2 py-1.5 text-xs"
             title="Herunterladen"
           >
             ⭳
@@ -317,7 +321,7 @@ function DocumentCard({
                   void run(() => repository.archiveDocument(doc.id));
                 }
               }}
-              className="db-btn-ghost px-3 py-2 text-sm"
+              className="db-btn-ghost px-2 py-1.5 text-xs"
               title="Entfernen"
             >
               ✕
