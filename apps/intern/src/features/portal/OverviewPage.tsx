@@ -74,6 +74,87 @@ export function OverviewPage() {
 }
 
 /**
+ * Die Woche als sieben Kaesten untereinander.
+ *
+ * Am Handy steht sie unmittelbar unter der grossen Anzeige: wer die App
+ * oeffnet, soll alles sehen, ohne zu scrollen oder zu tippen. Nebeneinander
+ * bliebe auf 375 Punkten nur Platz fuer die Anfangszeit — untereinander steht
+ * die ganze Schicht da, und sieben Zeilen à 44 Punkte passen trotzdem ins Bild.
+ */
+function WochenListe({
+  week,
+  tag,
+  setzeTag,
+}: {
+  week: MyWeek | null;
+  tag: number;
+  setzeTag: (t: number) => void;
+}) {
+  const days = currentWeek();
+  const today = new Date().toDateString();
+
+  return (
+    <div className="mt-2.5 space-y-1 border-t border-db-line pt-2.5">
+        {days.map((d, i) => {
+          const eintrag = week?.days[i];
+          const dienst = eintrag?.status === 'dienst' && eintrag.b;
+          const istHeute = d.toDateString() === today;
+          const gewaehlt = i === tag;
+          return (
+            <button
+              key={d.toISOString()}
+              onClick={() => setzeTag(i)}
+              aria-pressed={gewaehlt}
+              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-1.5 text-left transition ${
+                gewaehlt ? 'border-db-gold bg-db-gold/10' : 'border-db-line'
+              }`}
+            >
+              <span
+                className={`w-7 text-sm font-bold ${istHeute ? 'text-db-gold' : 'text-db-text2'}`}
+              >
+                {WEEKDAYS[i].slice(0, 2)}
+              </span>
+              <span className="db-num text-sm text-db-text3">
+                {d.getDate()}.{d.getMonth() + 1}.
+              </span>
+              {istHeute && (
+                <span className="rounded bg-db-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-db-gold">
+                  heute
+                </span>
+              )}
+              <span className="ml-auto text-right">
+                {dienst ? (
+                  <span className="db-num text-base font-bold text-db-gold">
+                    {eintrag!.b} – {eintrag!.e}
+                  </span>
+                ) : (
+                  <span
+                    className={`text-sm font-semibold ${
+                      eintrag?.status === 'urlaub'
+                        ? 'text-db-ok'
+                        : eintrag?.status === 'krank'
+                          ? 'text-db-bad'
+                          : 'text-db-text3'
+                    }`}
+                  >
+                    {!week
+                      ? '—'
+                      : eintrag?.status === 'urlaub'
+                        ? 'Urlaub'
+                        : eintrag?.status === 'krank'
+                          ? 'Krank'
+                          : 'frei'}
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+  );
+}
+
+/**
  * Die eigene Schicht an einem gewählten Tag.
  *
  * Vorher stand hier nur die nächste. Das beantwortet „wann muss ich wieder
@@ -103,7 +184,7 @@ function SchichtKarte({
     tag === heute ? 'Heute' : tag === heute + 1 ? 'Morgen' : WEEKDAYS[tag];
 
   return (
-    <article className="db-card p-5">
+    <article className="db-card p-3 sm:p-5">
       <div className="flex items-center gap-2">
         <h2 className="mr-auto text-sm font-semibold tracking-wide text-db-text3 uppercase">
           Meine Schicht
@@ -111,20 +192,20 @@ function SchichtKarte({
         <button
           onClick={() => setzeTag((tag + 6) % 7)}
           aria-label="Tag zurück"
-          className="db-btn-ghost h-8 w-8 text-lg leading-none"
+          className="db-btn-ghost h-7 w-7 text-lg leading-none"
         >
           ‹
         </button>
         <button
           onClick={() => setzeTag((tag + 1) % 7)}
           aria-label="Tag vor"
-          className="db-btn-ghost h-8 w-8 text-lg leading-none"
+          className="db-btn-ghost h-7 w-7 text-lg leading-none"
         >
           ›
         </button>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-3">
         {/* „Heute" und „Morgen" sagen mehr als der Wochentag — der steht dann
             daneben. An allen anderen Tagen waere er doppelt. */}
         <div className="text-db-text2">
@@ -166,7 +247,15 @@ function SchichtKarte({
           Zeile ist zugleich ein Schalter: antippen macht sie zur grossen
           Anzeige. Am Sonntag entfaellt sie, denn die naechste Woche steht hier
           noch nicht zur Verfuegung. */}
-      {week && tag < 6 && <TagDanach week={week} tag={tag} setzeTag={setzeTag} heute={heute} />}
+      {/* Am Rechner steht die Woche in der Karte daneben — dort genuegt der
+          Tag danach. Am Handy gibt es diese Nachbarkarte nicht, dort steht die
+          ganze Woche hier. */}
+      <div className="hidden sm:block">
+        {week && tag < 6 && <TagDanach week={week} tag={tag} setzeTag={setzeTag} heute={heute} />}
+      </div>
+      <div className="sm:hidden">
+        <WochenListe week={week} tag={tag} setzeTag={setzeTag} />
+      </div>
 
       {!week && (
         <p className="mt-3 text-sm text-db-text3">
@@ -184,12 +273,24 @@ function SchichtKarte({
         </button>
       )}
 
-      <a
-        href="/dienstplan/index.html"
-        className="db-btn-ghost mt-4 block px-4 py-2.5 text-center text-sm font-semibold"
-      >
-        Zum Dienstplan
-      </a>
+      {/* Rechts bleibt am Handy Platz frei: dort sitzt Pinnys Blase, und ein
+          Knopf halb darunter waere nicht zu treffen. */}
+      <div className="mt-3 flex gap-2 pr-14 sm:mt-4 sm:pr-0">
+        <a
+          href="/dienstplan/index.html"
+          className="db-btn-ghost flex-1 px-4 py-2.5 text-center text-sm font-semibold"
+        >
+          Zum Dienstplan
+        </a>
+        {/* Am Rechner steht der Entwurf in der Nachbarkarte; am Handy gibt es
+            die nicht mehr, also hier. */}
+        <Link
+          to="/dienstplan-entwurf"
+          className="db-btn-ghost px-4 py-2.5 text-center text-sm font-semibold sm:hidden"
+        >
+          Entwurf
+        </Link>
+      </div>
     </article>
   );
 }
@@ -258,7 +359,7 @@ function WeekCard({
   const today = new Date().toDateString();
 
   return (
-    <article className="db-card p-5 lg:col-span-2">
+    <article className="db-card hidden p-5 sm:block lg:col-span-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
           Diese Woche
@@ -273,69 +374,6 @@ function WeekCard({
             Zum Dienstplan
           </a>
         </div>
-      </div>
-
-      {/* Am Handy sieben Zeilen statt sieben Spalten.
-          Nebeneinander bleibt auf 375 Punkten nur Platz fuer die Anfangszeit;
-          untereinander steht die ganze Schicht da, und alle sieben Tage sind
-          trotzdem auf einen Blick sichtbar — 44 Punkte je Zeile, das passt
-          ohne Scrollen. */}
-      <div className="mt-4 space-y-1.5 sm:hidden">
-        {days.map((d, i) => {
-          const eintrag = week?.days[i];
-          const dienst = eintrag?.status === 'dienst' && eintrag.b;
-          const istHeute = d.toDateString() === today;
-          const gewaehlt = i === tag;
-          return (
-            <button
-              key={d.toISOString()}
-              onClick={() => setzeTag(i)}
-              aria-pressed={gewaehlt}
-              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left transition ${
-                gewaehlt ? 'border-db-gold bg-db-gold/10' : 'border-db-line'
-              }`}
-            >
-              <span
-                className={`w-7 text-sm font-bold ${istHeute ? 'text-db-gold' : 'text-db-text2'}`}
-              >
-                {WEEKDAYS[i].slice(0, 2)}
-              </span>
-              <span className="db-num text-sm text-db-text3">
-                {d.getDate()}.{d.getMonth() + 1}.
-              </span>
-              {istHeute && (
-                <span className="rounded bg-db-gold/15 px-1.5 py-0.5 text-[10px] font-bold text-db-gold">
-                  heute
-                </span>
-              )}
-              <span className="ml-auto text-right">
-                {dienst ? (
-                  <span className="db-num text-base font-bold text-db-gold">
-                    {eintrag!.b} – {eintrag!.e}
-                  </span>
-                ) : (
-                  <span
-                    className={`text-sm font-semibold ${
-                      eintrag?.status === 'urlaub'
-                        ? 'text-db-ok'
-                        : eintrag?.status === 'krank'
-                          ? 'text-db-bad'
-                          : 'text-db-text3'
-                    }`}
-                  >
-                    {!week
-                      ? '—'
-                      : eintrag?.status === 'urlaub'
-                        ? 'Urlaub'
-                        : eintrag?.status === 'krank'
-                          ? 'Krank'
-                          : 'frei'}
-                  </span>
-                )}
-              </span>
-            </button>
-          );
-        })}
       </div>
 
       {/* Ab Tablet ist Platz fuer sieben Kaesten nebeneinander. */}

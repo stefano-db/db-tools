@@ -73,7 +73,7 @@ export function Mascot({
       height={size}
       loading="lazy"
       onError={() => setFailed(true)}
-      className={`shrink-0 ${zuschnitt} ${className}`}
+      className={`shrink-0 ${zuschnitt} ${variante === 'kopf' ? className : ''}`}
       style={{ width: size, height: size }}
     />
   );
@@ -82,9 +82,12 @@ export function Mascot({
   // Figur braucht sie, weil ihre Kleidung so dunkel ist wie der Grund.
   if (variante === 'kopf') return bild;
 
+  // Die Klasse gehoert an den Rahmen, nicht an das Bild darin: sonst blendet
+  // ein „hidden" zwar das Bild aus, der Rahmen nimmt aber weiter seinen Platz
+  // ein — am Handy verschluckte das die halbe Begruessung.
   return (
     <span
-      className="db-figur-schein grid shrink-0 place-items-center rounded-full"
+      className={`db-figur-schein grid shrink-0 place-items-center rounded-full ${className}`}
       style={{ width: size, height: size }}
     >
       {bild}

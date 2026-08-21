@@ -116,16 +116,21 @@ export function AppLayout() {
       {/* Inhalt */}
       <div className="lg:pl-60">
         <header
-          className="db-hero border-b border-db-line px-4 py-5 sm:px-8"
+          className="db-hero border-b border-db-line px-4 py-3 sm:px-8 sm:py-5"
           style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))' }}
         >
           <div className="db-kopfzeile mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="w-full lg:hidden">
-              <Logo hoehe={56} />
+            {/* Am Handy neben dem Gruss statt darueber: eine eigene Zeile fuer
+                das Logo kostet 50 Punkte, und die fehlen unten beim Sonntag. */}
+            <div className="lg:hidden">
+              <Logo hoehe={40} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-db-text2">{greeting(now)},</div>
-              <div className="truncate text-2xl font-extrabold sm:text-3xl">
+              {/* Am Handy in einer Zeile: drei Zeilen Kopf kosten den Sonntag
+                  am unteren Rand. */}
+              <div className="hidden text-sm text-db-text2 sm:block">{greeting(now)},</div>
+              <div className="truncate text-xl font-extrabold sm:text-3xl">
+                <span className="font-normal text-db-text2 sm:hidden">{greeting(now)}, </span>
                 {session?.displayName ?? ''}
               </div>
             </div>
