@@ -160,6 +160,14 @@ function SchichtKarte({
         )}
       </div>
 
+      {/* Der Tag danach, ohne Tippen.
+          „Wann muss ich morgen" wird fast so oft gefragt wie „wann heute" —
+          dafuer erst blaettern zu muessen, ist eine Handbewegung zu viel. Die
+          Zeile ist zugleich ein Schalter: antippen macht sie zur grossen
+          Anzeige. Am Sonntag entfaellt sie, denn die naechste Woche steht hier
+          noch nicht zur Verfuegung. */}
+      {week && tag < 6 && <TagDanach week={week} tag={tag} setzeTag={setzeTag} heute={heute} />}
+
       {!week && (
         <p className="mt-3 text-sm text-db-text3">
           Dein Konto ist noch keinem Namen im Dienstplan zugeordnet. Deine Bereichsleitung kann das
@@ -187,6 +195,54 @@ function SchichtKarte({
 }
 
 const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+/** Der Tag nach dem gewählten — klein, aber ohne Umweg lesbar. */
+function TagDanach({
+  week,
+  tag,
+  setzeTag,
+  heute,
+}: {
+  week: MyWeek;
+  tag: number;
+  setzeTag: (t: number) => void;
+  heute: number;
+}) {
+  const naechster = tag + 1;
+  const eintrag = week.days[naechster];
+  const dienst = eintrag?.status === 'dienst' && eintrag.b;
+
+  const bezeichnung = naechster === heute ? 'Heute' : naechster === heute + 1 ? 'Morgen' : WEEKDAYS[naechster];
+
+  return (
+    <button
+      onClick={() => setzeTag(naechster)}
+      className="mt-4 flex w-full items-center gap-3 rounded-xl border border-db-line bg-db-card2 px-4 py-3 text-left transition hover:border-db-gold/50"
+    >
+      <span className="text-sm font-semibold text-db-text2">{bezeichnung}</span>
+      <span className="text-xs text-db-text3">{WEEKDAYS[naechster].slice(0, 2)}</span>
+      <span className="ml-auto text-right">
+        {dienst ? (
+          <span className="db-num text-lg font-bold text-db-gold">
+            {eintrag!.b} – {eintrag!.e}
+          </span>
+        ) : (
+          <span
+            className={`text-sm font-semibold ${
+              eintrag?.status === 'urlaub'
+                ? 'text-db-ok'
+                : eintrag?.status === 'krank'
+                  ? 'text-db-bad'
+                  : 'text-db-text3'
+            }`}
+          >
+            {eintrag?.status === 'urlaub' ? 'Urlaub' : eintrag?.status === 'krank' ? 'Krank' : 'frei'}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
 
 /** Die laufende Woche als Streifen — sieben Tage auf einen Blick. */
 function WeekCard({
