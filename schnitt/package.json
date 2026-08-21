@@ -1,0 +1,15 @@
+{
+  "name": "schnitt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Eigener Video-Editor: Timeline, Uebergaenge, Realtime-Vorschau, ffmpeg-Export, Claude-lesbares Projektformat",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "ffprobe-static": "^3.1.0"
+  }
+}

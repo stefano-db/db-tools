@@ -42,7 +42,7 @@ export function ChatBlase() {
 
       <div
         // Über der Reiterleiste am Handy — sonst sitzt Pinny auf „Profil".
-        className="nicht-drucken fixed right-4 bottom-24 z-50 flex flex-col items-end gap-3 lg:bottom-6"
+        className="pinny-blase nicht-drucken fixed right-4 z-50 flex flex-col items-end gap-3"
       >
         {offen && (
           <div

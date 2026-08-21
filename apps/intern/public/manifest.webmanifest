@@ -1,0 +1,17 @@
+{
+  "name": "Dream Bowl Intern",
+  "short_name": "Dream Bowl",
+  "description": "Interne Plattform: Dienstplan, Bahnwartung, Dokumente",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1a1713",
+  "theme_color": "#1a1713",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

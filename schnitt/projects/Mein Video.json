@@ -1,0 +1,481 @@
+{
+  "version": 1,
+  "name": "Mein Video",
+  "settings": {
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "background": "#000000"
+  },
+  "media": [
+    {
+      "id": "mmt1th31t2",
+      "path": "/Users/stefanobassotto/Desktop/Claude/schnitt/testmaterial/clip_a.mp4",
+      "name": "clip_a.mp4",
+      "duration": 5,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "hasVideo": true,
+      "hasAudio": true,
+      "codec": "h264",
+      "proxy": "mmt1th31t2_proxy.mp4",
+      "poster": "mmt1th31t2_poster.jpg",
+      "thumbs": "mmt1th31t2_thumbs.jpg",
+      "waveform": "mmt1th31t2_wave.png"
+    },
+    {
+      "id": "mmt1th3c43",
+      "path": "/Users/stefanobassotto/Desktop/Claude/schnitt/testmaterial/clip_b.mp4",
+      "name": "clip_b.mp4",
+      "duration": 5,
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "hasVideo": true,
+      "hasAudio": true,
+      "codec": "h264",
+      "proxy": "mmt1th3c43_proxy.mp4",
+      "poster": "mmt1th3c43_poster.jpg",
+      "thumbs": "mmt1th3c43_thumbs.jpg",
+      "waveform": "mmt1th3c43_wave.png"
+    },
+    {
+      "id": "mmt1tuz478",
+      "path": "/Users/stefanobassotto/Desktop/Claude/schnitt/testmaterial/bild_a.png",
+      "name": "bild_a.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 1600,
+      "height": 900,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1tuz478_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    },
+    {
+      "id": "mmt1u741x1a",
+      "path": "/Users/stefanobassotto/Desktop/Arbeit/Dreambowl/BCWN /Manuela.png",
+      "name": "Manuela.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 6400,
+      "height": 512,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1u741x1a_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    },
+    {
+      "id": "mmt1u74851b",
+      "path": "/Users/stefanobassotto/Desktop/Arbeit/Dreambowl/BCWN /Laura.png",
+      "name": "Laura.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 6400,
+      "height": 512,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1u74851b_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    },
+    {
+      "id": "mmt1u74ea1c",
+      "path": "/Users/stefanobassotto/Desktop/Arbeit/Dreambowl/BCWN /maxine.png",
+      "name": "maxine.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 6400,
+      "height": 512,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1u74ea1c_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    },
+    {
+      "id": "mmt1u74kn1d",
+      "path": "/Users/stefanobassotto/Desktop/Arbeit/Dreambowl/BCWN /Ralf Schlingensief.png",
+      "name": "Ralf Schlingensief.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 6400,
+      "height": 512,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1u74kn1d_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    },
+    {
+      "id": "mmt1u7mi41l",
+      "path": "/Users/stefanobassotto/Downloads/a5f2342a-01ed-4fe7-8c07-5557fe9291a2.png",
+      "name": "a5f2342a-01ed-4fe7-8c07-5557fe9291a2.png",
+      "isImage": true,
+      "duration": 0,
+      "width": 2172,
+      "height": 724,
+      "fps": 0,
+      "hasVideo": true,
+      "hasAudio": false,
+      "codec": "png",
+      "proxy": null,
+      "poster": "mmt1u7mi41l_poster.jpg",
+      "thumbs": null,
+      "waveform": null
+    }
+  ],
+  "tracks": [
+    {
+      "id": "V1",
+      "type": "video",
+      "label": "Video",
+      "hidden": false,
+      "clips": []
+    },
+    {
+      "id": "V2",
+      "type": "video",
+      "label": "Ueberlagerung",
+      "hidden": false,
+      "clips": [
+        {
+          "id": "cmt25m4wxqblx",
+          "mediaId": null,
+          "start": 4,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": 0,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "uicard",
+            "text": "Eiszeit",
+            "sub": "MALON",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.1,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        },
+        {
+          "id": "cmt25zm87y2rc",
+          "mediaId": null,
+          "start": 9.930208333333333,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": 0,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "card",
+            "text": "Titel",
+            "sub": "Kurze Beschreibung dazu",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.09,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        },
+        {
+          "id": "cmt260guxkviq",
+          "mediaId": null,
+          "start": 15.267643229166667,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": 0,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "callout",
+            "text": "Hinweis",
+            "color": "#ffffff",
+            "accent": "#99f8ff",
+            "size": 0.1,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "V3",
+      "type": "video",
+      "label": "Video 3",
+      "hidden": false,
+      "clips": [
+        {
+          "id": "cmt25wc2e5cu7",
+          "mediaId": null,
+          "start": 0,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": 0,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "stat",
+            "text": "+100 %",
+            "sub": "Wachstum pro Monat",
+            "color": "#0a9997",
+            "accent": "#00d3c8",
+            "size": 0.13,
+            "speed": 1.6
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        },
+        {
+          "id": "cmt25xkr0cx8x",
+          "mediaId": null,
+          "start": 5.255403645833335,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": -0.3326596185737978,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "notification",
+            "text": "Es ist soweit!",
+            "sub": "Du brauchst die Creative Cloud nicht mehr",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.08,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        },
+        {
+          "id": "cmt25zt4rfqoj",
+          "mediaId": null,
+          "start": 11.267643229166667,
+          "in": 0,
+          "out": 4,
+          "volume": 0,
+          "scale": 0.41406675202969245,
+          "x": 0,
+          "y": -0.045631218905472636,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "focus",
+            "text": "",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.08,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "V4",
+      "type": "video",
+      "label": "Video 4",
+      "hidden": false,
+      "clips": [
+        {
+          "id": "cmt25x03wj7ij",
+          "mediaId": null,
+          "start": 0.7923494791667152,
+          "in": 0,
+          "out": 3.207650520833285,
+          "volume": 0,
+          "scale": 1,
+          "x": -0.015864686981757886,
+          "y": 0.3694742433665008,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "arrow",
+            "text": "Hier ansehen",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.07,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        },
+        {
+          "id": "cmt25z522id68",
+          "mediaId": null,
+          "start": 8,
+          "in": 0,
+          "out": 1.9302083333333333,
+          "volume": 0,
+          "scale": 1,
+          "x": 0,
+          "y": -0.35124507669983424,
+          "opacity": 1,
+          "fadeIn": 0,
+          "fadeOut": 0,
+          "transition": {
+            "type": "none",
+            "duration": 0
+          },
+          "effect": {
+            "type": "none",
+            "amount": 0.5
+          },
+          "type": "mg",
+          "mg": {
+            "preset": "touch",
+            "text": "",
+            "color": "#ffffff",
+            "accent": "#00d3c8",
+            "size": 0.08,
+            "speed": 1
+          },
+          "anim": {
+            "type": "none",
+            "dur": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "V5",
+      "type": "video",
+      "label": "Video 5",
+      "hidden": false,
+      "clips": []
+    },
+    {
+      "id": "A1",
+      "type": "audio",
+      "label": "Ton",
+      "hidden": false,
+      "clips": []
+    }
+  ],
+  "range": {
+    "in": 0,
+    "out": 30.3369140625
+  }
+}

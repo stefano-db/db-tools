@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schnitt</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header id="topbar">
+  <div class="brand"><span class="logo" data-icon="cut"></span><strong>Schnitt</strong></div>
+  <div class="tb-center"><input id="projectName" value="Mein Video" spellcheck="false" title="Projektname – hier klicken zum Umbenennen"></div>
+  <div class="tb-right">
+    <button id="btnLayout" class="ghost iconbtn" data-icon="fit" title="Fenster-Layout"></button>
+    <button id="btnSettings" class="ghost iconbtn" data-icon="gear" title="Film-Einstellungen"></button>
+    <button id="btnSave" class="ghost iconbtn" data-icon="save" title="Speichern"></button>
+    <button id="btnExport" class="primary" data-icon="exportIcon" data-label="Exportieren"></button>
+  </div>
+</header>
+
+<main>
+  <aside id="library">
+    <nav id="libTabs">
+      <button class="ltab active" data-tab="media"><span class="ticon" data-icon="media"></span><span class="tlabel">Medien</span></button>
+      <button class="ltab" data-tab="text"><span class="ticon" data-icon="text"></span><span class="tlabel">Text</span></button>
+      <button class="ltab" data-tab="mg"><span class="ticon" data-icon="mg"></span><span class="tlabel">Grafik</span></button>
+      <button class="ltab" data-tab="trans"><span class="ticon" data-icon="trans"></span><span class="tlabel">Übergänge</span></button>
+      <button class="ltab" data-tab="fx"><span class="ticon" data-icon="fx"></span><span class="tlabel">Bewegung</span></button>
+    </nav>
+    <div id="libPages">
+
+    <div class="tabpage" id="page-media">
+      <button id="btnAdd" class="importbtn">＋ Importieren</button>
+      <p class="lib-hint" id="libHint">Videos, Bilder und Musik<br>landen hier.<br><br>Zieh sie danach<br>auf die Spuren unten.</p>
+      <div id="libItems"></div>
+    </div>
+
+    <div class="tabpage" id="page-text" hidden>
+      <button id="btnAddText" class="importbtn">＋ Text hinzufügen</button>
+      <div id="textEditBox" hidden>
+        <label class="panel-field">Text
+          <textarea id="textInput" rows="2" spellcheck="false"></textarea>
+        </label>
+        <div class="panel-row">
+          <label class="panel-field">Schrift
+            <select id="textFont">
+              <option value="sans">Modern</option>
+              <option value="serif">Klassisch</option>
+              <option value="mono">Schreibmaschine</option>
+            </select>
+          </label>
+          <label class="panel-check"><input type="checkbox" id="textBold"> Fett</label>
+        </div>
+        <label class="panel-slider">Größe <output id="textSizeOut">7 %</output>
+          <input type="range" id="textSize" min="0.03" max="0.2" step="0.005" value="0.07">
+        </label>
+        <div class="panel-row">
+          <label class="panel-color">Farbe <input type="color" id="textColor" value="#ffffff"></label>
+          <label class="panel-color">Rand <input type="color" id="textStrokeColor" value="#000000"></label>
+        </div>
+        <label class="panel-slider">Randstärke <output id="textStrokeOut">aus</output>
+          <input type="range" id="textStroke" min="0" max="0.25" step="0.01" value="0">
+        </label>
+        <div class="panel-row">
+          <label class="panel-check"><input type="checkbox" id="textBgOn"> Hintergrund</label>
+          <label class="panel-color"><input type="color" id="textBgColor" value="#000000"></label>
+        </div>
+        <label class="panel-field">Animation
+          <select id="textAnim">
+            <option value="none">Keine</option>
+            <option value="slideup">Von unten einfliegen</option>
+            <option value="slidedown">Von oben einfliegen</option>
+            <option value="slideleft">Von links einfliegen</option>
+            <option value="slideright">Von rechts einfliegen</option>
+            <option value="type">Tippen (Zeichen für Zeichen)</option>
+          </select>
+        </label>
+        <label class="panel-slider">Tempo <output id="textAnimDurOut">0,8 s</output>
+          <input type="range" id="textAnimDur" min="0.2" max="2.5" step="0.1" value="0.8">
+        </label>
+      </div>
+      <p class="panel-hint" id="textHint">Erstelle einen Text oder wähle einen Text-Clip in der Timeline aus.</p>
+      <h4 class="panel-caption">Untertitel</h4>
+      <div class="panel-row subs-row">
+        <button id="btnAutoSubs" data-icon="mic" data-label="Automatisch erzeugen"></button>
+        <button id="btnSrtImport" class="ghost" title="Fertige SRT-Untertiteldatei einlesen">SRT…</button>
+      </div>
+      <p class="panel-note" id="subsNote" hidden></p>
+
+      <h4 class="panel-caption">Vorlagen</h4>
+      <div class="presetlist" id="textPresetGrid"></div>
+    </div>
+
+    <div class="tabpage" id="page-mg" hidden>
+      <button id="btnAddMg" class="importbtn">＋ Grafik hinzufügen</button>
+      <div id="mgEditBox" hidden>
+        <label class="panel-field">Text
+          <input type="text" id="mgText" spellcheck="false">
+        </label>
+        <label class="panel-field" id="mgSubWrap">Zweite Zeile
+          <input type="text" id="mgSub" spellcheck="false">
+        </label>
+        <div class="panel-row">
+          <label class="panel-color">Farbe <input type="color" id="mgColor" value="#ffffff"></label>
+          <label class="panel-color">Akzent <input type="color" id="mgAccent" value="#00d3c8"></label>
+        </div>
+        <label class="panel-slider">Größe <output id="mgSizeOut">10 %</output>
+          <input type="range" id="mgSize" min="0.04" max="0.3" step="0.01" value="0.1">
+        </label>
+        <label class="panel-slider">Tempo <output id="mgSpeedOut">1,0×</output>
+          <input type="range" id="mgSpeed" min="0.4" max="2.5" step="0.1" value="1">
+        </label>
+        <h4 class="panel-caption">Animation</h4>
+        <label class="panel-field">Eingang
+          <select id="mgAnim">
+            <option value="auto">Automatisch (eingebaut)</option>
+            <option value="popIn">Pop In (Feder)</option>
+            <option value="springPop">Spring Pop (kräftig)</option>
+            <option value="floatUp">Float Up</option>
+            <option value="blurReveal">Blur Reveal</option>
+            <option value="slideL">Slide von links</option>
+            <option value="slideR">Slide von rechts</option>
+          </select>
+        </label>
+        <label class="panel-slider">Dauer <output id="mgAnimDurOut">0,65 s</output>
+          <input type="range" id="mgAnimDur" min="0.25" max="1.6" step="0.05" value="0.65">
+        </label>
+        <div id="mgSpringRows">
+          <label class="panel-slider">Federhärte <output id="mgStiffOut">220</output>
+            <input type="range" id="mgStiff" min="120" max="420" step="10" value="220">
+          </label>
+          <label class="panel-slider">Dämpfung <output id="mgDampOut">22</output>
+            <input type="range" id="mgDamp" min="12" max="32" step="1" value="22">
+          </label>
+        </div>
+        <label class="panel-slider">Versatz <output id="mgDelayOut">0 s</output>
+          <input type="range" id="mgDelay" min="0" max="2" step="0.05" value="0">
+        </label>
+      </div>
+      <p class="panel-hint" id="mgHint">Animierte Titel im Apple-Stil.<br>Erstelle eine Grafik oder wähle eine in der Timeline aus – dann kannst du hier alles anpassen.</p>
+      <h4 class="panel-caption">Vorlagen</h4>
+      <div class="cardgrid" id="mgPresetGrid"></div>
+    </div>
+
+    <div class="tabpage" id="page-trans" hidden>
+      <p class="panel-hint">Zieh eine Karte auf die Stelle, wo <b>zwei Clips aneinanderstoßen</b> – auf jeder Videospur. Oder: Clip auswählen und Karte anklicken.</p>
+      <div class="cardgrid" id="transPanelGrid"></div>
+      <label class="panel-slider">Dauer <output id="ltransOut">0,5 s</output>
+        <input type="range" id="ltransDur" min="0.2" max="2" step="0.1" value="0.5">
+      </label>
+      <p class="panel-note" id="transNote" hidden></p>
+    </div>
+
+    <div class="tabpage" id="page-fx" hidden>
+      <p class="panel-hint">Wähle ein Element aus, dann bekommt es eine sanfte Dauer-Bewegung.</p>
+      <div class="cardgrid" id="fxGrid"></div>
+      <label class="panel-slider">Stärke <output id="fxOut">50 %</output>
+        <input type="range" id="inFxAmount" min="0.1" max="1" step="0.05" value="0.5">
+      </label>
+      <p class="panel-note" id="fxNote" hidden></p>
+    </div>
+    </div>
+  </aside>
+  <div class="vsplit" id="splitLib" title="Breite der Ablage ziehen"></div>
+
+  <section id="stage">
+    <div id="previewWrap">
+      <div id="previewScroll"><canvas id="preview" width="1920" height="1080"></canvas></div>
+      <div id="selBox" hidden>
+        <i class="h tl"></i><i class="h tr"></i><i class="h bl"></i><i class="h br"></i>
+      </div>
+      <div class="zoombar" id="previewZoombar" hidden>
+        <button data-pz="out" title="Rauszoomen">−</button>
+        <button data-pz="fit" title="Einpassen">⤢</button>
+        <button data-pz="in" title="Reinzoomen">+</button>
+      </div>
+      <div id="emptyHint" class="hint">
+        <div class="hint-icon">🎬</div>
+        <h2>Füge Videos, Bilder oder Musik hinzu</h2>
+        <p>links oben über „Importieren“</p>
+      </div>
+      <button id="bigPlay" class="bigplay iconbtn" data-icon="play" hidden></button>
+    </div>
+    <div id="transport" hidden>
+      <span id="timecode">0:00 / 0:00</span>
+      <div class="t-center">
+        <button id="btnBack" class="iconbtn" data-icon="skipBack" title="Zum Anfang"></button>
+        <button id="btnPlay" class="playbtn iconbtn" data-icon="play" title="Abspielen / Pause (Leertaste)"></button>
+      </div>
+      <span class="t-right"></span>
+    </div>
+  </section>
+
+  <div class="vsplit" id="splitInsp" hidden title="Breite des Bearbeiten-Panels ziehen"></div>
+  <aside id="inspector" hidden>
+    <h3 id="inspTitle">Clip</h3>
+    <label data-prop="volume">Lautstärke <output id="volOut">100 %</output>
+      <input type="range" id="inVolume" min="0" max="2" step="0.05" value="1">
+    </label>
+    <label data-prop="scale">Größe <output id="scaleOut">100 %</output>
+      <input type="range" id="inScale" min="0.2" max="3" step="0.05" value="1">
+    </label>
+    <label data-prop="opacity">Durchsichtig <output id="opacityOut">0 %</output>
+      <input type="range" id="inOpacity" min="0" max="1" step="0.05" value="1">
+    </label>
+    <label data-prop="fadeIn">Weich einblenden <output id="fadeInOut">aus</output>
+      <input type="range" id="inFadeIn" min="0" max="3" step="0.1" value="0">
+    </label>
+    <label data-prop="fadeOut">Weich ausblenden <output id="fadeOutOut">aus</output>
+      <input type="range" id="inFadeOut" min="0" max="3" step="0.1" value="0">
+    </label>
+    <div id="colorBox" hidden>
+      <h4 class="panel-caption">Farbe <span id="colState"></span></h4>
+      <div id="lookChips"></div>
+      <label>Helligkeit <output id="colBrightOut">0</output>
+        <input type="range" class="grad" id="colBright" min="-0.5" max="0.5" step="0.02" value="0"
+          style="--grad: linear-gradient(90deg,#000,#fff)">
+      </label>
+      <label>Kontrast <output id="colContrastOut">0</output>
+        <input type="range" class="grad" id="colContrast" min="-0.5" max="0.5" step="0.02" value="0"
+          style="--grad: linear-gradient(90deg,#8a8a8a,#5c5c5c 45%,#161616 72%,#f5f5f5)">
+      </label>
+      <label>Sättigung <output id="colSatOut">0</output>
+        <input type="range" class="grad" id="colSat" min="-1" max="1" step="0.05" value="0"
+          style="--grad: linear-gradient(90deg,#8e8e8e,#c47da0 30%,#d9534f 55%,#3fc464 75%,#3b82f6 90%,#a855f7)">
+      </label>
+      <label>Wärme <output id="colTempOut">0</output>
+        <input type="range" class="grad" id="colTemp" min="-1" max="1" step="0.05" value="0"
+          style="--grad: linear-gradient(90deg,#4a90ff,#93a1b1 50%,#ff9a3c)">
+      </label>
+    </div>
+    <div id="kfBox" hidden>
+      <h4 class="panel-caption">Keyframes</h4>
+      <div class="kf-row">
+        <button id="btnKfAdd" title="Position, Größe und Deckkraft an der Abspielposition verankern (Taste K)">◆ Setzen</button>
+        <button id="btnKfGraph" title="Kurven-Editor über der Timeline öffnen">Kurven</button>
+        <button id="btnKfClear" class="ghost" title="Alle Keyframes dieses Clips entfernen">Löschen</button>
+      </div>
+      <p class="kf-hint"><span id="kfCount">Keine Keyframes</span> – Element bewegen/skalieren bei gesetzten Keyframes verankert automatisch neu.</p>
+    </div>
+    <p class="tip">Klicke ein Element <b>im Vorschaubild</b> an: Ziehen = verschieben, Ecken = Größe.<br>
+    Timeline: Kanten ziehen = kürzen, Naht anklicken = Übergang, hoch/runter ziehen = Spur wechseln.<br>
+    <b>Zoomen:</b> einfach scrollen – in Vorschau und Timeline. <b>Alt</b> = Einrasten aus.</p>
+  </aside>
+</main>
+
+<section id="timelineArea" hidden>
+  <div id="splitTl" title="Höhe der Timeline ziehen"></div>
+  <div id="graphPanel" hidden>
+    <div class="g-head">
+      <span class="g-title">Kurven</span>
+      <button class="gprop active" data-gprop="x">Position X</button>
+      <button class="gprop" data-gprop="y">Position Y</button>
+      <button class="gprop" data-gprop="scale">Größe</button>
+      <button class="gprop" data-gprop="opacity">Deckkraft</button>
+      <div class="spacer"></div>
+      <label class="g-ease">Kurve
+        <select id="gEase">
+          <option value="easeInOut">Weich (Standard)</option>
+          <option value="linear">Linear</option>
+          <option value="easeIn">Beschleunigen</option>
+          <option value="easeOut">Abbremsen</option>
+          <option value="spring">Feder</option>
+          <option value="hold">Halten</option>
+        </select>
+      </label>
+      <button id="btnGraphClose" class="ghost iconbtn" title="Kurven schließen">✕</button>
+    </div>
+    <canvas id="graphCanvas"></canvas>
+    <p class="g-hint">Punkt ziehen = Zeit/Wert ändern · Doppelklick auf die Kurve = Keyframe hinzufügen · Alt-Klick = löschen</p>
+  </div>
+  <div id="tlToolbar">
+    <button id="btnSplit" title="Clip an dieser Stelle teilen (Taste S)" data-icon="cut" data-label="Teilen"></button>
+    <button id="btnDelete" title="Ausgewählten Clip löschen (Entf)" data-icon="trash" data-label="Löschen"></button>
+    <button id="btnSnap" class="active" title="Einrasten an Kanten und Abspielkopf (Alt = kurz aus)" data-icon="magnet" data-label="Einrasten"></button>
+    <button id="btnRange" title="Nur einen Bereich exportieren (Tasten I und O setzen die Grenzen)" data-icon="target" data-label="Bereich"></button>
+    <div class="spacer"></div>
+    <button id="btnAddVideoTrack" class="ghost" data-icon="plus" data-label="Videospur" title="Neue Videospur"></button>
+    <button id="btnAddAudioTrack" class="ghost" data-icon="plus" data-label="Tonspur" title="Neue Tonspur"></button>
+    <span class="sep"></span>
+    <button id="btnZoomOut" class="ghost iconbtn" data-icon="zoomOut" title="Timeline rauszoomen"></button>
+    <button id="btnZoomFit" class="ghost iconbtn" data-icon="fit" title="Ganzes Projekt einpassen"></button>
+    <button id="btnZoomIn" class="ghost iconbtn" data-icon="zoomIn" title="Timeline reinzoomen"></button>
+  </div>
+  <div id="tlScroll">
+    <div id="ruler"></div>
+    <div id="tracks"></div>
+    <div id="playhead"></div>
+    <div id="snapLine" hidden></div>
+    <div id="rangeBar" hidden>
+      <div class="range-handle left" title="Anfang des Bereichs ziehen"></div>
+      <div class="range-handle right" title="Ende des Bereichs ziehen"></div>
+    </div>
+  </div>
+</section>
+
+<div id="layoutMenu" class="popover menu" hidden>
+  <h4>Fenster-Layout</h4>
+  <button class="lay" data-lay="saveA">In Layout A speichern</button>
+  <button class="lay" data-lay="loadA">Layout A laden</button>
+  <button class="lay" data-lay="saveB">In Layout B speichern</button>
+  <button class="lay" data-lay="loadB">Layout B laden</button>
+  <button class="lay" data-lay="reset">Standard wiederherstellen</button>
+</div>
+
+<div id="transitionPicker" class="popover" hidden>
+  <h4>Übergang</h4>
+  <div class="grid" id="transitionGrid"></div>
+  <label class="duration">Dauer <output id="transDurOut">0,5 s</output>
+    <input type="range" id="transDur" min="0.2" max="2" step="0.1" value="0.5">
+  </label>
+</div>
+
+<div id="settingsOverlay" class="overlay" hidden>
+  <div class="card settings">
+    <h3>Film-Einstellungen</h3>
+    <label>Format
+      <select id="setPreset">
+        <option value="1920x1080">Querformat (YouTube) – 1920 × 1080</option>
+        <option value="3840x2160">4K – 3840 × 2160</option>
+        <option value="1080x1920">Hochkant (Reels / TikTok) – 1080 × 1920</option>
+        <option value="1080x1080">Quadrat – 1080 × 1080</option>
+        <option value="custom">Eigene Größe …</option>
+      </select>
+    </label>
+    <div id="customSize" class="rowline" hidden>
+      <label>Breite <input type="number" id="setW" min="240" max="7680" step="2"></label>
+      <label>Höhe <input type="number" id="setH" min="240" max="7680" step="2"></label>
+    </div>
+    <label>Bilder pro Sekunde
+      <select id="setFps">
+        <option value="24">24 – Kino</option>
+        <option value="25">25 – TV Europa</option>
+        <option value="30" selected>30 – Standard</option>
+        <option value="50">50 – flüssig</option>
+        <option value="60">60 – sehr flüssig</option>
+      </select>
+    </label>
+    <label class="colorline">Hintergrundfarbe <input type="color" id="setBg" value="#000000"></label>
+    <div class="row">
+      <button id="btnSettingsSave" class="primary">Übernehmen</button>
+      <button id="btnSettingsCancel" class="ghost">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="exportSetup" class="overlay" hidden>
+  <div class="card settings">
+    <h3>Export-Einstellungen</h3>
+    <label>Dateiname
+      <input type="text" id="expFilename" spellcheck="false">
+    </label>
+    <label>Qualität
+      <select id="expQuality">
+        <option value="hoch" selected>Hoch – beste Qualität</option>
+        <option value="mittel">Mittel – guter Kompromiss</option>
+        <option value="klein">Klein – kleine Datei</option>
+      </select>
+    </label>
+    <label>Auflösung
+      <select id="expRes">
+        <option value="project" selected>Wie Projekt</option>
+        <option value="3840">3840 breit (4K)</option>
+        <option value="1920">1920 breit</option>
+        <option value="1280">1280 breit</option>
+      </select>
+    </label>
+    <label class="panel-check exp-check"><input type="checkbox" id="expMotionBlur" checked> Motion Blur für animierte Grafiken</label>
+    <label class="panel-check exp-check"><input type="checkbox" id="expLoudness" checked> Lautheit normalisieren (−14 LUFS, YouTube-Standard)</label>
+    <p class="exp-note" id="expResNote"></p>
+    <p class="exp-note accent" id="expRangeNote"></p>
+    <div class="row">
+      <button id="btnExpStart" class="primary">Exportieren</button>
+      <button id="btnExpCancel" class="ghost">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<div id="exportOverlay" class="overlay" hidden>
+  <div class="card">
+    <h3 id="exportTitle">Video wird erstellt …</h3>
+    <div class="bar"><div id="exportBar"></div></div>
+    <p id="exportNote">Bitte warten</p>
+    <div class="row">
+      <button id="btnShowFile" class="primary" hidden data-icon="folder" data-label="Datei zeigen"></button>
+      <button id="btnCloseExport" class="ghost" hidden>Schließen</button>
+    </div>
+  </div>
+</div>
+
+<div id="importToast" class="toast" hidden>
+  <div class="spinner"></div>
+  <span id="importNote">Wird vorbereitet …</span>
+</div>
+
+<div id="dragGhost" hidden></div>
+
+<script src="js/app.js" type="module"></script>
+</body>
+</html>

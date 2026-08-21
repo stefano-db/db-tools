@@ -15,6 +15,9 @@ export function OverviewPage() {
   const { session } = useAuth();
   const [modules, setModules] = useState<ModuleInfo[] | null>(null);
   const [week, setWeek] = useState<MyWeek | null>(null);
+  // Welcher Tag in der Schnellansicht steht. Heute ist der Anfang: danach wird
+  // am oeftesten gefragt, und von dort blaettert man weiter.
+  const [tag, setTag] = useState(() => (new Date().getDay() + 6) % 7);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,8 +42,8 @@ export function OverviewPage() {
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
-        <NextShiftCard week={week} />
-        <WeekCard week={week} />
+        <SchichtKarte week={week} tag={tag} setzeTag={setTag} />
+        <WeekCard week={week} tag={tag} setzeTag={setTag} />
       </div>
 
       <section>
@@ -71,49 +74,106 @@ export function OverviewPage() {
 }
 
 /**
- * Die eigene nächste Schicht.
+ * Die eigene Schicht an einem gewählten Tag.
  *
- * Solange das Konto keinem Namen im Dienstplan zugeordnet ist, kann hier nichts
- * stehen — und das wird gesagt, statt die Karte leer zu lassen.
+ * Vorher stand hier nur die nächste. Das beantwortet „wann muss ich wieder
+ * arbeiten" — aber nicht „wie sieht meine Woche aus". Beides ist dieselbe
+ * Frage in verschiedenen Momenten, und die zweite stellt man abends auf dem
+ * Sofa, wenn man die Woche einmal durchgeht.
+ *
+ * Also: heute als Anfang, und mit zwei Pfeilen durch die Woche. Die Tage
+ * darunter im Streifen sind dieselbe Auswahl — antippen genügt.
  */
-function NextShiftCard({ week }: { week: MyWeek | null }) {
+function SchichtKarte({
+  week,
+  tag,
+  setzeTag,
+}: {
+  week: MyWeek | null;
+  tag: number;
+  setzeTag: (t: number) => void;
+}) {
   const { session } = useAuth();
-  const next = week ? findNextShift(week) : null;
+  const heute = (new Date().getDay() + 6) % 7;
+  const daten = currentWeek();
+  const datum = daten[tag];
+  const eintrag = week?.days[tag];
+
+  const bezeichnung =
+    tag === heute ? 'Heute' : tag === heute + 1 ? 'Morgen' : WEEKDAYS[tag];
 
   return (
     <article className="db-card p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
-        Nächste Schicht
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2 className="mr-auto text-sm font-semibold tracking-wide text-db-text3 uppercase">
+          Meine Schicht
+        </h2>
+        <button
+          onClick={() => setzeTag((tag + 6) % 7)}
+          aria-label="Tag zurück"
+          className="db-btn-ghost h-8 w-8 text-lg leading-none"
+        >
+          ‹
+        </button>
+        <button
+          onClick={() => setzeTag((tag + 1) % 7)}
+          aria-label="Tag vor"
+          className="db-btn-ghost h-8 w-8 text-lg leading-none"
+        >
+          ›
+        </button>
+      </div>
 
-      {next ? (
-        <div className="mt-4">
-          <div className="text-db-text2">{next.label}</div>
-          <div className="db-num mt-1 text-3xl font-extrabold text-db-gold">
-            {next.day.b} – {next.day.e}
+      <div className="mt-4">
+        {/* „Heute" und „Morgen" sagen mehr als der Wochentag — der steht dann
+            daneben. An allen anderen Tagen waere er doppelt. */}
+        <div className="text-db-text2">
+          {bezeichnung}
+          <span className="text-db-text3">
+            {' · '}
+            {bezeichnung === WEEKDAYS[tag] ? '' : `${WEEKDAYS[tag]}, `}
+            {datum.getDate()}.{datum.getMonth() + 1}.
+          </span>
+        </div>
+
+        {eintrag && eintrag.status === 'dienst' && eintrag.b ? (
+          <>
+            <div className="db-num mt-1 text-3xl font-extrabold text-db-gold">
+              {eintrag.b} – {eintrag.e}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-db-text2">
+              <span aria-hidden="true">👤</span>
+              {session?.department ? DEPARTMENT_LABEL[session.department] : 'Kein Bereich'}
+              {eintrag.std && <span className="text-db-text3">· {eintrag.std} Std.</span>}
+            </div>
+          </>
+        ) : (
+          <div className="mt-1 text-3xl font-extrabold text-db-text3">
+            {!week
+              ? '—'
+              : eintrag?.status === 'urlaub'
+                ? 'Urlaub'
+                : eintrag?.status === 'krank'
+                  ? 'Krank'
+                  : 'Frei'}
           </div>
-          <div className="mt-3 flex items-center gap-2 text-sm text-db-text2">
-            <span aria-hidden="true">👤</span>
-            {session?.department ? DEPARTMENT_LABEL[session.department] : 'Kein Bereich'}
-            {next.day.std && <span className="text-db-text3">· {next.day.std} Std.</span>}
-          </div>
-        </div>
-      ) : week ? (
-        <div className="mt-4 rounded-xl border border-db-line bg-db-card2 p-4 text-center">
-          <p className="text-db-text2">Diese Woche keine Schicht mehr.</p>
-          <p className="mt-1 text-sm text-db-text3">
-            Der Plan für <strong className="text-db-text2">{week.employeeName}</strong> ist bis
-            Sonntag ohne weitere Dienste.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-4 rounded-xl border border-db-line bg-db-card2 p-4 text-center">
-          <p className="text-db-text2">Noch keine Schicht hinterlegt.</p>
-          <p className="mt-2 text-sm text-db-text3">
-            Dein Konto ist noch keinem Namen im Dienstplan zugeordnet. Deine Bereichsleitung kann
-            das in der Verwaltung erledigen.
-          </p>
-        </div>
+        )}
+      </div>
+
+      {!week && (
+        <p className="mt-3 text-sm text-db-text3">
+          Dein Konto ist noch keinem Namen im Dienstplan zugeordnet. Deine Bereichsleitung kann das
+          in der Verwaltung erledigen.
+        </p>
+      )}
+
+      {tag !== heute && (
+        <button
+          onClick={() => setzeTag(heute)}
+          className="mt-3 text-xs text-db-text3 hover:text-db-gold"
+        >
+          zurück zu heute
+        </button>
       )}
 
       <a
@@ -128,23 +188,16 @@ function NextShiftCard({ week }: { week: MyWeek | null }) {
 
 const WEEKDAYS = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
 
-/**
- * Der nächste Dienst ab heute. Vergangene Tage werden übersprungen — wer um 18
- * Uhr nachsieht, will nicht die Schicht von heute Morgen lesen.
- */
-function findNextShift(week: MyWeek): { day: ShiftDay; label: string } | null {
-  const todayIndex = (new Date().getDay() + 6) % 7;
-  for (let i = todayIndex; i < 7; i++) {
-    const day = week.days[i];
-    if (day && day.status === 'dienst' && day.b) {
-      return { day, label: i === todayIndex ? `Heute, ${WEEKDAYS[i]}` : WEEKDAYS[i] };
-    }
-  }
-  return null;
-}
-
 /** Die laufende Woche als Streifen — sieben Tage auf einen Blick. */
-function WeekCard({ week }: { week: MyWeek | null }) {
+function WeekCard({
+  week,
+  tag,
+  setzeTag,
+}: {
+  week: MyWeek | null;
+  tag: number;
+  setzeTag: (t: number) => void;
+}) {
   const days = currentWeek();
   const today = new Date().toDateString();
 
@@ -169,23 +222,32 @@ function WeekCard({ week }: { week: MyWeek | null }) {
       <div className="mt-4 grid grid-cols-7 gap-1 sm:gap-2">
         {days.map((d, i) => {
           const isToday = d.toDateString() === today;
+          const gewaehlt = i === tag;
           return (
-            <div
+            <button
               key={d.toISOString()}
-              className={`rounded-lg border px-0.5 py-2 text-center sm:rounded-xl sm:px-2 ${
-                isToday ? 'border-db-gold bg-db-card2' : 'border-db-line'
+              onClick={() => setzeTag(i)}
+              aria-pressed={gewaehlt}
+              className={`rounded-lg border px-0.5 py-2 text-center transition sm:rounded-xl sm:px-2 ${
+                gewaehlt
+                  ? 'border-db-gold bg-db-card2'
+                  : isToday
+                    ? 'border-db-gold/40'
+                    : 'border-db-line hover:border-db-gold/40'
               }`}
             >
               <div className="text-[9px] tracking-wide text-db-text3 uppercase sm:text-[10px]">
                 {d.toLocaleDateString('de-DE', { weekday: 'short' }).slice(0, 2)}
               </div>
               <div
-                className={`db-num text-base font-bold sm:text-lg ${isToday ? 'text-db-gold' : ''}`}
+                className={`db-num text-base font-bold sm:text-lg ${
+                  gewaehlt || isToday ? 'text-db-gold' : ''
+                }`}
               >
                 {d.getDate()}
               </div>
               <DayBar day={week?.days[i]} />
-            </div>
+            </button>
           );
         })}
       </div>

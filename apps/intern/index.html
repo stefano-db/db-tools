@@ -2,10 +2,26 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- Faerbt die Systemleiste am Handy: der alte Wert war das Blaugrau der
-         ersten Fassung, nicht das warme Dunkel der Plattform. -->
+
+    <!-- Am Handy soll sich das hier wie eine App anfuehlen, nicht wie eine
+         Seite: kein Zoomen beim Doppeltippen, kein Verrutschen beim Tippen in
+         ein Feld. viewport-fit=cover laesst den Inhalt bis unter die Ecken
+         laufen; die Abstaende dafuer setzt das Programm selbst. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+
+    <!-- Faerbt die Systemleiste am Handy. -->
     <meta name="theme-color" content="#1a1713" />
+
+    <!-- Auf den Startbildschirm gelegt, oeffnet es ohne Browserleiste. -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Dream Bowl" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
     <title>Dream Bowl · Intern</title>
   </head>
   <body>

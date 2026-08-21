@@ -115,7 +115,10 @@ export function AppLayout() {
 
       {/* Inhalt */}
       <div className="lg:pl-60">
-        <header className="db-hero border-b border-db-line px-4 py-5 sm:px-8">
+        <header
+          className="db-hero border-b border-db-line px-4 py-5 sm:px-8"
+          style={{ paddingTop: 'calc(1.25rem + env(safe-area-inset-top))' }}
+        >
           <div className="db-kopfzeile mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2">
             <div className="w-full lg:hidden">
               <Logo hoehe={56} />
@@ -153,7 +156,10 @@ export function AppLayout() {
       </div>
 
       {/* Reiterleiste — nur am Handy */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-db-line bg-db-card lg:hidden">
+      <nav
+        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-db-line bg-db-card lg:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {visible(MOBILE).map((e) => (
           <TabLink key={e.to} entry={e} />
         ))}

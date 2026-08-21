@@ -71,7 +71,11 @@
 
 /* Die Plattform selbst ist dunkel. Module, die noch ihr altes Aussehen haben,
    setzen ihren eigenen Hintergrund und bleiben davon unberührt. */
+/* Kein Zoomen beim Doppeltippen — das ist der Unterschied zwischen „Seite" und
+   „App". Gezielt getippt wird trotzdem normal. */
 body.db {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
   background: var(--color-db-bg);
   color: var(--color-db-text);
 }
@@ -116,6 +120,7 @@ body.db {
 
 /* Eingabefelder — überall gleich, damit sie auf dunklem Grund lesbar bleiben. */
 .db-input {
+  font-size: 16px;
   width: 100%;
   background: var(--color-db-card2);
   border: 1px solid var(--color-db-line);
@@ -288,6 +293,7 @@ body.db-breit .db-kopfzeile {
 }
 
 .lw-input {
+  font-size: 16px;
   width: 100%;
   background: var(--color-lw-card);
   border: 1px solid var(--color-lw-line2);
@@ -481,5 +487,19 @@ body.db-breit .db-kopfzeile {
   .druckplan tr,
   .druckplan tbody {
     break-inside: avoid;
+  }
+}
+
+
+/* Pinnys Blase.
+   Am Handy sitzt sie ueber der Reiterleiste und ueber dem Home-Balken, am
+   Rechner unten in der Ecke — zwei Werte, die sich mit Hilfsklassen allein
+   nicht sauber ausdruecken lassen. */
+.pinny-blase {
+  bottom: calc(6rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 1024px) {
+  .pinny-blase {
+    bottom: 1.5rem;
   }
 }
