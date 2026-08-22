@@ -10,14 +10,24 @@
  * geändert hat, ist achtzehnmal eine Störung. Gemeldet wird deshalb nur, wer
  * betroffen ist — und dem wird gesagt, was sich für ihn geändert hat.
  *
+ * Ohne fremde Pakete. Der erste Anlauf holte sich „web-push" aus der
+ * Node-Welt und startete in der Deno-Umgebung nicht („BOOT_ERROR"), womit der
+ * ganze Versand tot war, ohne dass es irgendwo auffiel. Web Push ist aber ein
+ * offener Standard (RFC 8291 für die Verschlüsselung, RFC 8292 für den
+ * Ausweis), und alles, was er braucht, steckt in der Web-Krypto: ECDH,
+ * HKDF, AES-GCM, ECDSA. Der Code darunter ist länger als ein Import, dafür
+ * kann er nicht mehr an einer fremden Abhängigkeit scheitern.
+ *
  * Deno, läuft als Supabase Edge Function.
  */
-import webpush from 'npm:web-push@3.6.7';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+
+import { ausweis, verschluesseln } from './webpush.ts';
 
 type Tag = { status?: string; b?: string; e?: string };
 
 const TAGE = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+
+// --- Was gemeldet wird -------------------------------------------------------
 
 /**
  * Wie ein Tag in einer Meldung heißt.
@@ -44,49 +54,94 @@ function unterschied(vorher: Tag[], nachher: Tag[]): string[] {
   return liste;
 }
 
+// --- Datenbank ---------------------------------------------------------------
+
+/**
+ * Unmittelbar über die Schnittstelle statt über eine Bibliothek — es sind vier
+ * Zugriffe, und jedes Paket weniger ist ein Startfehler weniger.
+ */
+function datenbank(url: string, schluessel: string) {
+  const kopf = {
+    apikey: schluessel,
+    Authorization: `Bearer ${schluessel}`,
+    'Content-Type': 'application/json',
+  };
+  return {
+    async holen(pfad: string) {
+      const a = await fetch(`${url}/rest/v1/${pfad}`, { headers: kopf });
+      return a.ok ? await a.json() : [];
+    },
+    async aendern(pfad: string, werte: unknown) {
+      await fetch(`${url}/rest/v1/${pfad}`, {
+        method: 'PATCH',
+        headers: { ...kopf, Prefer: 'return=minimal' },
+        body: JSON.stringify(werte),
+      });
+    },
+    async loeschen(pfad: string) {
+      await fetch(`${url}/rest/v1/${pfad}`, { method: 'DELETE', headers: kopf });
+    },
+  };
+}
+
+// --- Der Dienst --------------------------------------------------------------
+
 Deno.serve(async (anfrage) => {
+  const umgebung = (name: string) => Deno.env.get(name) ?? '';
+
+  // Ein Blick von aussen, ohne Geheimnis: laeuft der Dienst, und sind seine
+  // Einstellungen gesetzt? Die Werte selbst gibt er nicht heraus, nur ob sie
+  // da sind. Ohne diese Auskunft bleibt bei einem Fehlschlag nur Raten.
+  if (anfrage.method === 'GET') {
+    return Response.json({
+      dienst: 'plan-meldung',
+      laeuft: true,
+      eingerichtet: {
+        PLAN_MELDUNG_SECRET: umgebung('PLAN_MELDUNG_SECRET') !== '',
+        VAPID_PUBLIC_KEY: umgebung('VAPID_PUBLIC_KEY') !== '',
+        VAPID_PRIVATE_KEY: umgebung('VAPID_PRIVATE_KEY') !== '',
+        SUPABASE_URL: umgebung('SUPABASE_URL') !== '',
+        SUPABASE_SERVICE_ROLE_KEY: umgebung('SUPABASE_SERVICE_ROLE_KEY') !== '',
+      },
+    });
+  }
+
   // Nur die Datenbank darf hier hineinrufen. Ohne diese Pruefung koennte
   // jeder, der die Adresse kennt, Meldungen an die Belegschaft schicken.
-  const geheim = Deno.env.get('PLAN_MELDUNG_SECRET');
+  const geheim = umgebung('PLAN_MELDUNG_SECRET');
   if (!geheim || anfrage.headers.get('x-plan-secret') !== geheim) {
     return new Response('Nicht erlaubt', { status: 401 });
   }
 
+  const oeffentlich = umgebung('VAPID_PUBLIC_KEY');
+  const privat = umgebung('VAPID_PRIVATE_KEY');
+  if (!oeffentlich || !privat) {
+    return Response.json({ fehler: 'VAPID-Schlüssel fehlen' }, { status: 500 });
+  }
+  const absender = umgebung('VAPID_SUBJECT') || 'mailto:info@dreambowl.de';
+
   const { week_start, data, old_data } = await anfrage.json();
+  const db = datenbank(umgebung('SUPABASE_URL'), umgebung('SUPABASE_SERVICE_ROLE_KEY'));
 
-  webpush.setVapidDetails(
-    Deno.env.get('VAPID_SUBJECT') ?? 'mailto:info@dreambowl.de',
-    Deno.env.get('VAPID_PUBLIC_KEY')!,
-    Deno.env.get('VAPID_PRIVATE_KEY')!,
-  );
-
-  const db = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    // Dienstschluessel: die Zuordnung von Namen zu Konten und die Geraete
-    // stehen hinter Zeilenrechten, und dieser Dienst handelt fuer niemanden
-    // bestimmten.
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-  );
-
-  const { data: leute } = await db
-    .from('roster_employees')
-    .select('id, name, profile_id')
-    .eq('active', true)
-    .not('profile_id', 'is', null);
+  const leute = (await db.holen(
+    'roster_employees?select=id,name,profile_id&active=eq.true&profile_id=not.is.null',
+  )) as { id: string; name: string; profile_id: string }[];
 
   let verschickt = 0;
   let entfernt = 0;
+  let betroffen = 0;
 
-  for (const person of leute ?? []) {
-    const vorher = (old_data?.[person.id]?.d ?? []) as Tag[];
-    const nachher = (data?.[person.id]?.d ?? []) as Tag[];
-    const meine = unterschied(vorher, nachher);
+  for (const person of leute) {
+    const meine = unterschied(
+      (old_data?.[person.id]?.d ?? []) as Tag[],
+      (data?.[person.id]?.d ?? []) as Tag[],
+    );
     if (meine.length === 0) continue; // betrifft diese Person nicht
+    betroffen++;
 
-    const { data: geraete } = await db
-      .from('push_geraete')
-      .select('id, endpunkt, p256dh, auth')
-      .eq('user_id', person.profile_id);
+    const geraete = (await db.holen(
+      `push_geraete?select=id,endpunkt,p256dh,auth&user_id=eq.${person.profile_id}`,
+    )) as { id: string; endpunkt: string; p256dh: string; auth: string }[];
 
     const nachricht = JSON.stringify({
       titel: 'Deine Schicht hat sich geändert',
@@ -95,36 +150,42 @@ Deno.serve(async (anfrage) => {
       woche: week_start,
     });
 
-    for (const geraet of geraete ?? []) {
+    for (const geraet of geraete) {
       try {
-        await webpush.sendNotification(
-          {
-            endpoint: geraet.endpunkt,
-            keys: { p256dh: geraet.p256dh, auth: geraet.auth },
+        const antwort = await fetch(geraet.endpunkt, {
+          method: 'POST',
+          headers: {
+            TTL: '86400',
+            Urgency: 'normal',
+            'Content-Encoding': 'aes128gcm',
+            'Content-Type': 'application/octet-stream',
+            Authorization: await ausweis(geraet.endpunkt, oeffentlich, privat, absender),
           },
-          nachricht,
-        );
-        verschickt++;
-        await db.from('push_geraete').update({ last_ok_at: new Date().toISOString(), fehler: 0 }).eq('id', geraet.id);
-      } catch (fehler) {
-        const code = (fehler as { statusCode?: number }).statusCode;
-        // 404 und 410 heissen: dieses Geraet gibt es nicht mehr. Behalten
-        // wuerde nur dazu fuehren, dass bei jeder Aenderung ins Leere
-        // geschickt wird.
-        if (code === 404 || code === 410) {
-          await db.from('push_geraete').delete().eq('id', geraet.id);
+          body: await verschluesseln(geraet.p256dh, geraet.auth, nachricht),
+        });
+
+        if (antwort.ok) {
+          verschickt++;
+          await db.aendern(`push_geraete?id=eq.${geraet.id}`, {
+            last_ok_at: new Date().toISOString(),
+            fehler: 0,
+          });
+        } else if (antwort.status === 404 || antwort.status === 410) {
+          // Dieses Geraet gibt es nicht mehr. Behalten hiesse, bei jeder
+          // Aenderung ins Leere zu schicken.
+          await db.loeschen(`push_geraete?id=eq.${geraet.id}`);
           entfernt++;
         } else {
-          // Andere Fehler sind voruebergehend (Netz, Ueberlastung). Das Geraet
-          // bleibt stehen; beim naechsten Mal klappt es meist.
-          await db
-            .from('push_geraete')
-            .update({ fehler: (geraet as { fehler?: number }).fehler ?? 0 })
-            .eq('id', geraet.id);
+          // Sonstiges ist meist voruebergehend. Der Zaehler macht sichtbar,
+          // wenn ein Geraet dauerhaft klemmt.
+          console.error('Zustellung abgelehnt', antwort.status, await antwort.text());
+          await db.aendern(`push_geraete?id=eq.${geraet.id}`, { fehler: 1 });
         }
+      } catch (fehler) {
+        console.error('Versand fehlgeschlagen', String(fehler));
       }
     }
   }
 
-  return Response.json({ verschickt, entfernt });
+  return Response.json({ betroffen, verschickt, entfernt });
 });
