@@ -26,15 +26,19 @@ Environment variables):
 
 Danach neu bauen lassen, sonst kennt das Programm ihn nicht.
 
-**4. Datenbank verbinden.** Die Migration `20260823091000_plan_meldung_ausloeser.sql`
-legt den Auslöser an. Vorher müssen zwei Werte gesetzt sein, damit die Datenbank
+**4. Datenbank verbinden.** Zwei Zeilen im SQL-Editor, damit die Datenbank
 weiß, wohin sie rufen soll:
 
 ```sql
-alter database postgres set app.meldung_url =
-  'https://<projekt>.supabase.co/functions/v1/plan-meldung';
-alter database postgres set app.meldung_secret = '<derselbe Wert wie oben>';
+insert into app_konfiguration (schluessel, wert, notiz) values
+  ('meldung_url', 'https://<projekt>.supabase.co/functions/v1/plan-meldung', 'Adresse des Versanddienstes'),
+  ('meldung_secret', '<derselbe Wert wie oben>', 'Weist den Ruf der Datenbank aus')
+on conflict (schluessel) do update set wert = excluded.wert, updated_at = now();
 ```
+
+Nicht als Datenbankparameter: die Rolle, mit der man auf Supabase arbeitet,
+darf keine setzen. Die Tabelle hat bewusst keine Zeilenregeln — damit kommt
+über die Schnittstelle niemand an das Geheimwort.
 
 ## Warum es diesen Umweg braucht
 
