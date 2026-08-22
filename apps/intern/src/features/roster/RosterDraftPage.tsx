@@ -806,10 +806,40 @@ function TvView({
     localStorage.setItem('dienstplan-tv-form', form);
   }, [form]);
 
+  /**
+   * Wie breit der Aufbau angelegt wird.
+   *
+   * Die Wandtafel ist eigens fuer die Wand gebaut — ihre Breite haengt an der
+   * Zahl der Namen und ist damit gesetzt.
+   *
+   * Die Editor-Ansicht ist dagegen die Bildschirmtabelle, und die soll das
+   * Bild fuellen statt klein in der Mitte zu stehen. Skalieren allein reicht
+   * dafuer nicht: passt sie in der Hoehe, bleibt links und rechts Platz. Also
+   * wird die Breite so gewaehlt, dass die anschliessende Skalierung beides
+   * zugleich ausfuellt — Breite mal Hoehenverhaeltnis. Die Hoehe der Tabelle
+   * haengt kaum von ihrer Breite ab, deshalb steht das Ergebnis nach einer
+   * Nachmessung. Gestreckt wird nichts, nur gleichmaessig vergroessert.
+   */
+  const [editorBreite, setEditorBreite] = useState(1600);
+  const aufbauBreite = form === 'tafel' ? tafelBreite(employees.length) : editorBreite;
+
   const fit = useCallback(() => {
     const box = boxRef.current;
     const inner = innerRef.current;
     if (!box || !inner) return;
+
+    if (form === 'editor') {
+      const gewuenscht = Math.round(
+        (box.clientWidth * inner.offsetHeight) / Math.max(box.clientHeight, 1),
+      );
+      const begrenzt = Math.min(2600, Math.max(900, gewuenscht));
+      // Nur bei nennenswertem Unterschied nachziehen, sonst pendelt die
+      // Rechnung zwischen zwei Werten hin und her.
+      if (Math.abs(begrenzt - inner.offsetWidth) > 12) {
+        setEditorBreite(begrenzt);
+        return;
+      }
+    }
     // Die Transformation aendert die Groesse des Elements nicht — gemessen wird
     // also immer der unskalierte Aufbau, egal wie oft wir nachrechnen.
     const byWidth = box.clientWidth / inner.offsetWidth;
@@ -822,7 +852,7 @@ function TvView({
     const dx = (box.clientWidth - inner.offsetWidth * scale) / 2;
     const dy = (box.clientHeight - inner.offsetHeight * scale) / 2;
     setFitted({ scale, dx, dy });
-  }, []);
+  }, [form]);
 
   useLayoutEffect(() => {
     fit();
@@ -834,7 +864,7 @@ function TvView({
       ro.disconnect();
       window.removeEventListener('resize', fit);
     };
-  }, [fit, form]);
+  }, [fit, form, editorBreite]);
 
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => ev.key === 'Escape' && onClose();
@@ -874,24 +904,29 @@ function TvView({
         </button>
       </div>
 
-      {/* Der Rahmen misst ohne eigene Polsterung, damit die Rechnung aufgeht;
-          die Luft steckt im Inhalt. */}
+      {/* Zwei Wege, den Platz zu fuellen — je nachdem, was gezeigt wird.
+
+          Die Wandtafel ist eigens fuer die Wand gebaut: fester Aufbau, der als
+          Ganzes passend skaliert wird. Sie soll ihre Verhaeltnisse behalten.
+
+          Die Editor-Ansicht ist die Bildschirmtabelle. Sie zu skalieren hiess,
+          sie klein in die Mitte zu stellen — bei neunzehn Namen blieben rechts
+          und links zusammen 560 Punkte leer. Eine Tabelle kann sich aber selbst
+          strecken: volle Breite fuer die Spalten, volle Hoehe fuer die Zeilen,
+          und der Browser verteilt den Platz. Nichts wird dabei verzerrt, es
+          steht nur alles weiter auseinander. */}
       <div ref={boxRef} className="flex-1 overflow-hidden">
         <div
           ref={innerRef}
-          /* Der Tag wird schmaler aufgebaut als die Woche: er hat weniger
-             Zeilen und darf deshalb weiter aufgeblasen werden, bis er die
-             Hoehe ausfuellt. Bei gleicher Breite bliebe das halbe Bild leer. */
           className="plan-tv origin-top-left px-4 py-2"
           style={{
-            width: tafelBreite(employees.length),
+            width: aufbauBreite,
             transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})`,
           }}
         >
           {/* Keine Kopfzeile: die Tagesspalten tragen das Datum bereits, und
               jede Zeile oben kostet Schriftgroesse in allen Feldern darunter.
-              Die Kalenderwoche steht in der leeren Ecke ueber der Namensspalte
-              — dort ist ohnehin Platz. */}
+              Die Kalenderwoche steht in der leeren Ecke ueber der Namensspalte. */}
           {form === 'tafel' ? (
             <TvMatrix
               employees={employees}
