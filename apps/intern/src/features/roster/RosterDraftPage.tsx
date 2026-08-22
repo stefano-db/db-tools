@@ -67,10 +67,13 @@ const gruppe = (no: number) => GROUPS.find((g) => g.no === no) ?? GROUPS[0];
  * Flaeche, damit sie auch aus der Entfernung traegt.
  */
 const ABWESEND: Record<string, { background: string; color: string }> = {
-  frei: { background: '#b7e4bd', color: '#14532d' },
-  urlaub: { background: '#ffd977', color: '#6b4400' },
-  krank: { background: '#ffb4ae', color: '#7f1d1d' },
-  nein: { background: '#e8e2d6', color: '#8a8175' },
+  // Das Wort steht leiser als die Flaeche — es benennt nur, was die Farbe
+  // schon gesagt hat. Nicht beliebig blass allerdings: bei rund 3,7:1 tritt es
+  // zurueck und bleibt aus der Naehe trotzdem lesbar.
+  frei: { background: '#b7e4bd', color: '#4a7752' },
+  urlaub: { background: '#ffd977', color: '#8a6a28' },
+  krank: { background: '#ffb4ae', color: '#8e4f4a' },
+  nein: { background: '#e8e2d6', color: '#a9a094' },
 };
 
 const ABWESEND_WORT: Record<string, string> = {
@@ -1032,9 +1035,16 @@ export function TvMatrix({
                           return (
                             <div
                               className="rounded-lg bg-white px-2 py-1 text-center"
-                              style={
-                                fremd ? { boxShadow: `inset 0 0 0 2px ${tint(b.color, 70)}` } : undefined
-                              }
+                              style={{
+                                // Ein leichter Rand in der Bereichsfarbe fasst
+                                // die Zeit ein und bindet sie an ihren Bereich.
+                                // Die fremde Schicht bekommt ihn kraeftiger —
+                                // sie soll auffallen, nicht nur dazugehoeren.
+                                boxShadow: `inset 0 0 0 ${fremd ? 2 : 1}px ${tint(
+                                  b.color,
+                                  fremd ? 70 : 32,
+                                )}`,
+                              }}
                               title={fremd ? b.name : undefined}
                             >
                               <span
@@ -1056,7 +1066,7 @@ export function TvMatrix({
                         // in einer Sekunde ab, wer da ist. Weiss bleibt der
                         // Arbeitstag, damit die Zeit darauf steht.
                         <div
-                          className="rounded-lg px-2 py-1 text-center text-lg font-extrabold"
+                          className="rounded-lg px-2 py-1 text-center text-base font-semibold"
                           style={ABWESEND[day.status]}
                         >
                           {ABWESEND_WORT[day.status]}
