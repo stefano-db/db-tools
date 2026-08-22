@@ -19,6 +19,22 @@ self.addEventListener('activate', (ereignis) => {
   ereignis.waitUntil(self.clients.claim());
 });
 
+/**
+ * Wohin ein Tippen führen darf.
+ *
+ * Nur auf diese Seite, nie nach draußen. Der Weg kommt aus der Meldung, und
+ * eine Meldung kommt über fremde Rechner — die von Apple und Google. Ohne
+ * diese Schranke wäre ein Fingertipp auf eine gefälschte Meldung ein Sprung
+ * auf eine fremde Seite, die aussieht wie diese hier und nach dem Passwort
+ * fragt. Zwei Schrägstriche am Anfang zählen als draußen: //fremde.seite ist
+ * eine vollständige Adresse, keine Unterseite.
+ */
+function nurHier(ziel) {
+  return typeof ziel === 'string' && ziel.startsWith('/') && !ziel.startsWith('//')
+    ? ziel
+    : '/dienstplan';
+}
+
 self.addEventListener('push', (ereignis) => {
   let inhalt = { titel: 'Dream Bowl', text: 'Es gibt eine Änderung.', ziel: '/dienstplan' };
   try {
@@ -37,14 +53,14 @@ self.addEventListener('push', (ereignis) => {
       // stapeln. Wer zehnmal etwas ändert, soll nicht zehn Zeilen erzeugen.
       tag: 'dienstplan',
       renotify: true,
-      data: { ziel: inhalt.ziel },
+      data: { ziel: nurHier(inhalt.ziel) },
     }),
   );
 });
 
 self.addEventListener('notificationclick', (ereignis) => {
   ereignis.notification.close();
-  const ziel = ereignis.notification.data?.ziel || '/dienstplan';
+  const ziel = nurHier(ereignis.notification.data?.ziel);
 
   ereignis.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((fenster) => {
