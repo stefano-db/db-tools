@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
 import { DEPARTMENT_LABEL, repository } from '../../data';
 import { Mascot } from '../../ui/Mascot';
 import { useVerbindung } from '../plan/Planwaechter';
+import { meldeAb, meldeAn, pruefeStand, type PushStand } from '../plan/pushAnmeldung';
 
 /**
  * Eigenes Konto.
@@ -115,6 +116,12 @@ function Benachrichtigungen() {
     moeglich ? Notification.permission : 'nicht-moeglich',
   );
   const verbindung = useVerbindung();
+  const [push, setPush] = useState<PushStand | null>(null);
+  const [pushLaeuft, setPushLaeuft] = useState(false);
+
+  useEffect(() => {
+    void pruefeStand().then(setPush);
+  }, []);
 
   return (
     <article className="db-card p-5">
@@ -181,11 +188,57 @@ function Benachrichtigungen() {
         </button>
       )}
 
-      <p className="mt-4 text-xs text-db-text3">
-        Solange die App geöffnet ist — auch im Hintergrund —, kommt die Meldung sofort. Damit sie
-        dich auch bei geschlossener App erreicht, muss noch ein Versanddienst eingerichtet werden.
-        Am iPhone geht das nur, wenn die App auf dem Startbildschirm liegt.
-      </p>
+      {/* Zweite Stufe: die Meldung auch dann, wenn die App zu ist. Sie haengt
+          an einem eigenen Dienst und wird deshalb getrennt an- und abgemeldet —
+          und getrennt angezeigt, damit man nicht raet, welche Stufe gerade
+          fehlt. */}
+      <div className="mt-5 border-t border-db-line pt-4">
+        <h3 className="text-sm font-semibold">Auch bei geschlossener App</h3>
+
+        {push?.art === 'angemeldet' ? (
+          <>
+            <p className="mt-1 text-sm text-db-ok">● Dieses Gerät ist angemeldet ({push.geraet}).</p>
+            <button
+              disabled={pushLaeuft}
+              onClick={() => {
+                setPushLaeuft(true);
+                void meldeAb()
+                  .then(setPush)
+                  .finally(() => setPushLaeuft(false));
+              }}
+              className="db-btn-ghost mt-3 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              Dieses Gerät abmelden
+            </button>
+          </>
+        ) : push?.art === 'unmoeglich' ? (
+          <p className="mt-1 text-sm text-db-text3">{push.grund}</p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-db-text2">
+              Dann kommt die Meldung auch, wenn du die App geschlossen hast.
+            </p>
+            <button
+              disabled={pushLaeuft}
+              onClick={() => {
+                setPushLaeuft(true);
+                void meldeAn()
+                  .then(setPush)
+                  .catch((e) => setPush({ art: 'unmoeglich', grund: String(e?.message ?? e) }))
+                  .finally(() => setPushLaeuft(false));
+              }}
+              className="db-btn-gold mt-3 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              {pushLaeuft ? 'Wird eingerichtet…' : 'Dieses Gerät anmelden'}
+            </button>
+          </>
+        )}
+
+        <p className="mt-3 text-xs text-db-text3">
+          Am iPhone geht das nur, wenn die App auf dem Startbildschirm liegt — das ist eine Vorgabe
+          von Apple und keine Einstellung. Jedes Gerät meldet sich einzeln an.
+        </p>
+      </div>
     </article>
   );
 }

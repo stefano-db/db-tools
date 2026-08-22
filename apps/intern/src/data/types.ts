@@ -429,6 +429,16 @@ export interface Repository {
   /** Fragen ohne Treffer — daraus waechst der Speicher. */
   offeneFragen(): Promise<{ id: string; frage: string; wann: string }[]>;
 
+  /** Dieses Geraet fuer Meldungen bei geschlossener App eintragen. */
+  pushGeraetSpeichern(geraet: {
+    endpunkt: string;
+    p256dh: string;
+    auth: string;
+    bezeichnung: string;
+  }): Promise<void>;
+  /** Dieses Geraet wieder austragen. */
+  pushGeraetEntfernen(endpunkt: string): Promise<void>;
+
   /** Freigabe-Links verwalten — nur Leitungen und Administratoren. */
   listShareLinks(): Promise<ShareLink[]>;
   createShareLink(label: string): Promise<ShareLink>;

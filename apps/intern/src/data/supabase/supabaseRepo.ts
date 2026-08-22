@@ -733,6 +733,37 @@ export class SupabaseRepository implements Repository {
     return (data ?? []).map((f: any) => ({ id: f.id, frage: f.frage, wann: f.created_at }));
   }
 
+  async pushGeraetSpeichern(geraet: {
+    endpunkt: string;
+    p256dh: string;
+    auth: string;
+    bezeichnung: string;
+  }): Promise<void> {
+    const userId = await this.userId();
+    if (!userId) throw new Error('Nicht angemeldet.');
+
+    // Auf die Adresse abgestimmt: dasselbe Geraet meldet sich nach jedem
+    // Neuinstallieren erneut an, und zwei Eintraege dafuer waeren zwei
+    // Meldungen fuer dieselbe Person.
+    const { error } = await this.client.from('push_geraete').upsert(
+      {
+        user_id: userId,
+        endpunkt: geraet.endpunkt,
+        p256dh: geraet.p256dh,
+        auth: geraet.auth,
+        bezeichnung: geraet.bezeichnung,
+        fehler: 0,
+      },
+      { onConflict: 'endpunkt' },
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  async pushGeraetEntfernen(endpunkt: string): Promise<void> {
+    const { error } = await this.client.from('push_geraete').delete().eq('endpunkt', endpunkt);
+    if (error) throw new Error(error.message);
+  }
+
   async listShareLinks(): Promise<any[]> {
     const { data, error } = await this.client
       .from('roster_share_links')

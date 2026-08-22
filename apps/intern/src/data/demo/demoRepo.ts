@@ -171,6 +171,10 @@ export class DemoRepository implements Repository {
     return [];
   }
 
+  async pushGeraetSpeichern() {}
+
+  async pushGeraetEntfernen() {}
+
   async listShareLinks() {
     return [];
   }
