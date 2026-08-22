@@ -119,9 +119,21 @@ body.db {
 }
 
 /* Eingabefelder — überall gleich, damit sie auf dunklem Grund lesbar bleiben. */
+/* Volle Breite nur als Vorgabe.
+   Die Regel steht in der Komponentenschicht, damit eine gesetzte Breitenklasse
+   sie ueberschreiben kann: Tailwind ordnet seine Hilfsklassen in der Schicht
+   dahinter ein. Ungeschichtet gewinnt dagegen immer die eigene Regel, egal wie
+   spezifisch die andere ist — daran ist in der Mitarbeiterliste das
+   Auswahlfeld auf volle Zeilenbreite gewachsen und hat den Namen daneben auf
+   null gedrueckt. */
+@layer components {
+  .db-input {
+    width: 100%;
+  }
+}
+
 .db-input {
   font-size: 16px;
-  width: 100%;
   background: var(--color-db-card2);
   border: 1px solid var(--color-db-line);
   border-radius: 10px;
@@ -292,9 +304,14 @@ body.db-breit .db-kopfzeile {
   border-color: color-mix(in srgb, var(--color-lw-bad) 45%, transparent);
 }
 
+@layer components {
+  .lw-input {
+    width: 100%;
+  }
+}
+
 .lw-input {
   font-size: 16px;
-  width: 100%;
   background: var(--color-lw-card);
   border: 1px solid var(--color-lw-line2);
   border-radius: 8px;
