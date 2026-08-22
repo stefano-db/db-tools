@@ -276,6 +276,8 @@ export type RosterWeekData = Record<string, { d: ShiftDay[] }>;
 
 /** Die eigene Woche — Grundlage für „nächste Schicht" und den Wochenstreifen. */
 export interface MyWeek {
+  /** Der Name im Plan — noetig, um bei einer Aenderung zu erkennen, ob sie mich betrifft. */
+  employeeId: string;
   employeeName: string;
   weekStart: ISODate;
   days: ShiftDay[];
@@ -359,6 +361,14 @@ export interface Repository {
   linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void>;
   /** Die eigene laufende Woche. null, wenn das Konto keinem Namen zugeordnet ist. */
   myWeek(): Promise<MyWeek | null>;
+  /**
+   * Aenderungen an einer Woche melden, solange die Seite offen ist.
+   *
+   * Gibt die Abmeldefunktion zurueck. Uebergeben wird der neue Stand der
+   * ganzen Woche — wer davon betroffen ist, entscheidet die Oberflaeche, denn
+   * nur sie weiss, wessen Plan gerade angezeigt wird.
+   */
+  watchRosterWeek(weekStart: ISODate, beiAenderung: (data: RosterWeekData) => void): () => void;
   /** Eine ganze Woche lesen — Montagsdatum als YYYY-MM-DD. */
   rosterWeek(weekStart: ISODate): Promise<RosterWeekData>;
   /**

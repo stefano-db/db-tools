@@ -192,6 +192,10 @@ export class DemoRepository implements Repository {
     return null;
   }
 
+  watchRosterWeek() {
+    return () => {};
+  }
+
   async rosterWeek() {
     return {};
   }

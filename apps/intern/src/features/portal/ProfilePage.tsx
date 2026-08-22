@@ -69,6 +69,8 @@ export function ProfilePage() {
         {state === 'error' && <p className="mt-2 text-sm text-db-bad">■ {message}</p>}
       </article>
 
+      <Benachrichtigungen />
+
       <article className="db-card p-5">
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">Anmeldung</h2>
         <dl className="mt-3 space-y-2 text-sm">
@@ -91,5 +93,64 @@ export function ProfilePage() {
         </button>
       </article>
     </div>
+  );
+}
+
+/**
+ * Benachrichtigungen einschalten.
+ *
+ * Gefragt wird hier und nicht beim ersten Aufruf: Ein Fenster, das ungefragt
+ * nach Erlaubnis fragt, lehnen die meisten Menschen ab — und danach ist der
+ * Weg zu, bis jemand die Einstellung des Geraets von Hand aendert. Wer den
+ * Knopf hier drueckt, weiss dagegen, worum es geht.
+ *
+ * Was heute geht, steht offen dabei. Eine Meldung, die auch bei geschlossener
+ * App ankommt, braucht einen Dienst, der sie verschickt; das ist der naechste
+ * Schritt und nicht dieser.
+ */
+function Benachrichtigungen() {
+  const moeglich = typeof Notification !== 'undefined';
+  const [stand, setStand] = useState<NotificationPermission | 'nicht-moeglich'>(
+    moeglich ? Notification.permission : 'nicht-moeglich',
+  );
+
+  return (
+    <article className="db-card p-5">
+      <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
+        Benachrichtigungen
+      </h2>
+
+      <p className="mt-3 text-sm text-db-text2">
+        Wenn die Leitung den Dienstplan ändert, meldet sich die App — und sagt dazu, ob{' '}
+        <strong className="text-db-text">deine</strong> Schichten betroffen sind oder nur die von
+        anderen.
+      </p>
+
+      {stand === 'granted' ? (
+        <p className="mt-3 text-sm text-db-ok">● Eingeschaltet.</p>
+      ) : stand === 'denied' ? (
+        <p className="mt-3 text-sm text-db-text3">
+          Von diesem Gerät abgelehnt. Du kannst es in den Einstellungen des Browsers wieder
+          erlauben — in der App allein geht es dann nicht mehr.
+        </p>
+      ) : stand === 'nicht-moeglich' ? (
+        <p className="mt-3 text-sm text-db-text3">
+          Dieses Gerät kennt keine Benachrichtigungen. Die Meldung erscheint dann in der App.
+        </p>
+      ) : (
+        <button
+          onClick={() => void Notification.requestPermission().then(setStand)}
+          className="db-btn-gold mt-4 px-4 py-2 text-sm"
+        >
+          Benachrichtigungen einschalten
+        </button>
+      )}
+
+      <p className="mt-4 text-xs text-db-text3">
+        Solange die App geöffnet ist — auch im Hintergrund —, kommt die Meldung sofort. Damit sie
+        dich auch bei geschlossener App erreicht, muss noch ein Versanddienst eingerichtet werden.
+        Am iPhone geht das nur, wenn die App auf dem Startbildschirm liegt.
+      </p>
+    </article>
   );
 }

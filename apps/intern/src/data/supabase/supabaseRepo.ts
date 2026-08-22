@@ -562,10 +562,37 @@ export class SupabaseRepository implements Repository {
 
     const entry = week?.data?.[emp.id];
     return {
+      employeeId: emp.id,
       employeeName: emp.name,
       weekStart: monday,
       days: entry?.d ?? [],
       updatedAt: week?.updated_at ?? null,
+    };
+  }
+
+  /**
+   * Auf Aenderungen einer Woche hoeren.
+   *
+   * Die Tabelle ist fuer die Echtzeit freigegeben, und die Zeilenrechte gelten
+   * auch hier: geliefert wird nur, was der Angemeldete ohnehin lesen darf.
+   */
+  watchRosterWeek(weekStart: string, beiAenderung: (data: any) => void): () => void {
+    const kanal = this.client
+      .channel(`plan-${weekStart}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'roster_weeks',
+          filter: `week_start=eq.${weekStart}`,
+        },
+        (nutzlast: any) => beiAenderung(nutzlast.new?.data ?? {}),
+      )
+      .subscribe();
+
+    return () => {
+      void this.client.removeChannel(kanal);
     };
   }
 

@@ -4,6 +4,7 @@ import { useAuth } from './AuthContext';
 import { DEPARTMENT_LABEL } from '../data';
 import { Logo, Mascot } from '../ui/Mascot';
 import { ChatBlase } from '../features/chat/ChatBlase';
+import { Planwaechter } from '../features/plan/Planwaechter';
 
 /**
  * Rahmen der Plattform: Seitenleiste am Rechner, Reiterleiste am Handy.
@@ -158,6 +159,9 @@ export function AppLayout() {
 
         {/* Pinny in Reichweite, auf jeder Seite. */}
         <ChatBlase />
+
+        {/* Meldet Aenderungen am eigenen Plan, solange die Seite offen ist. */}
+        <Planwaechter />
       </div>
 
       {/* Reiterleiste — nur am Handy */}
