@@ -799,8 +799,9 @@ function TvView({
   // die Editor-Ansicht, wie sie am Rechner steht, nur passend gerechnet. Was
   // im Center besser funktioniert, entscheidet sich vor dem Geraet und nicht
   // hier — die Wahl bleibt deshalb gespeichert.
-  const [form, setForm] = useState<'tafel' | 'editor'>(
-    () => (localStorage.getItem('dienstplan-tv-form') as 'tafel' | 'editor') ?? 'tafel',
+  const [form, setForm] = useState<'tafel' | 'mosaik' | 'editor'>(
+    () =>
+      (localStorage.getItem('dienstplan-tv-form') as 'tafel' | 'mosaik' | 'editor') ?? 'tafel',
   );
   useEffect(() => {
     localStorage.setItem('dienstplan-tv-form', form);
@@ -821,7 +822,7 @@ function TvView({
    * Nachmessung. Gestreckt wird nichts, nur gleichmaessig vergroessert.
    */
   const [editorBreite, setEditorBreite] = useState(1600);
-  const aufbauBreite = form === 'tafel' ? tafelBreite(employees.length) : editorBreite;
+  const aufbauBreite = form === 'editor' ? editorBreite : tafelBreite(employees.length);
 
   const fit = useCallback(() => {
     const box = boxRef.current;
@@ -891,6 +892,7 @@ function TvView({
         {(
           [
             ['tafel', 'Wandtafel'],
+            ['mosaik', 'Mosaik'],
             ['editor', 'Editor-Ansicht'],
           ] as const
         ).map(([key, label]) => (
@@ -920,6 +922,24 @@ function TvView({
           strecken: volle Breite fuer die Spalten, volle Hoehe fuer die Zeilen,
           und der Browser verteilt den Platz. Nichts wird dabei verzerrt, es
           steht nur alles weiter auseinander. */}
+      {/* Das Mosaik wird nicht skaliert, sondern gedehnt.
+          Seine Kacheln haben durch Polster und Schriftgroesse bereits ihre
+          natuerliche Breite — vergroessern liesse sich da nichts, und auf einem
+          1080er Schirm blieben 44 Prozent der Hoehe leer. Eine Tabelle mit
+          fester Hoehe verteilt den uebrigen Platz aber selbst auf ihre Zeilen:
+          die Flaechen werden groesser, die Schrift bleibt, wo sie hingehoert.
+          Genau das will ein Mosaik. */}
+      {form === 'mosaik' ? (
+        <div className="plan-tv plan-tv-dehnen flex-1 overflow-hidden px-5 py-3">
+          <TvMosaik
+            employees={employees}
+            days={days}
+            todayIndex={todayIndex}
+            weekOf={weekOf}
+            woche={`KW ${isoWeekNumber(monday)}`}
+          />
+        </div>
+      ) : (
       <div ref={boxRef} className="flex-1 overflow-hidden">
         <div
           ref={innerRef}
@@ -952,6 +972,7 @@ function TvView({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -974,6 +995,175 @@ export function tafelBreite(zeilen: number): number {
   // Durch zwei Punkte gelegt: bei fuenf Namen rund 1050 Punkte, bei neunzehn
   // die volle Breite. Dazwischen waechst der Aufbau mit jedem Namen um 55.
   return Math.round(Math.min(1820, Math.max(1000, 775 + zeilen * 55)));
+}
+
+/**
+ * Dritter Entwurf: das Mosaik.
+ *
+ * Derselbe Auftrag, anderer Grundgedanke. Die Wandtafel setzt eine weisse
+ * Kapsel auf eine getoente Zeile — die Farbe liegt also *hinter* der Auskunft.
+ * Hier ist die Zelle selbst die Farbe: jedes Feld ist eine geschlossene
+ * Flaeche, und die Woche wird zum Muster, das man aus zehn Metern liest, bevor
+ * man ueberhaupt eine Zahl erkennt. Weiss heisst Dienst, gruen frei, gelb
+ * Urlaub, rot krank.
+ *
+ * Was aus den bisherigen Anforderungen uebernommen ist:
+ *
+ *   Eine Person bleibt eine Zeile, sonst kann man niemanden ueber die Woche
+ *   verfolgen. Bereiche haben Farbe und Zeichen und stehen als Band ueber
+ *   ihrer Gruppe. Die Zeit steht schwarz und ruhig, Beginn fett, Ende leichter,
+ *   dazwischen der Pfeil. Freie Tage tragen ihr Wort leise. Der heutige Tag
+ *   ist markiert. Eine fremde Schicht zeigt das Zeichen ihres Bereichs.
+ *
+ * Was neu ist:
+ *
+ *   Keine Raender, keine Rundungen, keine Toenung der Zeile — nur Flaechen mit
+ *   schmaler weisser Fuge dazwischen. Der Bereich steht als kraeftiger Balken
+ *   an der Namensspalte statt als Toenung ueber der ganzen Zeile.
+ *
+ *   Unter den Spalten steht, wie viele an dem Tag im Dienst sind. Auf einer
+ *   Tafel, die aus der Ferne gelesen wird, ist das die zweite Frage nach
+ *   „arbeite ich" — und die Zahl beantwortet sie, ohne dass jemand zaehlt.
+ */
+export function TvMosaik({
+  employees,
+  days,
+  todayIndex,
+  weekOf,
+  woche,
+}: {
+  employees: Employee[];
+  days: Date[];
+  todayIndex: number;
+  weekOf: (id: string) => ShiftDay[];
+  woche: string;
+}) {
+  const gruppen = GROUPS.filter((g) => employees.some((e) => e.groupNo === g.no));
+
+  return (
+    <table className="w-full border-separate" style={{ borderSpacing: '3px' }}>
+      <thead>
+        <tr>
+          <th className="w-[200px] px-2 text-left align-bottom">
+            <span className="text-2xl font-extrabold text-lw-text3">{woche}</span>
+          </th>
+          {days.map((d, i) => {
+            const heute = i === todayIndex;
+            return (
+              <th
+                key={i}
+                className="px-2 py-1.5 text-center"
+                style={{
+                  background: heute ? 'rgba(224,160,56,0.22)' : 'transparent',
+                  color: heute ? '#8a5a10' : 'var(--color-lw-text2)',
+                }}
+              >
+                <div className="text-2xl leading-none font-extrabold">{DAY_SHORT[i]}</div>
+                <div className="mt-0.5 text-base leading-none">{formatDayMonth(d)}</div>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+
+      {gruppen.map((group) => (
+        <tbody key={group.no}>
+          <tr>
+            <td colSpan={8} className="pt-2">
+              <div
+                className="flex items-center gap-2 px-2 py-0.5 text-base font-extrabold tracking-wide uppercase"
+                style={{ color: group.color }}
+              >
+                <span>{group.symbol}</span>
+                {group.name}
+              </div>
+            </td>
+          </tr>
+
+          {employees
+            .filter((e) => e.groupNo === group.no)
+            .map((emp) => {
+              const week = weekOf(emp.id);
+              return (
+                <tr key={emp.id}>
+                  <th
+                    scope="row"
+                    className="px-3 py-1 text-left text-xl font-bold whitespace-nowrap"
+                    style={{
+                      background: '#ffffff',
+                      // Der Bereich als Balken statt als Toenung: er ordnet die
+                      // Zeile, ohne sich unter die Farbflaechen zu mischen.
+                      borderLeft: `6px solid ${group.color}`,
+                    }}
+                  >
+                    {emp.name}
+                  </th>
+
+                  {week.map((day, i) => {
+                    const b = gruppe(bereichDerSchicht(day, emp.groupNo));
+                    const fremd = day.status === 'dienst' && b.no !== emp.groupNo;
+                    const flaeche =
+                      day.status === 'dienst' ? { background: '#ffffff' } : ABWESEND[day.status];
+
+                    return (
+                      <td
+                        key={i}
+                        className="px-2 py-1.5 text-center align-middle"
+                        style={{
+                          ...flaeche,
+                          // Der heutige Tag bekommt einen Rahmen um die ganze
+                          // Spalte statt einer eigenen Farbe — die ist hier
+                          // schon vergeben.
+                          boxShadow:
+                            i === todayIndex ? 'inset 0 0 0 2px rgba(224,160,56,0.55)' : undefined,
+                        }}
+                        title={fremd ? b.name : undefined}
+                      >
+                        {day.status === 'dienst' ? (
+                          <span className="tabular text-xl leading-tight whitespace-nowrap">
+                            {fremd && (
+                              <span className="mr-1" style={{ color: b.color }}>
+                                {b.symbol}
+                              </span>
+                            )}
+                            <span className="font-bold text-lw-text">{day.b}</span>
+                            <span className="mx-1 font-normal text-lw-text3">→</span>
+                            <span className="font-medium text-lw-text2">{day.e}</span>
+                          </span>
+                        ) : (
+                          <span
+                            className="text-base font-semibold"
+                            style={{ color: (ABWESEND[day.status] ?? {}).color }}
+                          >
+                            {ABWESEND_WORT[day.status]}
+                          </span>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+        </tbody>
+      ))}
+
+      <tfoot>
+        <tr>
+          <th className="px-3 pt-2 text-left text-sm font-semibold tracking-wide text-lw-text3 uppercase">
+            Im Dienst
+          </th>
+          {days.map((_, i) => {
+            const anzahl = employees.filter((e) => weekOf(e.id)[i].status === 'dienst').length;
+            return (
+              <td key={i} className="pt-2 text-center">
+                <span className="text-xl font-extrabold text-lw-text2">{anzahl}</span>
+              </td>
+            );
+          })}
+        </tr>
+      </tfoot>
+    </table>
+  );
 }
 
 /**

@@ -343,6 +343,20 @@ body.db-breit .db-kopfzeile {
 }
 
 
+/* Gedehnte Ansicht am Fernseher.
+   Die Tabelle bekommt eine feste Hoehe, und der Browser verteilt den uebrigen
+   Platz auf ihre Zeilen. Nichts wird verzerrt: die Flaechen wachsen, die
+   Schrift bleibt in ihrer Groesse. Fuer ein Mosaik ist das richtig — dort
+   traegt die Flaeche die Aussage, nicht der Schriftgrad. */
+.plan-tv-dehnen {
+  display: flex;
+  flex-direction: column;
+}
+.plan-tv-dehnen table {
+  width: 100%;
+  height: 100%;
+}
+
 /* Fernseher-Ansicht.
    Die Tafel bringt ihre Maße selbst mit — sie baut die Woche eigenstaendig
    auf, statt die Bildschirmtabelle zu verkleinern. Hier bleibt nur, was sie
