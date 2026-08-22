@@ -34,12 +34,27 @@ create table if not exists chat_wissen (
 
 -- Volltext auf Deutsch: „Schichten" findet „Schicht", „Bahnen" findet „Bahn".
 -- Der Titel wiegt am schwersten, dann die Schlagworte, dann der Text.
+--
+-- Der Umweg ueber eine eigene Funktion ist noetig: eine berechnete Spalte
+-- laesst nur Unveraenderliches zu, und array_to_string ist in Postgres als
+-- „stable" verzeichnet — vorsichtshalber, weil es fuer Felder jeden Typs gilt
+-- und deren Ausgabe von Einstellungen abhaengen kann. Fuer Text mit festem
+-- Trennzeichen trifft das nicht zu, deshalb die ausdrueckliche Huelle. Ohne
+-- sie weist die Datenbank die Spalte ab und die ganze Migration bricht.
+create or replace function public.chat_suchtext(
+  p_titel text, p_schlagworte text[], p_inhalt text
+) returns tsvector
+language sql
+immutable
+parallel safe
+as $$
+  select setweight(to_tsvector('german'::regconfig, coalesce(p_titel, '')), 'A') ||
+         setweight(to_tsvector('german'::regconfig, coalesce(array_to_string(p_schlagworte, ' '), '')), 'B') ||
+         setweight(to_tsvector('german'::regconfig, coalesce(p_inhalt, '')), 'C');
+$$;
+
 alter table chat_wissen add column if not exists suchtext tsvector
-  generated always as (
-    setweight(to_tsvector('german'::regconfig, coalesce(titel, '')), 'A') ||
-    setweight(to_tsvector('german'::regconfig, array_to_string(schlagworte, ' ')), 'B') ||
-    setweight(to_tsvector('german'::regconfig, coalesce(inhalt, '')), 'C')
-  ) stored;
+  generated always as (public.chat_suchtext(titel, schlagworte, inhalt)) stored;
 
 create index if not exists chat_wissen_suche_idx on chat_wissen using gin (suchtext);
 
