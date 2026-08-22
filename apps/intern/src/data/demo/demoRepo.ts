@@ -197,7 +197,11 @@ export class DemoRepository implements Repository {
   }
 
   async rosterWeek() {
-    return {};
+    return { data: {}, version: 0 };
+  }
+
+  async rosterWeekSpeichern() {
+    return { ok: true as const, version: 1 };
   }
 
   async myWeek() {

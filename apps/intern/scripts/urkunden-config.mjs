@@ -30,7 +30,9 @@ const url = process.env.VITE_SUPABASE_URL || fromEnvFile.VITE_SUPABASE_URL || ''
 const anonKey = process.env.VITE_SUPABASE_ANON_KEY || fromEnvFile.VITE_SUPABASE_ANON_KEY || '';
 
 // Beide eigenstaendigen Seiten brauchen dieselben Werte.
-for (const dir of ['public/urkunden', 'public/dienstplan']) {
+// Der bisherige Editor liegt seit dem Umstieg unter dienstplan-alt und
+// bleibt als Rueckfallweg erreichbar.
+for (const dir of ['public/urkunden', 'public/dienstplan-alt']) {
   const target = resolve(root, dir, 'config.json');
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, JSON.stringify({ url, anonKey }, null, 2) + '\n');

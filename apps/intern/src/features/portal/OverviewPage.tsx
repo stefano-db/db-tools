@@ -275,22 +275,12 @@ function SchichtKarte({
 
       {/* Rechts bleibt am Handy Platz frei: dort sitzt Pinnys Blase, und ein
           Knopf halb darunter waere nicht zu treffen. */}
-      <div className="mt-3 flex gap-2 pr-14 sm:mt-4 sm:pr-0">
-        <a
-          href="/dienstplan/index.html"
-          className="db-btn-ghost flex-1 px-4 py-2.5 text-center text-sm font-semibold"
-        >
-          Zum Dienstplan
-        </a>
-        {/* Am Rechner steht der Entwurf in der Nachbarkarte; am Handy gibt es
-            die nicht mehr, also hier. */}
-        <Link
-          to="/dienstplan-entwurf"
-          className="db-btn-ghost px-4 py-2.5 text-center text-sm font-semibold sm:hidden"
-        >
-          Entwurf
-        </Link>
-      </div>
+      <Link
+        to="/dienstplan"
+        className="db-btn-ghost mt-3 block px-4 py-2.5 text-center text-sm font-semibold sm:mt-4"
+      >
+        Zum Dienstplan
+      </Link>
     </article>
   );
 }
@@ -364,16 +354,9 @@ function WeekCard({
         <h2 className="text-sm font-semibold tracking-wide text-db-text3 uppercase">
           Diese Woche
         </h2>
-        <div className="flex items-center gap-2">
-          {/* Solange ueber das neue Modul entschieden wird, steht der Entwurf
-              daneben — auch am Handy, wo es keine Seitenleiste gibt. */}
-          <Link to="/dienstplan-entwurf" className="db-btn-ghost px-3 py-1.5 text-xs whitespace-nowrap">
-            Entwurf ansehen
-          </Link>
-          <a href="/dienstplan/index.html" className="db-btn-gold px-3 py-1.5 text-xs whitespace-nowrap">
-            Zum Dienstplan
-          </a>
-        </div>
+        <Link to="/dienstplan" className="db-btn-gold px-3 py-1.5 text-xs whitespace-nowrap">
+          Zum Dienstplan
+        </Link>
       </div>
 
       {/* Ab Tablet ist Platz fuer sieben Kaesten nebeneinander. */}

@@ -271,8 +271,15 @@ export interface PublicRoster {
   data: Record<string, { d: ShiftDay[] }>;
 }
 
-/** Eine ganze Woche: Name im Plan -> die sieben Tage. */
-export type RosterWeekData = Record<string, { d: ShiftDay[] }>;
+/**
+ * Eine ganze Woche, wie sie gespeichert liegt: Name im Plan -> seine Tage.
+ *
+ * Bewusst unbestimmt getypt. Was dort steht, ist JSON aus der Datenbank und
+ * kann aus einer aelteren Fassung des Editors stammen; geprueft wird es beim
+ * Lesen, nicht durch eine Zusage im Typ. `tot` ist die Wochensumme, die der
+ * bisherige Editor mitschreibt und erwartet.
+ */
+export type RosterWeekData = Record<string, { d: unknown[]; tot?: string }>;
 
 /** Die eigene Woche — Grundlage für „nächste Schicht" und den Wochenstreifen. */
 export interface MyWeek {
@@ -369,8 +376,28 @@ export interface Repository {
    * nur sie weiss, wessen Plan gerade angezeigt wird.
    */
   watchRosterWeek(weekStart: ISODate, beiAenderung: (data: RosterWeekData) => void): () => void;
-  /** Eine ganze Woche lesen — Montagsdatum als YYYY-MM-DD. */
-  rosterWeek(weekStart: ISODate): Promise<RosterWeekData>;
+  /**
+   * Eine ganze Woche lesen — samt Fassungsnummer.
+   *
+   * Ohne die Fassung liesse sich nicht speichern, ohne fremde Arbeit zu
+   * ueberschreiben: sie sagt, auf welchem Stand man aufgesetzt hat.
+   */
+  rosterWeek(weekStart: ISODate): Promise<{ data: RosterWeekData; version: number }>;
+  /**
+   * Eine Woche speichern.
+   *
+   * Gibt zurueck, ob es geklappt hat. Bei „veraltet" kommt der fremde Stand
+   * mit, damit die Oberflaeche ihn zeigen kann, statt ihn zu ueberschreiben.
+   */
+  rosterWeekSpeichern(
+    weekStart: ISODate,
+    data: RosterWeekData,
+    version: number,
+  ): Promise<
+    | { ok: true; version: number }
+    | { ok: false; grund: 'veraltet'; version: number; data: RosterWeekData }
+    | { ok: false; grund: 'keine_berechtigung' }
+  >;
   /**
    * Antwort auf eine Frage im Chat.
    *

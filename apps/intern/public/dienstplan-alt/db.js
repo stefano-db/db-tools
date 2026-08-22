@@ -67,7 +67,7 @@
 
       const { data: userData } = await sb.auth.getUser();
       if (!userData.user) {
-        window.location.replace('/?weiter=/dienstplan/');
+        window.location.replace('/?weiter=/dienstplan-alt/index.html');
         return false;
       }
       DB.userId = userData.user.id;

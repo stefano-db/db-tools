@@ -26,11 +26,7 @@ interface NavEntry {
 
 const MAIN: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
-  { to: '/dienstplan/index.html', label: 'Dienstplan', icon: '📅' },
-  // Der Entwurf des neuen Moduls steht daneben, solange entschieden wird. Der
-  // laufende Betrieb bleibt auf dem bisherigen Editor — er speichert, der
-  // Entwurf nicht.
-  { to: '/dienstplan-entwurf', label: 'Dienstplan (Entwurf)', icon: '✏️' },
+  { to: '/dienstplan', label: 'Dienstplan', icon: '📅' },
   { to: '/meine-schichten', label: 'Meine Schichten', icon: '🗓' },
   // Ohne Bereichspruefung: Fragen hat jeder, und wer nicht weiterweiss, soll
   // nicht erst suchen muessen, ob er darf.
@@ -51,7 +47,7 @@ const ACCOUNT: NavEntry[] = [{ to: '/profil', label: 'Profil', icon: '🙂' }];
 /** Am Handy nur die wichtigsten fünf — mehr passt nicht in eine Reiterleiste. */
 const MOBILE: NavEntry[] = [
   { to: '/', label: 'Übersicht', icon: '🏠', end: true },
-  { to: '/dienstplan/index.html', label: 'Plan', icon: '📅' },
+  { to: '/dienstplan', label: 'Plan', icon: '📅' },
   { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
   { to: '/dokumente', label: 'Docs', icon: '📁' },
   { to: '/profil', label: 'Profil', icon: '🙂' },

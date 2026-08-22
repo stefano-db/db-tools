@@ -10,7 +10,7 @@ import { OverviewPage } from './features/portal/OverviewPage';
 import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
-import { RosterDraftPage } from './features/roster/RosterDraftPage';
+import { RosterPage } from './features/roster/RosterDraftPage';
 import { PublicPlanPage } from './features/roster/PublicPlanPage';
 import { ChatPage } from './features/chat/ChatPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
@@ -45,9 +45,10 @@ const router = createBrowserRouter([
           { path: 'chat', element: <ChatPage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
-          // Entwurf des kommenden Dienstplan-Moduls — liest den echten Plan,
-          // schreibt nichts. Noch nicht in der Navigation.
-          { path: 'dienstplan-entwurf', element: <RosterDraftPage /> },
+          { path: 'dienstplan', element: <RosterPage /> },
+          // Der alte Pfad bleibt eine Weile gueltig: er steht in Lesezeichen
+          // und in den Antworten des Chats.
+          { path: 'dienstplan-entwurf', element: <Navigate to="/dienstplan" replace /> },
           {
             path: 'wartung',
             element: <MaintenanceShell />,

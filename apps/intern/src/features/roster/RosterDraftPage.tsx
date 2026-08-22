@@ -144,7 +144,7 @@ const DEMO_EMPLOYEES: Employee[] = [
   { id: 'd7', name: 'Marko', groupNo: 5, targetHours: 40 },
 ];
 
-export function RosterDraftPage() {
+export function RosterPage() {
   const { session } = useAuth();
   const canEdit = session?.isLead || session?.isAdmin || session === null;
 
@@ -155,9 +155,24 @@ export function RosterDraftPage() {
   const [undoStack, setUndoStack] = useState<WeekPlan[]>([]);
   const [editing, setEditing] = useState<{ empId: string; day: number; rect: DOMRect } | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [realPlan, setRealPlan] = useState<WeekPlan>({});
   const [tvOpen, setTvOpen] = useState(false);
-  const [showExample, setShowExample] = useState(false);
+
+  /**
+   * Fassung der geladenen Woche und was zuletzt geschrieben wurde.
+   *
+   * Beides zusammen ist die Grundlage des Speicherns: die Fassung sagt, auf
+   * welchem Stand man aufgesetzt hat, der geschriebene Stand sagt, ob sich
+   * ueberhaupt etwas geaendert hat. Als Referenz statt als Zustand, weil beides
+   * im Speicherlauf gelesen wird und ein veralteter Wert dort fremde Arbeit
+   * kosten wuerde.
+   */
+  const fassung = useRef(0);
+  const geschrieben = useRef('{}');
+  const speicherUhr = useRef<number | null>(null);
+  const [speicherstand, setSpeicherstand] = useState<
+    'ruhig' | 'wartet' | 'laeuft' | 'gespeichert' | 'fehler' | 'fremd'
+  >('ruhig');
+  const [speicherText, setSpeicherText] = useState<string | null>(null);
 
   // Wie in der Bahnwartung: neben einer hellen Flaeche laeuft der Rahmen eine
   // Stufe heller, sonst steht sie wie ein Loch im dunklen Bild.
@@ -200,53 +215,204 @@ export function RosterDraftPage() {
     let active = true;
     repository
       .rosterWeek(isoDate(monday))
-      .then((data) => {
+      .then(({ data, version }) => {
         if (!active) return;
         const next: WeekPlan = {};
         for (const [empId, entry] of Object.entries(data)) {
           const list = (entry as { d?: ShiftDay[] })?.d;
           if (Array.isArray(list)) next[empId] = normalizeWeek(list);
         }
-        // Eine fast leere Woche zeigt vom Entwurf nichts. Dann startet die
-        // Ansicht mit einer Beispielwoche — abschaltbar, deutlich gekennzeichnet.
-        const shifts = Object.values(next).reduce(
-          (n, w) => n + w.filter((d) => d.status === 'dienst').length,
-          0,
-        );
-        setRealPlan(next);
+        fassung.current = version;
+        geschrieben.current = JSON.stringify(data ?? {});
         setPlan(next);
-        setShowExample(shifts < 3);
         setUndoStack([]);
+        setSpeicherstand('ruhig');
       })
-      .catch(() => setPlan({}));
+      .catch((e) => {
+        setPlan({});
+        setSpeicherstand('fehler');
+        setSpeicherText(e instanceof Error ? e.message : String(e));
+      });
     return () => {
       active = false;
     };
   }, [monday]);
 
-  // Die Beispielwoche ersetzt die echte ganz — sonst blieben die gespeicherten
-  // „frei" stehen und vom Entwurf waere wieder nichts zu sehen.
-  useEffect(() => {
-    if (employees.length === 0) return;
-    setPlan(showExample ? exampleWeek(employees) : realPlan);
-    setUndoStack([]);
-  }, [showExample, employees, realPlan]);
-
   const weekOf = (empId: string): ShiftDay[] => plan[empId] ?? emptyWeek();
+
+  /**
+   * Die Woche in der Form, wie sie gespeichert wird.
+   *
+   * Bewusst mit `std` je Tag und `tot` je Woche, obwohl das Modul beides selbst
+   * ausrechnet: der bisherige Editor und die Freigabe-Seite lesen diese Felder.
+   * Wer sie weglaesst, macht die Daten fuer alles andere unbrauchbar.
+   */
+  function alsDaten(quelle: WeekPlan): Record<string, { d: ShiftDay[]; tot: string }> {
+    const daten: Record<string, { d: ShiftDay[]; tot: string }> = {};
+    for (const emp of employees) {
+      const woche = quelle[emp.id];
+      if (!woche) continue;
+      daten[emp.id] = {
+        d: woche.map((tag) => ({ ...tag, std: formatMinutes(shiftMinutes(tag)) })) as ShiftDay[],
+        tot: formatMinutes(weekMinutes(woche)),
+      };
+    }
+    return daten;
+  }
+
+  /**
+   * Speichern — gesammelt, geprueft, und mit ehrlicher Rueckmeldung.
+   *
+   * Gesammelt, weil bei jeder Eingabe gespeichert wird und sonst jede
+   * Tastenbewegung eine Anfrage waere. Geprueft, weil zwei Leitungen
+   * gleichzeitig arbeiten koennen: die Fassungsnummer entscheidet, ob man noch
+   * auf dem Stand ist, auf dem man aufgesetzt hat. Und ehrlich, weil ein
+   * Dienstplan, der stillschweigend nicht speichert, schlimmer ist als einer,
+   * der gar nicht erst laedt.
+   */
+  const speichern = useCallback(
+    async (quelle: WeekPlan) => {
+      const daten = alsDaten(quelle);
+      const json = JSON.stringify(daten);
+      if (json === geschrieben.current) {
+        setSpeicherstand('gespeichert');
+        return;
+      }
+
+      setSpeicherstand('laeuft');
+      try {
+        const antwort = await repository.rosterWeekSpeichern(
+          isoDate(monday),
+          daten,
+          fassung.current,
+        );
+
+        if (antwort.ok) {
+          fassung.current = antwort.version;
+          geschrieben.current = json;
+          setSpeicherstand('gespeichert');
+          setSpeicherText(null);
+          return;
+        }
+
+        if (antwort.grund === 'veraltet') {
+          // Nicht ueberschreiben, sondern uebernehmen: fremde Arbeit wiegt
+          // schwerer als die eigene ungespeicherte Eingabe.
+          const fremd: WeekPlan = {};
+          for (const [empId, eintrag] of Object.entries(antwort.data ?? {})) {
+            const liste = (eintrag as { d?: ShiftDay[] })?.d;
+            if (Array.isArray(liste)) fremd[empId] = normalizeWeek(liste);
+          }
+          fassung.current = antwort.version;
+          geschrieben.current = JSON.stringify(antwort.data ?? {});
+          setPlan(fremd);
+          setUndoStack([]);
+          setSpeicherstand('fremd');
+          setSpeicherText(
+            'Diese Woche wurde inzwischen von jemand anderem geändert. Der neue Stand steht jetzt hier.',
+          );
+          return;
+        }
+
+        setSpeicherstand('fehler');
+        setSpeicherText('Keine Berechtigung, den Plan zu ändern.');
+      } catch (e) {
+        setSpeicherstand('fehler');
+        setSpeicherText(e instanceof Error ? e.message : String(e));
+      }
+    },
+    [employees, monday],
+  );
+
+  /** Speichern anstossen — gesammelt, aber nie vergessen. */
+  const spaeterSpeichern = useCallback(
+    (quelle: WeekPlan) => {
+      if (!canEdit) return;
+      setSpeicherstand('wartet');
+      if (speicherUhr.current) window.clearTimeout(speicherUhr.current);
+      speicherUhr.current = window.setTimeout(() => void speichern(quelle), 700);
+    },
+    [canEdit, speichern],
+  );
+
+  // Fenster zu, Handy gesperrt, Reiter gewechselt: dann muss die wartende
+  // Aenderung sofort raus, sonst verschluckt die Verzoegerung die letzte
+  // Eingabe.
+  useEffect(() => {
+    const raus = () => {
+      if (speicherUhr.current) {
+        window.clearTimeout(speicherUhr.current);
+        speicherUhr.current = null;
+        void speichern(plan);
+      }
+    };
+    window.addEventListener('pagehide', raus);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') raus();
+    });
+    return () => window.removeEventListener('pagehide', raus);
+  }, [plan, speichern]);
+
+  /**
+   * Zuhoeren, waehrend andere arbeiten.
+   *
+   * Ohne das erfaehrt man von einer fremden Aenderung erst beim eigenen
+   * Speichern. Uebernommen wird sie nur, wenn hier nichts Ungespeichertes
+   * steht — sonst wuerde man dem Tippenden die Eingabe unter den Haenden
+   * wegziehen.
+   */
+  useEffect(() => {
+    const abmelden = repository.watchRosterWeek(isoDate(monday), (data) => {
+      const json = JSON.stringify(data ?? {});
+      if (json === geschrieben.current) return; // die eigene Schreibung
+
+      if (speicherUhr.current) {
+        setSpeicherstand('fremd');
+        setSpeicherText(
+          'Diese Woche wird gerade auch von jemand anderem geändert. Deine Eingaben sind noch nicht gespeichert.',
+        );
+        return;
+      }
+
+      const fremd: WeekPlan = {};
+      for (const [empId, eintrag] of Object.entries(data ?? {})) {
+        const liste = (eintrag as { d?: unknown[] })?.d;
+        if (Array.isArray(liste)) fremd[empId] = normalizeWeek(liste);
+      }
+      geschrieben.current = json;
+      setPlan(fremd);
+      setUndoStack([]);
+      setSpeicherstand('fremd');
+      setSpeicherText('Der Plan wurde von jemand anderem geändert. Die Ansicht ist aktualisiert.');
+      // Die Fassung stimmt jetzt nicht mehr — beim naechsten Speichern wuerde
+      // sonst abgelehnt. Frisch holen, dann passt sie wieder.
+      void repository
+        .rosterWeek(isoDate(monday))
+        .then(({ version }) => {
+          fassung.current = version;
+        })
+        .catch(() => {});
+    });
+    return abmelden;
+  }, [monday]);
 
   function change(empId: string, day: number, value: ShiftDay) {
     setUndoStack((s) => [...s.slice(-19), plan]);
     setPlan((p) => {
       const week = [...(p[empId] ?? emptyWeek())];
       week[day] = value;
-      return { ...p, [empId]: week };
+      const neu = { ...p, [empId]: week };
+      spaeterSpeichern(neu);
+      return neu;
     });
   }
 
   function undo() {
     setUndoStack((s) => {
       if (s.length === 0) return s;
-      setPlan(s[s.length - 1]);
+      const zurueck = s[s.length - 1];
+      setPlan(zurueck);
+      spaeterSpeichern(zurueck);
       return s.slice(0, -1);
     });
   }
@@ -262,9 +428,7 @@ export function RosterDraftPage() {
     <div>
       <div className="nicht-drucken flex flex-wrap items-center gap-x-3 gap-y-2">
         <h1 className="mr-auto text-2xl font-extrabold">Dienstplan</h1>
-        <span className="rounded-md bg-db-card2 px-2 py-1 text-xs font-semibold text-db-text2">
-          Entwurf — Schichten werden nicht gespeichert
-        </span>
+
       </div>
 
       <nav className="db-scroll-x mt-5 flex gap-1 overflow-x-auto pl-5">
@@ -299,6 +463,8 @@ export function RosterDraftPage() {
               onUndo={undo}
               onAction={flash}
               onTv={() => setTvOpen(true)}
+              stand={speicherstand}
+              standText={speicherText}
             />
 
             {!canEdit && (
@@ -306,20 +472,6 @@ export function RosterDraftPage() {
                 👁 Nur Ansicht — Änderungen nimmt die Leitung vor.
               </p>
             )}
-
-            <label className="nicht-drucken flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-lw-card2 px-3 py-2 text-sm">
-              <input
-                type="checkbox"
-                checked={showExample}
-                onChange={(ev) => setShowExample(ev.target.checked)}
-              />
-              <span className="font-semibold">Beispielwoche</span>
-              <span className="text-lw-text2">
-                {showExample
-                  ? 'Erfundene Schichten — so sieht der Plan gefüllt aus.'
-                  : 'Zeigt den echten Plan dieser Woche.'}
-              </span>
-            </label>
 
             {/* Woche: ab Tablet als Raster, am Handy nach Tagen. */}
             <div className="bildschirm-plan hidden md:block">
@@ -376,7 +528,6 @@ export function RosterDraftPage() {
             days={days}
             employees={employees}
             weekOf={weekOf}
-            beispiel={showExample}
             onAction={flash}
           />
         )}
@@ -441,36 +592,6 @@ export function normalizeWeek(list: readonly unknown[]): ShiftDay[] {
   return week;
 }
 
-/**
- * Eine plausible Woche zum Ansehen — feste Muster je Bereich, kein Zufall,
- * damit dieselbe Belegschaft immer dieselbe Beispielwoche ergibt.
- */
-function exampleWeek(employees: Employee[]): WeekPlan {
-  const plan: WeekPlan = {};
-  employees.forEach((emp, idx) => {
-    const presets = PRESETS[emp.groupNo] ?? [['09:00', '17:00']];
-    const week = emptyWeek();
-    for (let day = 0; day < 7; day++) {
-      const slot = (day + idx) % 7;
-      // Eine Aushilfe im fremden Bereich gehoert ins Beispiel — sonst sieht man
-      // die Kennzeichnung nie. Sie steht vor der ueblichen Verteilung, damit
-      // sie nicht zufaellig auf einen freien Tag faellt.
-      if (emp.groupNo === 5 && day === 4) {
-        week[day] = { status: 'dienst', b: '17:00', e: '23:00', bereich: 2 };
-      } else if (slot === 0 || slot === 3) {
-        week[day] = { status: 'frei', b: '', e: '' };
-      } else if (slot === 5 && idx % 4 === 1) {
-        week[day] = { status: 'urlaub', b: '', e: '' };
-      } else {
-        const [b, e] = presets[(day + idx) % presets.length];
-        week[day] = { status: 'dienst', b, e };
-      }
-    }
-    plan[emp.id] = week;
-  });
-  return plan;
-}
-
 function Toolbar({
   monday,
   offset,
@@ -480,6 +601,8 @@ function Toolbar({
   onUndo,
   onAction,
   onTv,
+  stand,
+  standText,
 }: {
   monday: Date;
   offset: number;
@@ -489,6 +612,8 @@ function Toolbar({
   onUndo: () => void;
   onAction: (text: string) => void;
   onTv: () => void;
+  stand: 'ruhig' | 'wartet' | 'laeuft' | 'gespeichert' | 'fehler' | 'fremd';
+  standText: string | null;
 }) {
   const sunday = addDays(monday, 6);
   return (
@@ -524,6 +649,32 @@ function Toolbar({
 
       {/* Am Handy zaehlt der Blick auf den Tag. Drucken, CSV und Kopieren sind
           Schreibtischarbeit und wuerden hier nur den Plan nach unten druecken. */}
+      {/* Ob gespeichert ist, muss man lesen koennen und nicht deuten muessen —
+          ein Dienstplan, der stillschweigend nicht speichert, ist die
+          schlimmste Sorte Fehler. */}
+      {canEdit && stand !== 'ruhig' && (
+        <span
+          title={standText ?? undefined}
+          className={`rounded-md px-2 py-1 text-xs font-semibold ${
+            stand === 'gespeichert'
+              ? 'text-lw-ok'
+              : stand === 'fehler'
+                ? 'bg-lw-bad/15 text-lw-bad'
+                : stand === 'fremd'
+                  ? 'bg-lw-warn/15 text-lw-warn'
+                  : 'text-lw-warn'
+          }`}
+        >
+          {stand === 'wartet' || stand === 'laeuft'
+            ? 'Wird gespeichert…'
+            : stand === 'gespeichert'
+              ? '● Gespeichert'
+              : stand === 'fehler'
+                ? '■ NICHT gespeichert'
+                : '▲ Fremde Änderung'}
+        </span>
+      )}
+
       <div className="ml-auto hidden flex-wrap items-center gap-2 sm:flex">
         {canEdit && (
           <button
@@ -1714,7 +1865,6 @@ function TeilenTab({
   days,
   employees,
   weekOf,
-  beispiel,
   onAction,
 }: {
   canEdit: boolean;
@@ -1722,8 +1872,6 @@ function TeilenTab({
   days: Date[];
   employees: Employee[];
   weekOf: (id: string) => ShiftDay[];
-  /** Laeuft gerade die erfundene Beispielwoche? Dann darf nichts hinausgehen. */
-  beispiel: boolean;
   onAction: (text: string) => void;
 }) {
   const [links, setLinks] = useState<ShareLink[] | null>(null);
@@ -1799,15 +1947,6 @@ function TeilenTab({
         <p className="rounded-lg bg-lw-bad/10 px-4 py-2.5 text-sm text-lw-bad">■ {fehler}</p>
       )}
 
-      {/* Ein Bild der erfundenen Beispielwoche in der Signal-Gruppe waere
-          schlimmer als gar keines: es sieht aus wie ein echter Plan. */}
-      {beispiel && (
-        <p className="rounded-lg bg-lw-warn/10 px-4 py-2.5 text-sm text-lw-warn">
-          ▲ Die Beispielwoche ist eingeschaltet — die Schichten sind erfunden. Zum Weitergeben oben
-          im Reiter „Wochenplan" den Haken entfernen.
-        </p>
-      )}
-
       <section>
         <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Als Bild in die Gruppe</h2>
         <p className="mt-1 mb-3 text-sm text-lw-text2">
@@ -1816,8 +1955,7 @@ function TeilenTab({
         </p>
         <button
           onClick={bild}
-          disabled={beispiel}
-          className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
+          className="lw-btn-primary px-4 py-2 text-sm"
         >
           Bild erzeugen und teilen
         </button>
@@ -1826,9 +1964,8 @@ function TeilenTab({
       <section>
         <h2 className="text-sm font-bold tracking-wide text-lw-text3 uppercase">Link zum Anpinnen</h2>
         <p className="mt-1 mb-3 text-sm text-lw-text2">
-          Anders als die Schichten im Entwurf sind diese Links <strong>echt</strong>: sie wirken
-          sofort und zeigen den laufenden Plan aus der Datenbank. Nach einer Änderung musst du
-          nichts erneut schicken. Ohne Anmeldung lesbar, deshalb nur weitergeben, wo es hingehört;
+          Der Link zeigt den laufenden Plan aus der Datenbank. Nach einer Änderung musst du nichts
+          erneut schicken. Ohne Anmeldung lesbar, deshalb nur weitergeben, wo es hingehört;
           jeder Link ist einzeln zurückziehbar.
         </p>
 
@@ -1894,8 +2031,7 @@ function TeilenTab({
         </p>
         <button
           onClick={() => window.print()}
-          disabled={beispiel}
-          className="lw-btn-ghost px-4 py-2 text-sm disabled:opacity-40"
+          className="lw-btn-ghost px-4 py-2 text-sm"
         >
           Drucken
         </button>
@@ -1962,9 +2098,8 @@ function TeamTab({
       <section>
         <h2 className="mb-2 text-sm font-bold tracking-wide text-lw-text3 uppercase">Mitarbeiter</h2>
         <p className="mb-3 text-sm text-lw-text2">
-          Änderungen hier wirken <strong>sofort auf den echten Plan</strong> — anders als die
-          Schichten im Entwurf. Wer entfernt wird, verschwindet aus dem Plan, bleibt aber in den
-          vergangenen Wochen stehen.
+          Wer entfernt wird, verschwindet aus dem Plan, bleibt aber in den vergangenen Wochen
+          stehen — an einem Namen hängen die Schichten zurückliegender Wochen.
         </p>
 
         {fehler && (
@@ -2092,8 +2227,13 @@ function TeamTab({
           Umbenennen, Farbe und Reihenfolge kommen im fertigen Modul dazu — sie ändern nur
           Stammdaten und brauchen keine eigene Gestaltung.
         </p>
-        <a href="/dienstplan/index.html" className="mt-4 inline-block text-sm underline underline-offset-2">
-          Zum bisherigen Editor →
+        {/* Der bisherige Editor bleibt eine Weile erreichbar — als Rueckweg,
+            falls hier etwas klemmt. Aus der Navigation ist er raus. */}
+        <a
+          href="/dienstplan-alt/index.html"
+          className="mt-4 inline-block text-xs text-lw-text3 underline underline-offset-2"
+        >
+          Bisheriger Editor (Rückfallweg) →
         </a>
       </section>
     </div>

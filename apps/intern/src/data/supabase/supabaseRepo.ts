@@ -596,14 +596,32 @@ export class SupabaseRepository implements Repository {
     };
   }
 
-  async rosterWeek(weekStart: string): Promise<Record<string, { d: any[] }>> {
+  async rosterWeek(weekStart: string): Promise<{ data: any; version: number }> {
     const { data, error } = await this.client
       .from('roster_weeks')
-      .select('data')
+      .select('data, version')
       .eq('week_start', weekStart)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return (data?.data ?? {}) as Record<string, { d: any[] }>;
+    // Fassung 0 heisst: die Woche gibt es noch nicht. Beim Speichern wird sie
+    // dann angelegt statt geaendert.
+    return { data: data?.data ?? {}, version: data?.version ?? 0 };
+  }
+
+  async rosterWeekSpeichern(weekStart: string, data: any, version: number): Promise<any> {
+    const { data: antwort, error } = await this.client.rpc('roster_week_speichern', {
+      p_week_start: weekStart,
+      p_data: data,
+      p_version: version,
+    });
+    if (error) throw new Error(error.message);
+    if (!antwort) throw new Error('Keine Antwort vom Server.');
+
+    if (antwort.ok) return { ok: true, version: antwort.version };
+    if (antwort.grund === 'veraltet') {
+      return { ok: false, grund: 'veraltet', version: antwort.version, data: antwort.data ?? {} };
+    }
+    return { ok: false, grund: 'keine_berechtigung' };
   }
 
   // --- Chat -----------------------------------------------------------------
