@@ -56,6 +56,27 @@ function geraetename(): string {
   return `${system} · ${app}`;
 }
 
+/**
+ * Gehört eine vorhandene Anmeldung noch zum heutigen Schlüssel?
+ *
+ * Wird das Schlüsselpaar getauscht, bleibt die alte Anmeldung im Browser
+ * bestehen und sieht von außen tadellos aus — nur nimmt der Zustelldienst
+ * nichts mehr für sie an, weil die Unterschrift nicht mehr zu ihr passt. Ein
+ * neues Abonnement lehnt der Browser derweil ab, solange das alte steht. Ohne
+ * diese Prüfung endete jeder Schlüsselwechsel in einem Gerät, das angemeldet
+ * aussieht und nie wieder klingelt.
+ */
+function passtZumSchluessel(anmeldung: PushSubscription): boolean {
+  const roh = anmeldung.options?.applicationServerKey;
+  // Sagt der Browser es nicht, wird nicht auf Verdacht abgemeldet.
+  return roh ? alsBase64(roh) === OEFFENTLICHER_SCHLUESSEL.replace(/=+$/, '') : true;
+}
+
+async function abmelden(anmeldung: PushSubscription): Promise<void> {
+  await repository.pushGeraetEntfernen(anmeldung.endpoint).catch(() => {});
+  await anmeldung.unsubscribe();
+}
+
 export async function pruefeStand(): Promise<PushStand> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return { art: 'unmoeglich', grund: 'Dieses Gerät kennt keine Meldungen im Hintergrund.' };
@@ -67,6 +88,13 @@ export async function pruefeStand(): Promise<PushStand> {
   const dienst = await navigator.serviceWorker.getRegistration();
   const anmeldung = await dienst?.pushManager.getSubscription();
   if (!anmeldung) return { art: 'abgemeldet' };
+
+  // Alter Schlüssel? Dann ist diese Anmeldung wertlos, so heil sie aussieht.
+  // Weg damit, damit der Knopf wieder erscheint und eine neue entstehen kann.
+  if (!passtZumSchluessel(anmeldung)) {
+    await abmelden(anmeldung);
+    return { art: 'abgemeldet' };
+  }
 
   // Der Browser allein beweist nichts. Er weiss, dass er angemeldet ist —
   // ob der Eintrag in der Datenbank ankam, weiss er nicht, und ohne ihn
@@ -117,6 +145,11 @@ export async function meldeAn(): Promise<PushStand> {
   const dienst = await navigator.serviceWorker.register('/sw.js');
   await navigator.serviceWorker.ready;
 
+  // Ein zweites Abonnement neben einem bestehenden gibt der Browser nicht
+  // heraus, auch nicht mit anderem Schlüssel. Erst räumen, dann anmelden.
+  const vorhanden = await dienst.pushManager.getSubscription();
+  if (vorhanden && !passtZumSchluessel(vorhanden)) await abmelden(vorhanden);
+
   const anmeldung = await dienst.pushManager.subscribe({
     // Ohne diese Zusage lehnen die Browser ab: eine Anmeldung, die auch stille
     // Nachrichten erlaubt, waere ein Weg, Geraete unbemerkt zu verfolgen.
@@ -132,9 +165,6 @@ export async function meldeAn(): Promise<PushStand> {
 export async function meldeAb(): Promise<PushStand> {
   const dienst = await navigator.serviceWorker.getRegistration();
   const anmeldung = await dienst?.pushManager.getSubscription();
-  if (anmeldung) {
-    await repository.pushGeraetEntfernen(anmeldung.endpoint).catch(() => {});
-    await anmeldung.unsubscribe();
-  }
+  if (anmeldung) await abmelden(anmeldung);
   return { art: 'abgemeldet' };
 }

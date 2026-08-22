@@ -163,8 +163,8 @@ Deno.serve(async (anfrage) => {
     betroffen++;
 
     const geraete = (await db.holen(
-      `push_geraete?select=id,endpunkt,p256dh,auth&user_id=eq.${person.profile_id}`,
-    )) as { id: string; endpunkt: string; p256dh: string; auth: string }[];
+      `push_geraete?select=id,endpunkt,p256dh,auth,fehler&user_id=eq.${person.profile_id}`,
+    )) as { id: string; endpunkt: string; p256dh: string; auth: string; fehler: number }[];
 
     const nachricht = JSON.stringify({
       titel: 'Deine Schicht hat sich geändert',
@@ -199,10 +199,20 @@ Deno.serve(async (anfrage) => {
           await db.loeschen(`push_geraete?id=eq.${geraet.id}`);
           entfernt++;
         } else {
-          // Sonstiges ist meist voruebergehend. Der Zaehler macht sichtbar,
-          // wenn ein Geraet dauerhaft klemmt.
-          console.error('Zustellung abgelehnt', antwort.status, await antwort.text());
-          await db.aendern(`push_geraete?id=eq.${geraet.id}`, { fehler: 1 });
+          // Sonstiges ist oft voruebergehend — Netz, Ueberlastung —, kann aber
+          // auch heissen, dass die Anmeldung nicht mehr zu unserem Schluessel
+          // passt (403). Beides sieht hier gleich aus, also wird gezaehlt statt
+          // geraten: nach fuenf Fehlschlaegen in Folge ist ein Geraet tot und
+          // fliegt raus. Sonst schickt der Dienst bei jeder Aenderung bis in
+          // alle Ewigkeit ins Leere.
+          const bisher = (geraet.fehler ?? 0) + 1;
+          console.error('Zustellung abgelehnt', antwort.status, bisher, await antwort.text());
+          if (bisher >= 5) {
+            await db.loeschen(`push_geraete?id=eq.${geraet.id}`);
+            entfernt++;
+          } else {
+            await db.aendern(`push_geraete?id=eq.${geraet.id}`, { fehler: bisher });
+          }
         }
       } catch (fehler) {
         console.error('Versand fehlgeschlagen', String(fehler));
