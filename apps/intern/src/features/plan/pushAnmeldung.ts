@@ -32,7 +32,12 @@ function schluesselAlsBytes(base64url: string): ArrayBuffer {
 
 function alsBase64(puffer: ArrayBuffer | null): string {
   if (!puffer) return '';
-  return btoa(String.fromCharCode(...new Uint8Array(puffer)));
+  // base64url, nicht gewoehnliches Base64: diese Werte wandern spaeter durch
+  // Adressen und Kopfzeilen, in denen + und / etwas anderes bedeuten.
+  return btoa(String.fromCharCode(...new Uint8Array(puffer)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 /** Woran man das Gerät später wiedererkennt. */
@@ -61,7 +66,37 @@ export async function pruefeStand(): Promise<PushStand> {
 
   const dienst = await navigator.serviceWorker.getRegistration();
   const anmeldung = await dienst?.pushManager.getSubscription();
-  return anmeldung ? { art: 'angemeldet', geraet: geraetename() } : { art: 'abgemeldet' };
+  if (!anmeldung) return { art: 'abgemeldet' };
+
+  // Der Browser allein beweist nichts. Er weiss, dass er angemeldet ist —
+  // ob der Eintrag in der Datenbank ankam, weiss er nicht, und ohne ihn
+  // schickt niemand etwas. Genau so stand hier einmal wochenlang
+  // „angemeldet", waehrend die Tabelle leer war.
+  try {
+    if (await repository.pushGeraetBekannt(anmeldung.endpoint)) {
+      return { art: 'angemeldet', geraet: geraetename() };
+    }
+    // Angemeldet ist das Geraet ja; es fehlt nur der Eintrag. Den holen wir
+    // nach, statt den Menschen noch einmal einen Knopf suchen zu lassen.
+    await nachtragen(anmeldung);
+    return { art: 'angemeldet', geraet: geraetename() };
+  } catch (fehler) {
+    return {
+      art: 'unmoeglich',
+      grund: `Die Anmeldung steht nicht in der Datenbank: ${
+        fehler instanceof Error ? fehler.message : String(fehler)
+      }`,
+    };
+  }
+}
+
+function nachtragen(anmeldung: PushSubscription): Promise<void> {
+  return repository.pushGeraetSpeichern({
+    endpunkt: anmeldung.endpoint,
+    p256dh: alsBase64(anmeldung.getKey('p256dh')),
+    auth: alsBase64(anmeldung.getKey('auth')),
+    bezeichnung: geraetename(),
+  });
 }
 
 export async function meldeAn(): Promise<PushStand> {
@@ -89,12 +124,7 @@ export async function meldeAn(): Promise<PushStand> {
     applicationServerKey: schluesselAlsBytes(OEFFENTLICHER_SCHLUESSEL),
   });
 
-  await repository.pushGeraetSpeichern({
-    endpunkt: anmeldung.endpoint,
-    p256dh: alsBase64(anmeldung.getKey('p256dh')),
-    auth: alsBase64(anmeldung.getKey('auth')),
-    bezeichnung: geraetename(),
-  });
+  await nachtragen(anmeldung);
 
   return { art: 'angemeldet', geraet: geraetename() };
 }

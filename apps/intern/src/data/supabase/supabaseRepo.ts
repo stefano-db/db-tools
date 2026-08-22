@@ -764,6 +764,19 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
+  async pushGeraetBekannt(endpunkt: string): Promise<boolean> {
+    const userId = await this.userId();
+    if (!userId) return false;
+    const { data, error } = await this.client
+      .from('push_geraete')
+      .select('id')
+      .eq('endpunkt', endpunkt)
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) throw error;
+    return data !== null;
+  }
+
   async listShareLinks(): Promise<any[]> {
     const { data, error } = await this.client
       .from('roster_share_links')

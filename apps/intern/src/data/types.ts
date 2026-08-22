@@ -438,6 +438,13 @@ export interface Repository {
   }): Promise<void>;
   /** Dieses Geraet wieder austragen. */
   pushGeraetEntfernen(endpunkt: string): Promise<void>;
+  /**
+   * Steht dieses Geraet auch wirklich in der Datenbank?
+   *
+   * Der Browser weiss nur, dass er selbst angemeldet ist. Ob der Eintrag
+   * ankam, weiss er nicht — und ohne Eintrag schickt niemand etwas.
+   */
+  pushGeraetBekannt(endpunkt: string): Promise<boolean>;
 
   /** Freigabe-Links verwalten — nur Leitungen und Administratoren. */
   listShareLinks(): Promise<ShareLink[]>;

@@ -175,6 +175,12 @@ export class DemoRepository implements Repository {
 
   async pushGeraetEntfernen() {}
 
+  // In der Vorfuehrung gibt es keinen Versanddienst; die Anzeige soll trotzdem
+  // ruhig bleiben statt endlos nachzutragen.
+  async pushGeraetBekannt() {
+    return true;
+  }
+
   async listShareLinks() {
     return [];
   }
