@@ -63,13 +63,20 @@ function geraetename(): string {
  * bestehen und sieht von außen tadellos aus — nur nimmt der Zustelldienst
  * nichts mehr für sie an, weil die Unterschrift nicht mehr zu ihr passt. Ein
  * neues Abonnement lehnt der Browser derweil ab, solange das alte steht. Ohne
- * diese Prüfung endete jeder Schlüsselwechsel in einem Gerät, das angemeldet
+ * diese Prüfung endet jeder Schlüsselwechsel in einem Gerät, das angemeldet
  * aussieht und nie wieder klingelt.
+ *
+ * Gefragt wird die Datenbank, nicht der Browser. Der Browser kennt die Antwort
+ * zwar, gibt sie aber nicht überall heraus: Safari am iPhone liefert für eine
+ * bestehende Anmeldung keinen `applicationServerKey`. Ein erster Anlauf
+ * stützte sich darauf und tat auf genau dem Gerät, um das es geht, nichts.
+ *
+ * Ein unbekannter Schlüssel — eine Zeile, die vor dieser Prüfung entstand —
+ * zählt als „passt nicht". Lieber eine Anmeldung zu viel erneuern als eine zu
+ * wenig; das kostet einen Fingertipp, das andere kostet jede Meldung.
  */
-function passtZumSchluessel(anmeldung: PushSubscription): boolean {
-  const roh = anmeldung.options?.applicationServerKey;
-  // Sagt der Browser es nicht, wird nicht auf Verdacht abgemeldet.
-  return roh ? alsBase64(roh) === OEFFENTLICHER_SCHLUESSEL.replace(/=+$/, '') : true;
+function passt(gespeichert: string | null): boolean {
+  return gespeichert !== null && gespeichert === OEFFENTLICHER_SCHLUESSEL;
 }
 
 async function abmelden(anmeldung: PushSubscription): Promise<void> {
@@ -89,23 +96,28 @@ export async function pruefeStand(): Promise<PushStand> {
   const anmeldung = await dienst?.pushManager.getSubscription();
   if (!anmeldung) return { art: 'abgemeldet' };
 
-  // Alter Schlüssel? Dann ist diese Anmeldung wertlos, so heil sie aussieht.
-  // Weg damit, damit der Knopf wieder erscheint und eine neue entstehen kann.
-  if (!passtZumSchluessel(anmeldung)) {
-    await abmelden(anmeldung);
-    return { art: 'abgemeldet' };
-  }
-
   // Der Browser allein beweist nichts. Er weiss, dass er angemeldet ist —
   // ob der Eintrag in der Datenbank ankam, weiss er nicht, und ohne ihn
   // schickt niemand etwas. Genau so stand hier einmal wochenlang
   // „angemeldet", waehrend die Tabelle leer war.
   try {
-    if (await repository.pushGeraetBekannt(anmeldung.endpoint)) {
+    const stand = await repository.pushGeraetStand(anmeldung.endpoint);
+
+    // Eingetragen und mit dem heutigen Schluessel: alles in Ordnung.
+    if (stand.bekannt && passt(stand.schluessel)) {
       return { art: 'angemeldet', geraet: geraetename() };
     }
-    // Angemeldet ist das Geraet ja; es fehlt nur der Eintrag. Den holen wir
-    // nach, statt den Menschen noch einmal einen Knopf suchen zu lassen.
+
+    // Eingetragen, aber mit einem anderen Schluessel: die Anmeldung ist
+    // wertlos, so heil sie aussieht. Weg damit — der Knopf erscheint wieder.
+    if (stand.bekannt) {
+      await abmelden(anmeldung);
+      return { art: 'abgemeldet' };
+    }
+
+    // Gar nicht eingetragen. Angemeldet ist das Geraet ja; es fehlt nur der
+    // Eintrag. Den holen wir nach, statt den Menschen noch einmal einen Knopf
+    // suchen zu lassen.
     await nachtragen(anmeldung);
     return { art: 'angemeldet', geraet: geraetename() };
   } catch (fehler) {
@@ -124,6 +136,7 @@ function nachtragen(anmeldung: PushSubscription): Promise<void> {
     p256dh: alsBase64(anmeldung.getKey('p256dh')),
     auth: alsBase64(anmeldung.getKey('auth')),
     bezeichnung: geraetename(),
+    vapid: OEFFENTLICHER_SCHLUESSEL,
   });
 }
 
@@ -148,7 +161,10 @@ export async function meldeAn(): Promise<PushStand> {
   // Ein zweites Abonnement neben einem bestehenden gibt der Browser nicht
   // heraus, auch nicht mit anderem Schlüssel. Erst räumen, dann anmelden.
   const vorhanden = await dienst.pushManager.getSubscription();
-  if (vorhanden && !passtZumSchluessel(vorhanden)) await abmelden(vorhanden);
+  if (vorhanden) {
+    const stand = await repository.pushGeraetStand(vorhanden.endpoint);
+    if (!passt(stand.schluessel)) await abmelden(vorhanden);
+  }
 
   const anmeldung = await dienst.pushManager.subscribe({
     // Ohne diese Zusage lehnen die Browser ab: eine Anmeldung, die auch stille

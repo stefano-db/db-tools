@@ -738,6 +738,7 @@ export class SupabaseRepository implements Repository {
     p256dh: string;
     auth: string;
     bezeichnung: string;
+    vapid: string;
   }): Promise<void> {
     const userId = await this.userId();
     if (!userId) throw new Error('Nicht angemeldet.');
@@ -752,6 +753,7 @@ export class SupabaseRepository implements Repository {
         p256dh: geraet.p256dh,
         auth: geraet.auth,
         bezeichnung: geraet.bezeichnung,
+        vapid: geraet.vapid,
         fehler: 0,
       },
       { onConflict: 'endpunkt' },
@@ -764,17 +766,17 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
-  async pushGeraetBekannt(endpunkt: string): Promise<boolean> {
+  async pushGeraetStand(endpunkt: string): Promise<{ bekannt: boolean; schluessel: string | null }> {
     const userId = await this.userId();
-    if (!userId) return false;
+    if (!userId) return { bekannt: false, schluessel: null };
     const { data, error } = await this.client
       .from('push_geraete')
-      .select('id')
+      .select('vapid')
       .eq('endpunkt', endpunkt)
       .eq('user_id', userId)
       .maybeSingle();
     if (error) throw error;
-    return data !== null;
+    return { bekannt: data !== null, schluessel: data?.vapid ?? null };
   }
 
   async listShareLinks(): Promise<any[]> {

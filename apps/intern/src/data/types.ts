@@ -435,16 +435,22 @@ export interface Repository {
     p256dh: string;
     auth: string;
     bezeichnung: string;
+    /** Schluessel, mit dem diese Anmeldung entstand — fuer den Wechsel. */
+    vapid: string;
   }): Promise<void>;
   /** Dieses Geraet wieder austragen. */
   pushGeraetEntfernen(endpunkt: string): Promise<void>;
   /**
-   * Steht dieses Geraet auch wirklich in der Datenbank?
+   * Steht dieses Geraet in der Datenbank, und mit welchem Schluessel?
    *
    * Der Browser weiss nur, dass er selbst angemeldet ist. Ob der Eintrag
-   * ankam, weiss er nicht — und ohne Eintrag schickt niemand etwas.
+   * ankam, weiss er nicht — und ohne Eintrag schickt niemand etwas. Den
+   * Schluessel einer bestehenden Anmeldung gibt er ausserdem nicht ueberall
+   * heraus; Safari am iPhone tut es nicht. Deshalb kommt beides von hier.
+   *
+   * `schluessel: null` heisst „unbekannt" und ist wie „falsch" zu behandeln.
    */
-  pushGeraetBekannt(endpunkt: string): Promise<boolean>;
+  pushGeraetStand(endpunkt: string): Promise<{ bekannt: boolean; schluessel: string | null }>;
 
   /** Freigabe-Links verwalten — nur Leitungen und Administratoren. */
   listShareLinks(): Promise<ShareLink[]>;

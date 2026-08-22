@@ -171,14 +171,19 @@ export class DemoRepository implements Repository {
     return [];
   }
 
-  async pushGeraetSpeichern() {}
+  private letzterSchluessel: string | null = null;
+
+  async pushGeraetSpeichern(geraet: { vapid: string }) {
+    this.letzterSchluessel = geraet.vapid;
+  }
 
   async pushGeraetEntfernen() {}
 
-  // In der Vorfuehrung gibt es keinen Versanddienst; die Anzeige soll trotzdem
-  // ruhig bleiben statt endlos nachzutragen.
-  async pushGeraetBekannt() {
-    return true;
+  // In der Vorfuehrung gibt es keinen Versanddienst. Damit die Anzeige trotzdem
+  // ruhig bleibt statt endlos nachzutragen, merkt sie sich schlicht, was zuletzt
+  // hereingereicht wurde.
+  async pushGeraetStand() {
+    return { bekannt: true, schluessel: this.letzterSchluessel };
   }
 
   async listShareLinks() {
