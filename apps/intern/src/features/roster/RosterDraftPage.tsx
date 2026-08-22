@@ -1069,13 +1069,18 @@ export function TvMosaik({
       {gruppen.map((group) => (
         <tbody key={group.no}>
           <tr>
-            <td colSpan={8} className="pt-2">
+            <td colSpan={8} className="pt-3">
+              {/* Das Band traegt jetzt Flaeche: farbige Schrift allein
+                  verschwand zwischen den vielen bunten Zellen darunter. */}
               <div
-                className="flex items-center gap-2 px-2 py-0.5 text-base font-extrabold tracking-wide uppercase"
-                style={{ color: group.color }}
+                className="flex items-center gap-2 rounded px-3 py-1 text-lg font-extrabold tracking-wide uppercase"
+                style={{ background: tint(group.color, 22), color: group.color }}
               >
                 <span>{group.symbol}</span>
                 {group.name}
+                <span className="ml-auto text-base font-bold opacity-70">
+                  {employees.filter((e) => e.groupNo === group.no).length}
+                </span>
               </div>
             </td>
           </tr>
@@ -1090,10 +1095,12 @@ export function TvMosaik({
                     scope="row"
                     className="px-3 py-1 text-left text-xl font-bold whitespace-nowrap"
                     style={{
-                      background: '#ffffff',
-                      // Der Bereich als Balken statt als Toenung: er ordnet die
-                      // Zeile, ohne sich unter die Farbflaechen zu mischen.
-                      borderLeft: `6px solid ${group.color}`,
+                      // Die Namensspalte gehoert dem Bereich: leicht getoent und
+                      // mit kraeftigem Balken davor. So laeuft die Zuordnung als
+                      // durchgehendes Band links mit, ohne sich unter die
+                      // Farbflaechen der Tage zu mischen.
+                      background: tint(group.color, 12),
+                      borderLeft: `8px solid ${group.color}`,
                     }}
                   >
                     {emp.name}
