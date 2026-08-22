@@ -1087,14 +1087,22 @@ export function TvMatrix({
                               }}
                               title={fremd ? b.name : undefined}
                             >
-                              <span
-                                className="tabular text-[22px] leading-tight font-extrabold whitespace-nowrap"
-                                style={{ color: b.color }}
-                              >
-                                {fremd && <span className="mr-1">{b.symbol}</span>}
-                                {day.b}
-                                <span className="mx-px font-normal text-lw-text3">–</span>
-                                {day.e}
+                              {/* Schwarz statt Bereichsfarbe: die Farbe steht
+                                  ohnehin ringsum — in der Zeile, im Band und im
+                                  Rand der Kapsel. Auf der Zeit selbst hat sie
+                                  nur Gewicht genommen, das die Lesbarkeit
+                                  braucht. Der Pfeil und die leichtere zweite
+                                  Zahl sagen ohne Worte, was Beginn und was Ende
+                                  ist. */}
+                              <span className="tabular text-[19px] leading-tight whitespace-nowrap">
+                                {fremd && (
+                                  <span className="mr-1" style={{ color: b.color }}>
+                                    {b.symbol}
+                                  </span>
+                                )}
+                                <span className="font-bold text-lw-text">{day.b}</span>
+                                <span className="mx-1 font-normal text-lw-text3">→</span>
+                                <span className="font-medium text-lw-text2">{day.e}</span>
                               </span>
                             </div>
                           );
