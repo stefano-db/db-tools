@@ -32,13 +32,42 @@ Verzeichnis.
 
 ## Einrichten
 
-**1. Schlüsselpaar** (einmalig, liegt schon vor):
+Alles steht in `app_konfiguration` — einer Tabelle mit Zeilenrechten und ohne
+eine einzige Regel, also über die Schnittstelle unerreichbar. Nur der SQL-Editor
+und der Dienstschlüssel kommen heran, und wer den Dienstschlüssel hat, hat
+ohnehin alles. Der Vorteil: eine Stelle statt vier Felder in einer Oberfläche,
+in denen dasselbe Wort zweimal fehlerfrei stehen muss.
+
+**1. Schlüsselpaar** (einmalig):
 
 ```
 node ../../../apps/intern/scripts/vapid-schluessel.mjs
 ```
 
-**2. Ausrollen.** Mit der CLI, das ist der verlässliche Weg:
+**2. Einstellungen** setzen:
+
+```sql
+insert into app_konfiguration (schluessel, wert) values
+  ('meldung_url',       'https://<projekt>.supabase.co/functions/v1/plan-meldung'),
+  ('meldung_secret',    '<gewürfeltes Wort>'),
+  ('vapid_oeffentlich', '<öffentlicher Schlüssel>'),
+  ('vapid_privat',      '<privater Schlüssel>'),
+  ('vapid_absender',    'mailto:info@dreambowl.de')
+on conflict (schluessel) do update set wert = excluded.wert, updated_at = now();
+
+grant select on app_konfiguration to service_role;
+```
+
+Das Wort in `meldung_secret` ist frei gewählt. Es hat keine Bedeutung; es muss
+nur dasselbe bleiben, denn die Datenbank sagt es beim Anrufen und der Dienst
+vergleicht. Da beide es aus derselben Zeile lesen, kann es nicht mehr
+auseinanderlaufen.
+
+Wer lieber mit Geheimnissen der Edge Function arbeitet, kann das: `PLAN_MELDUNG_SECRET`,
+`VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` haben Vorrang vor der
+Tabelle. Nötig ist es nicht.
+
+**3. Ausrollen:**
 
 ```
 npx supabase@latest login
@@ -47,31 +76,10 @@ npx supabase@latest functions deploy plan-meldung \
 ```
 
 `--no-verify-jwt` ist keine Nachlässigkeit: hier ruft die Datenbank an, nicht
-ein angemeldeter Mensch. Der Ausweis ist das Geheimwort im Kopf `x-plan-secret`,
-und ohne es kommt niemand hinein. Bleibt die JWT-Prüfung an, antwortet der
-Dienst der Datenbank mit 401.
+ein angemeldeter Mensch. Der Ausweis ist das Geheimwort im Kopf `x-plan-secret`.
+Bleibt die JWT-Prüfung an, antwortet der Dienst der Datenbank mit 401.
 
-**3. Geheimnisse** setzen (Dashboard → Edge Functions → Secrets):
-
-| Name | Inhalt |
-|---|---|
-| `PLAN_MELDUNG_SECRET` | frei gewähltes Wort, muss mit `app_konfiguration` übereinstimmen |
-| `VAPID_PUBLIC_KEY` | öffentlicher Schlüssel aus Schritt 1 |
-| `VAPID_PRIVATE_KEY` | privater Schlüssel aus Schritt 1 |
-| `VAPID_SUBJECT` | `mailto:…` (freiwillig) |
-
-`SUPABASE_URL` und `SUPABASE_SERVICE_ROLE_KEY` setzt Supabase selbst.
-
-**4. Datenbank** darauf zeigen lassen:
-
-```sql
-insert into app_konfiguration (schluessel, wert) values
-  ('meldung_url',    'https://<projekt>.supabase.co/functions/v1/plan-meldung'),
-  ('meldung_secret', '<dasselbe Wort wie oben>')
-on conflict (schluessel) do update set wert = excluded.wert, updated_at = now();
-```
-
-**5. Öffentlichen Schlüssel** in den Bau der App: bei Cloudflare Pages als
+**4. Öffentlichen Schlüssel** in den Bau der App: bei Cloudflare Pages als
 `VITE_VAPID_PUBLIC_KEY` unter **Production** eintragen und neu bauen lassen. Er
 wird beim Bauen fest eingesetzt, ein späteres Eintragen wirkt erst beim
 nächsten Bau.
@@ -84,6 +92,9 @@ läuft und welche Einstellungen gesetzt sind, aber niemals deren Inhalt:
 ```
 curl https://<projekt>.supabase.co/functions/v1/plan-meldung
 ```
+
+Die Antwort sagt zu jedem Wert, ob er aus der `Umgebung`, aus der `Datenbank`
+oder gar nicht kommt, und ob der Dienst damit `bereit` ist.
 
 Was die Datenbank beim Rufen zurückbekommen hat, steht in `pg_net`:
 

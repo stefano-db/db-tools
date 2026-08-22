@@ -81,6 +81,20 @@ function datenbank(url: string, schluessel: string) {
     async loeschen(pfad: string) {
       await fetch(`${url}/rest/v1/${pfad}`, { method: 'DELETE', headers: kopf });
     },
+    /**
+     * Die Einstellungen des Betriebs. Sie stehen in der Datenbank und nicht in
+     * vier Feldern einer Oberflaeche: dort muss man dasselbe Wort zweimal
+     * fehlerfrei eintippen, und ein Vertipper bleibt still — der Dienst
+     * antwortet dann 401 und niemand weiss, warum.
+     */
+    async einstellungen(): Promise<Record<string, string>> {
+      const a = await fetch(`${url}/rest/v1/app_konfiguration?select=schluessel,wert`, {
+        headers: kopf,
+      });
+      if (!a.ok) return {};
+      const zeilen = (await a.json()) as { schluessel: string; wert: string }[];
+      return Object.fromEntries(zeilen.map((z) => [z.schluessel, z.wert]));
+    },
   };
 }
 
@@ -88,40 +102,49 @@ function datenbank(url: string, schluessel: string) {
 
 Deno.serve(async (anfrage) => {
   const umgebung = (name: string) => Deno.env.get(name) ?? '';
+  const db = datenbank(umgebung('SUPABASE_URL'), umgebung('SUPABASE_SERVICE_ROLE_KEY'));
 
-  // Ein Blick von aussen, ohne Geheimnis: laeuft der Dienst, und sind seine
-  // Einstellungen gesetzt? Die Werte selbst gibt er nicht heraus, nur ob sie
-  // da sind. Ohne diese Auskunft bleibt bei einem Fehlschlag nur Raten.
+  // Wo ein Wert herkommt, ist zweitrangig, solange er da ist. Die Umgebung hat
+  // Vorrang — wer den Dienst lieber ueber Geheimnisse einrichtet, kann das —,
+  // aber ohne sie genuegt die Datenbank. Dann ist alles an einer Stelle.
+  const konf = await db.einstellungen();
+  const wert = (name: string, feld: string) => umgebung(name) || konf[feld] || '';
+  const geheim = wert('PLAN_MELDUNG_SECRET', 'meldung_secret');
+  const oeffentlich = wert('VAPID_PUBLIC_KEY', 'vapid_oeffentlich');
+  const privat = wert('VAPID_PRIVATE_KEY', 'vapid_privat');
+  const absender = wert('VAPID_SUBJECT', 'vapid_absender') || 'mailto:info@dreambowl.de';
+
+  // Ein Blick von aussen, ohne Geheimwort: laeuft der Dienst, und ist er
+  // eingerichtet? Die Werte selbst gibt er nie heraus — nur ob sie da sind und
+  // woher sie kommen. Ohne diese Auskunft bleibt bei einem Fehlschlag nur
+  // Raten, und Raten hat uns hier schon genug Zeit gekostet.
   if (anfrage.method === 'GET') {
+    const woher = (name: string, feld: string) =>
+      umgebung(name) ? 'Umgebung' : konf[feld] ? 'Datenbank' : 'FEHLT';
     return Response.json({
       dienst: 'plan-meldung',
       laeuft: true,
-      eingerichtet: {
-        PLAN_MELDUNG_SECRET: umgebung('PLAN_MELDUNG_SECRET') !== '',
-        VAPID_PUBLIC_KEY: umgebung('VAPID_PUBLIC_KEY') !== '',
-        VAPID_PRIVATE_KEY: umgebung('VAPID_PRIVATE_KEY') !== '',
-        SUPABASE_URL: umgebung('SUPABASE_URL') !== '',
-        SUPABASE_SERVICE_ROLE_KEY: umgebung('SUPABASE_SERVICE_ROLE_KEY') !== '',
+      datenbank: umgebung('SUPABASE_URL') !== '' && umgebung('SUPABASE_SERVICE_ROLE_KEY') !== '',
+      einstellungen: {
+        geheimwort: woher('PLAN_MELDUNG_SECRET', 'meldung_secret'),
+        vapid_oeffentlich: woher('VAPID_PUBLIC_KEY', 'vapid_oeffentlich'),
+        vapid_privat: woher('VAPID_PRIVATE_KEY', 'vapid_privat'),
       },
+      bereit: geheim !== '' && oeffentlich !== '' && privat !== '',
     });
   }
 
   // Nur die Datenbank darf hier hineinrufen. Ohne diese Pruefung koennte
   // jeder, der die Adresse kennt, Meldungen an die Belegschaft schicken.
-  const geheim = umgebung('PLAN_MELDUNG_SECRET');
   if (!geheim || anfrage.headers.get('x-plan-secret') !== geheim) {
     return new Response('Nicht erlaubt', { status: 401 });
   }
 
-  const oeffentlich = umgebung('VAPID_PUBLIC_KEY');
-  const privat = umgebung('VAPID_PRIVATE_KEY');
   if (!oeffentlich || !privat) {
     return Response.json({ fehler: 'VAPID-Schlüssel fehlen' }, { status: 500 });
   }
-  const absender = umgebung('VAPID_SUBJECT') || 'mailto:info@dreambowl.de';
 
   const { week_start, data, old_data } = await anfrage.json();
-  const db = datenbank(umgebung('SUPABASE_URL'), umgebung('SUPABASE_SERVICE_ROLE_KEY'));
 
   const leute = (await db.holen(
     'roster_employees?select=id,name,profile_id&active=eq.true&profile_id=not.is.null',
