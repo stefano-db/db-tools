@@ -216,6 +216,8 @@ export interface RosterEmployeeRow {
   id: string;
   name: string;
   groupNo: number;
+  /** Sollstunden je Woche; 0 heisst ohne Vorgabe. */
+  targetHours: number;
   /** Verbundenes Konto, falls zugeordnet. */
   profileId: string | null;
 }
@@ -331,6 +333,28 @@ export interface Repository {
 
   // --- Dienstplan ---
   listRosterEmployees(): Promise<RosterEmployeeRow[]>;
+  /**
+   * Einen Namen im Plan anlegen oder aendern. Ohne id wird angelegt.
+   *
+   * `targetHours` landet in der Spalte `target_days` — die heisst so aus der
+   * ersten Fassung, gefuehrt werden dort aber Stunden je Woche. Umbenennen
+   * hiesse, den bestehenden Editor mit umzustellen; der Kommentar ist billiger
+   * als der Fehler, den ein halber Umbau kostet.
+   */
+  rosterEmployeeSpeichern(eintrag: {
+    id?: string;
+    name: string;
+    groupNo: number;
+    targetHours: number;
+  }): Promise<void>;
+  /**
+   * Einen Namen aus dem Plan nehmen.
+   *
+   * Nicht loeschen, sondern stilllegen: an der id haengen die Schichten
+   * vergangener Wochen. Ein geloeschter Datensatz risse Loecher in jede
+   * Historie, in der die Person vorkommt.
+   */
+  rosterEmployeeEntfernen(id: string): Promise<void>;
   /** Namen im Plan mit einem Konto verbinden; null löst die Verbindung. */
   linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void>;
   /** Die eigene laufende Woche. null, wenn das Konto keinem Namen zugeordnet ist. */

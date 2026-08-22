@@ -141,6 +141,10 @@ export class DemoRepository implements Repository {
     return [];
   }
 
+  async rosterEmployeeSpeichern() {}
+
+  async rosterEmployeeEntfernen() {}
+
   async linkRosterEmployee(): Promise<void> {
     throw new Error('Im Demo-Betrieb gibt es keinen Dienstplan.');
   }

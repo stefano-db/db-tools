@@ -461,7 +461,7 @@ export class SupabaseRepository implements Repository {
   async listRosterEmployees(): Promise<RosterEmployeeRow[]> {
     const { data, error } = await this.client
       .from('roster_employees')
-      .select('id, name, group_no, profile_id')
+      .select('id, name, group_no, target_days, profile_id')
       .eq('active', true)
       .order('group_no')
       .order('sort_order');
@@ -470,6 +470,9 @@ export class SupabaseRepository implements Repository {
       id: r.id,
       name: r.name,
       groupNo: r.group_no,
+      // Ohne diesen Wert wuerde jede Aenderung am Bereich die Sollstunden auf
+      // null zuruecksetzen — gelesen wird, was auch geschrieben wird.
+      targetHours: Number(r.target_days ?? 0),
       profileId: r.profile_id,
     }));
   }
@@ -479,6 +482,49 @@ export class SupabaseRepository implements Repository {
    * Verbindung desselben Kontos zuerst gelöst — sonst stünde jemand doppelt im
    * Plan und „meine Schicht" wäre nicht mehr eindeutig.
    */
+  async rosterEmployeeSpeichern(eintrag: {
+    id?: string;
+    name: string;
+    groupNo: number;
+    targetHours: number;
+  }): Promise<void> {
+    const zeile = {
+      name: eintrag.name,
+      group_no: eintrag.groupNo,
+      target_days: eintrag.targetHours,
+    };
+
+    if (eintrag.id) {
+      const { error } = await this.client.from('roster_employees').update(zeile).eq('id', eintrag.id);
+      if (error) throw new Error(error.message);
+      return;
+    }
+
+    // Neue Namen ans Ende ihres Bereichs, nicht an den Anfang: die Reihenfolge
+    // im Plan ist gewachsen und soll nicht bei jeder Einstellung durcheinander
+    // geraten.
+    const { data: letzte } = await this.client
+      .from('roster_employees')
+      .select('sort_order')
+      .eq('group_no', eintrag.groupNo)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const { error } = await this.client
+      .from('roster_employees')
+      .insert({ ...zeile, sort_order: (letzte?.sort_order ?? 0) + 1, active: true });
+    if (error) throw new Error(error.message);
+  }
+
+  async rosterEmployeeEntfernen(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('roster_employees')
+      .update({ active: false })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
   async linkRosterEmployee(rosterEmployeeId: string, profileId: string | null): Promise<void> {
     if (profileId) {
       const { error: clearError } = await this.client

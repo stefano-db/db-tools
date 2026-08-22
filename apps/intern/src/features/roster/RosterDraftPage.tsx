@@ -182,7 +182,12 @@ export function RosterDraftPage() {
       .then((rows) => {
         if (!active || rows.length === 0) return;
         setEmployees(
-          rows.map((r) => ({ id: r.id, name: r.name, groupNo: r.groupNo, targetHours: 0 })),
+          rows.map((r) => ({
+            id: r.id,
+            name: r.name,
+            groupNo: r.groupNo,
+            targetHours: r.targetHours,
+          })),
         );
       })
       .catch(() => {});
@@ -1899,7 +1904,17 @@ function TeilenTab({
   );
 }
 
-/** Zweiter Reiter: Belegschaft und Bereiche — dieselben Angaben wie bisher. */
+/**
+ * Zweiter Reiter: Belegschaft und Bereiche.
+ *
+ * Anders als die Schichten wirkt hier alles sofort auf den echten Plan — ein
+ * Name, den man entfernt, war sonst beim naechsten Laden wieder da, weil die
+ * Liste aus der Datenbank kommt und nicht aus dem Entwurf.
+ *
+ * Entfernen heisst stilllegen, nicht loeschen: an einem Namen haengen die
+ * Schichten vergangener Wochen. Wer ihn loescht, reisst Loecher in jede
+ * Historie, in der die Person vorkommt.
+ */
 function TeamTab({
   employees,
   canEdit,
@@ -1912,39 +1927,93 @@ function TeamTab({
   const [name, setName] = useState('');
   const [group, setGroup] = useState(2);
   const [target, setTarget] = useState('');
+  const [fehler, setFehler] = useState<string | null>(null);
+  const [laeuft, setLaeuft] = useState(false);
 
-  function add() {
-    if (!name.trim()) return;
-    onChange([
-      ...employees,
-      { id: `neu-${employees.length}-${name}`, name: name.trim(), groupNo: group, targetHours: Number(target) || 0 },
-    ]);
-    setName('');
-    setTarget('');
+  /** Nach jeder Aenderung frisch aus der Datenbank lesen — sonst zeigt die
+      Liste, was jemand wollte, statt was tatsaechlich gespeichert ist. */
+  async function neuLaden() {
+    const rows = await repository.listRosterEmployees();
+    onChange(
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        groupNo: r.groupNo,
+        targetHours: r.targetHours,
+      })),
+    );
+  }
+
+  async function fuehreAus(arbeit: () => Promise<void>) {
+    setLaeuft(true);
+    setFehler(null);
+    try {
+      await arbeit();
+      await neuLaden();
+    } catch (e) {
+      setFehler(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLaeuft(false);
+    }
   }
 
   return (
     <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
       <section>
         <h2 className="mb-2 text-sm font-bold tracking-wide text-lw-text3 uppercase">Mitarbeiter</h2>
+        <p className="mb-3 text-sm text-lw-text2">
+          Änderungen hier wirken <strong>sofort auf den echten Plan</strong> — anders als die
+          Schichten im Entwurf. Wer entfernt wird, verschwindet aus dem Plan, bleibt aber in den
+          vergangenen Wochen stehen.
+        </p>
+
+        {fehler && (
+          <p className="mb-3 rounded-lg bg-lw-bad/10 px-4 py-2.5 text-sm text-lw-bad">■ {fehler}</p>
+        )}
+
         <div className="lw-card divide-y divide-lw-line overflow-hidden">
           {employees.map((emp) => {
-            const group = GROUPS.find((g) => g.no === emp.groupNo);
+            const g = gruppe(emp.groupNo);
             return (
-              <div key={emp.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2.5">
-                <span
-                  className="h-4 w-1 rounded-full"
-                  style={{ background: group?.color ?? 'var(--color-lw-line2)' }}
-                />
-                <span className="font-semibold">{emp.name}</span>
-                <span className="text-xs text-lw-text3">{group?.name}</span>
-                <span className="ml-auto text-xs text-lw-text2">
-                  {emp.targetHours > 0 ? `${emp.targetHours} h/Woche` : 'ohne Vorgabe'}
-                </span>
+              <div key={emp.id} className="flex items-center gap-3 px-3 py-2">
+                <span className="h-4 w-1 shrink-0 rounded-full" style={{ background: g.color }} />
+                <span className="min-w-0 flex-1 truncate font-semibold">{emp.name}</span>
+
+                {canEdit ? (
+                  <select
+                    value={emp.groupNo}
+                    disabled={laeuft}
+                    onChange={(e) =>
+                      void fuehreAus(() =>
+                        repository.rosterEmployeeSpeichern({
+                          id: emp.id,
+                          name: emp.name,
+                          groupNo: Number(e.target.value),
+                          targetHours: emp.targetHours,
+                        }),
+                      )
+                    }
+                    className="lw-input w-40 shrink-0 py-1 text-sm"
+                  >
+                    {GROUPS.map((x) => (
+                      <option key={x.no} value={x.no}>
+                        {x.symbol} {x.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-lw-text3">{g.name}</span>
+                )}
+
                 {canEdit && (
                   <button
-                    onClick={() => onChange(employees.filter((e) => e.id !== emp.id))}
-                    className="text-lw-text3 hover:text-lw-bad"
+                    disabled={laeuft}
+                    onClick={() => {
+                      if (confirm(`„${emp.name}" aus dem Plan nehmen?`)) {
+                        void fuehreAus(() => repository.rosterEmployeeEntfernen(emp.id));
+                      }
+                    }}
+                    className="shrink-0 px-1 text-lw-text3 hover:text-lw-bad disabled:opacity-40"
                     aria-label={`${emp.name} entfernen`}
                   >
                     ✕
@@ -1953,6 +2022,9 @@ function TeamTab({
               </div>
             );
           })}
+          {employees.length === 0 && (
+            <p className="px-3 py-4 text-sm text-lw-text3">Noch niemand im Plan.</p>
+          )}
         </div>
 
         {canEdit && (
@@ -1963,10 +2035,14 @@ function TeamTab({
               placeholder="Name"
               className="lw-input w-40"
             />
-            <select value={group} onChange={(e) => setGroup(Number(e.target.value))} className="lw-input w-44">
+            <select
+              value={group}
+              onChange={(e) => setGroup(Number(e.target.value))}
+              className="lw-input w-44"
+            >
               {GROUPS.map((g) => (
                 <option key={g.no} value={g.no}>
-                  {g.name}
+                  {g.symbol} {g.name}
                 </option>
               ))}
             </select>
@@ -1977,7 +2053,21 @@ function TeamTab({
               inputMode="numeric"
               className="lw-input w-24"
             />
-            <button onClick={add} className="lw-btn-primary px-4 py-2 text-sm">
+            <button
+              disabled={laeuft || !name.trim()}
+              onClick={() =>
+                void fuehreAus(async () => {
+                  await repository.rosterEmployeeSpeichern({
+                    name: name.trim(),
+                    groupNo: group,
+                    targetHours: Number(target) || 0,
+                  });
+                  setName('');
+                  setTarget('');
+                })
+              }
+              className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
+            >
               Hinzufügen
             </button>
           </div>
@@ -1990,6 +2080,7 @@ function TeamTab({
           {GROUPS.map((g) => (
             <div key={g.no} className="flex items-center gap-3 px-3 py-2.5">
               <span className="h-4 w-1 rounded-full" style={{ background: g.color }} />
+              <span>{g.symbol}</span>
               <span className="font-semibold">{g.name}</span>
               <span className="ml-auto text-xs text-lw-text3">
                 {employees.filter((e) => e.groupNo === g.no).length} Personen
@@ -1998,8 +2089,8 @@ function TeamTab({
           ))}
         </div>
         <p className="mt-3 text-xs text-lw-text3">
-          Umbenennen, Farbe und Reihenfolge kommen im fertigen Modul dazu — sie ändern nur Stammdaten und
-          brauchen keine eigene Gestaltung.
+          Umbenennen, Farbe und Reihenfolge kommen im fertigen Modul dazu — sie ändern nur
+          Stammdaten und brauchen keine eigene Gestaltung.
         </p>
         <a href="/dienstplan/index.html" className="mt-4 inline-block text-sm underline underline-offset-2">
           Zum bisherigen Editor →
