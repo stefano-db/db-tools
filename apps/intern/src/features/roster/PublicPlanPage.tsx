@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { repository, type PublicRoster } from '../../data';
-import { GROUPS, TvMatrix, normalizeWeek } from './RosterDraftPage';
+import { GROUPS, TvMatrix, normalizeWeek, tafelBreite } from './RosterDraftPage';
 import { PlanFlaeche } from './PlanFlaeche';
 import {
   addDays,
@@ -157,7 +157,7 @@ export function PublicPlanPage() {
           ▲ Keine Verbindung — angezeigt wird der Stand von {ausGedaechtnis}
         </div>
       )}
-      <PlanFlaeche breite={1820}>
+      <PlanFlaeche breite={tafelBreite(employees.length)}>
         <TvMatrix
           employees={employees}
           days={days}

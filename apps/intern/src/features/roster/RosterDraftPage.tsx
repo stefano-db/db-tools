@@ -57,6 +57,29 @@ export const GROUPS: { no: number; name: string; color: string; symbol: string }
 
 const gruppe = (no: number) => GROUPS.find((g) => g.no === no) ?? GROUPS[0];
 
+/**
+ * Abwesenheit auf der Wandtafel.
+ *
+ * Kraeftige Flaechen, keine blassen Toene: gelesen wird das aus vier Metern,
+ * und was von dort nur „irgendwie hell" aussieht, sagt nichts. Die Zuordnung
+ * kommt aus dem Plan, der bisher im Haus haengt — gruen frei, gelb Urlaub —,
+ * damit niemand umlernen muss. Die Schrift steht jeweils dunkel auf der
+ * Flaeche, damit sie auch aus der Entfernung traegt.
+ */
+const ABWESEND: Record<string, { background: string; color: string }> = {
+  frei: { background: '#b7e4bd', color: '#14532d' },
+  urlaub: { background: '#ffd977', color: '#6b4400' },
+  krank: { background: '#ffb4ae', color: '#7f1d1d' },
+  nein: { background: '#e8e2d6', color: '#8a8175' },
+};
+
+const ABWESEND_WORT: Record<string, string> = {
+  frei: 'frei',
+  urlaub: 'Urlaub',
+  krank: 'Krank',
+  nein: '—',
+};
+
 /** Der Bereich, in dem diese Schicht tatsaechlich stattfindet. */
 function bereichDerSchicht(day: ShiftDay, stammBereich: number) {
   return day.bereich ?? stammBereich;
@@ -856,8 +879,11 @@ function TvView({
           /* Der Tag wird schmaler aufgebaut als die Woche: er hat weniger
              Zeilen und darf deshalb weiter aufgeblasen werden, bis er die
              Hoehe ausfuellt. Bei gleicher Breite bliebe das halbe Bild leer. */
-          className="plan-tv w-[1820px] origin-top-left px-4 py-2"
-          style={{ transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})` }}
+          className="plan-tv origin-top-left px-4 py-2"
+          style={{
+            width: tafelBreite(employees.length),
+            transform: `translate(${fitted.dx}px, ${fitted.dy}px) scale(${fitted.scale})`,
+          }}
         >
           {/* Keine Kopfzeile: die Tagesspalten tragen das Datum bereits, und
               jede Zeile oben kostet Schriftgroesse in allen Feldern darunter.
@@ -885,6 +911,26 @@ function TvView({
       </div>
     </div>
   );
+}
+
+/**
+ * Wie breit die Tafel aufgebaut wird.
+ *
+ * Die Flaeche rechnet sich anschliessend selbst passend — sie nimmt den
+ * kleineren der beiden Faktoren aus Breite und Hoehe. Damit bestimmt der
+ * Aufbau, welcher der beiden bremst: Baut man immer 1820 Punkte breit, ist bei
+ * wenigen Leuten die Breite der Engpass, und die Tafel bleibt klein, obwohl
+ * unten das halbe Bild leer steht.
+ *
+ * Also schmaler bauen, wenn wenige arbeiten: dann darf die Hoehe entscheiden,
+ * und die Felder werden groesser. Mit jedem zusaetzlichen Namen wird der Aufbau
+ * breiter und damit dichter — bis bei etwa fuenfzehn Namen die volle Breite
+ * erreicht ist.
+ */
+export function tafelBreite(zeilen: number): number {
+  // Durch zwei Punkte gelegt: bei fuenf Namen rund 1050 Punkte, bei neunzehn
+  // die volle Breite. Dazwischen waechst der Aufbau mit jedem Namen um 55.
+  return Math.round(Math.min(1820, Math.max(1000, 775 + zeilen * 55)));
 }
 
 /**
@@ -1003,19 +1049,18 @@ export function TvMatrix({
                             </div>
                           );
                         })()
-                      ) : day.status === 'urlaub' || day.status === 'krank' ? (
-                        <div
-                          className={`rounded-lg px-2 py-1 text-center text-lg font-bold ${
-                            day.status === 'urlaub' ? 'text-lw-ok' : 'text-lw-bad'
-                          }`}
-                          style={{ background: '#ffffff' }}
-                        >
-                          {STATUS_PILL[day.status].label}
-                        </div>
                       ) : (
-                        // Frei bleibt leer. Das Wort in jeder zweiten Zelle war
-                        // die halbe Unruhe und hat nichts erzaehlt.
-                        <div className="py-1 text-center text-lw-line2">·</div>
+                        // Wer nicht arbeitet, bekommt Flaeche statt Andeutung.
+                        // Im Haus haengt der Plan seit jeher so: gruen heisst
+                        // frei, gelb heisst Urlaub — daran liest die Mannschaft
+                        // in einer Sekunde ab, wer da ist. Weiss bleibt der
+                        // Arbeitstag, damit die Zeit darauf steht.
+                        <div
+                          className="rounded-lg px-2 py-1 text-center text-lg font-extrabold"
+                          style={ABWESEND[day.status]}
+                        >
+                          {ABWESEND_WORT[day.status]}
+                        </div>
                       )}
                     </td>
                   ))}
