@@ -822,6 +822,56 @@ function TvView({
    * Nachmessung. Gestreckt wird nichts, nur gleichmaessig vergroessert.
    */
   const [editorBreite, setEditorBreite] = useState(1600);
+
+  /**
+   * Das Mosaik einpassen.
+   *
+   * Bewusst unmittelbar am Element statt ueber den Zustand: gemessen und
+   * gesetzt wird dieselbe Eigenschaft, und ueber zwei Zustandsschritte geraet
+   * das leicht in eine Schleife, in der die Messung nie fertig wird.
+   *
+   * Der Ablauf ist einfach: kurz in natuerlicher Groesse aufbauen, messen, und
+   * dann den Rahmen auf Bildgroesse geteilt durch den Faktor setzen. Passt
+   * alles, ist der Faktor groesser als eins und die Tabelle dehnt sich in den
+   * uebrigen Platz. Passt es nicht, ist er kleiner und alles rueckt zusammen.
+   * In beiden Faellen steht am Ende genau das Bild da.
+   */
+  const mosaikRahmenRef = useRef<HTMLDivElement>(null);
+  const mosaikInhaltRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (form !== 'mosaik') return;
+    const rahmen = mosaikRahmenRef.current;
+    const inhalt = mosaikInhaltRef.current;
+    if (!rahmen || !inhalt) return;
+
+    const einpassen = () => {
+      inhalt.style.width = 'max-content';
+      inhalt.style.height = 'auto';
+      inhalt.style.transform = 'none';
+
+      const breiteNatur = Math.max(inhalt.offsetWidth, 1);
+      const hoeheNatur = Math.max(inhalt.offsetHeight, 1);
+      const scale = Math.min(
+        rahmen.clientWidth / breiteNatur,
+        rahmen.clientHeight / hoeheNatur,
+        2.2,
+      );
+
+      inhalt.style.width = `${rahmen.clientWidth / scale}px`;
+      inhalt.style.height = `${rahmen.clientHeight / scale}px`;
+      inhalt.style.transform = `scale(${scale})`;
+    };
+
+    einpassen();
+    const ro = new ResizeObserver(einpassen);
+    ro.observe(rahmen);
+    window.addEventListener('resize', einpassen);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', einpassen);
+    };
+  }, [form, employees, days, weekOf]);
   const aufbauBreite = form === 'editor' ? editorBreite : tafelBreite(employees.length);
 
   const fit = useCallback(() => {
@@ -922,22 +972,27 @@ function TvView({
           strecken: volle Breite fuer die Spalten, volle Hoehe fuer die Zeilen,
           und der Browser verteilt den Platz. Nichts wird dabei verzerrt, es
           steht nur alles weiter auseinander. */}
-      {/* Das Mosaik wird nicht skaliert, sondern gedehnt.
-          Seine Kacheln haben durch Polster und Schriftgroesse bereits ihre
-          natuerliche Breite — vergroessern liesse sich da nichts, und auf einem
-          1080er Schirm blieben 44 Prozent der Hoehe leer. Eine Tabelle mit
-          fester Hoehe verteilt den uebrigen Platz aber selbst auf ihre Zeilen:
-          die Flaechen werden groesser, die Schrift bleibt, wo sie hingehoert.
-          Genau das will ein Mosaik. */}
+      {/* Das Mosaik: erst messen, dann dehnen oder verkleinern.
+          Dehnen allein reicht nicht — eine Tabelle kann Platz verteilen, aber
+          keinen schaffen: bei voller Belegschaft lief sie unten aus dem Bild.
+          Skalieren allein reicht auch nicht — die Kacheln haben ihre
+          natuerliche Breite, und bei wenigen Leuten blieb die halbe Hoehe leer.
+          Also beides: Der Rahmen wird auf Bildgroesse geteilt durch den
+          Verkleinerungsfaktor aufgebaut. Passt alles, ist der Faktor groesser
+          als eins und die Tabelle dehnt sich in den uebrigen Platz; passt es
+          nicht, ist er kleiner und alles rueckt zusammen. In beiden Faellen
+          steht am Ende genau das Bild da. */}
       {form === 'mosaik' ? (
-        <div className="plan-tv plan-tv-dehnen flex-1 overflow-hidden px-5 py-3">
-          <TvMosaik
-            employees={employees}
-            days={days}
-            todayIndex={todayIndex}
-            weekOf={weekOf}
-            woche={`KW ${isoWeekNumber(monday)}`}
-          />
+        <div ref={mosaikRahmenRef} className="flex-1 overflow-hidden">
+          <div ref={mosaikInhaltRef} className="plan-tv plan-tv-dehnen origin-top-left px-5 py-3">
+            <TvMosaik
+              employees={employees}
+              days={days}
+              todayIndex={todayIndex}
+              weekOf={weekOf}
+              woche={`KW ${isoWeekNumber(monday)}`}
+            />
+          </div>
         </div>
       ) : (
       <div ref={boxRef} className="flex-1 overflow-hidden">
