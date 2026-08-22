@@ -576,20 +576,38 @@ export class SupabaseRepository implements Repository {
    * Die Tabelle ist fuer die Echtzeit freigegeben, und die Zeilenrechte gelten
    * auch hier: geliefert wird nur, was der Angemeldete ohnehin lesen darf.
    */
-  watchRosterWeek(weekStart: string, beiAenderung: (data: any) => void): () => void {
+  /**
+   * Laufende Nummer fuer Kanalnamen.
+   *
+   * Zwei Abonnements duerfen nicht denselben Namen tragen: die Verbindung
+   * fuehrt sie unter diesem Namen, und das zweite bekommt dann nichts. Genau
+   * das ist passiert, als Wochenplan und Waechter beide auf dieselbe Woche
+   * horchten — gespeichert wurde, gemeldet nichts.
+   */
+  private static kanalZaehler = 0;
+
+  watchRosterWeek(
+    weekStart: string,
+    beiAenderung: (data: any) => void,
+    beiVerbindung?: (steht: boolean, meldung?: string) => void,
+  ): () => void {
+    const nummer = ++SupabaseRepository.kanalZaehler;
     const kanal = this.client
-      .channel(`plan-${weekStart}`)
+      .channel(`plan-${weekStart}-${nummer}`)
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'roster_weeks',
-          filter: `week_start=eq.${weekStart}`,
+        { event: '*', schema: 'public', table: 'roster_weeks' },
+        (nutzlast: any) => {
+          // Bewusst ohne Filter auf der Serverseite und dafuer hier geprueft:
+          // ein Filter, der nicht greift, liefert stillschweigend nichts, und
+          // das sieht genauso aus wie „es hat sich nichts geaendert".
+          if (nutzlast.new?.week_start !== weekStart) return;
+          beiAenderung(nutzlast.new?.data ?? {});
         },
-        (nutzlast: any) => beiAenderung(nutzlast.new?.data ?? {}),
       )
-      .subscribe();
+      .subscribe((zustand: string, fehler?: Error) => {
+        beiVerbindung?.(zustand === 'SUBSCRIBED', fehler?.message ?? zustand);
+      });
 
     return () => {
       void this.client.removeChannel(kanal);

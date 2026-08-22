@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useAuth } from '../../app/AuthContext';
 import { repository, type ShareLink } from '../../data';
 import { teileBild, zeichnePlan } from './planAlsBild';
+import { merkeEigeneSchreibung } from '../plan/eigeneSchreibung';
 import {
   DAY_NAMES,
   DAY_SHORT,
@@ -290,6 +291,8 @@ export function RosterPage() {
         if (antwort.ok) {
           fassung.current = antwort.version;
           geschrieben.current = json;
+          // Der Waechter soll mir nicht melden, was ich gerade selbst getan habe.
+          merkeEigeneSchreibung();
           setSpeicherstand('gespeichert');
           setSpeicherText(null);
           return;

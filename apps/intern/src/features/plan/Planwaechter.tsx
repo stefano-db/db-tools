@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { repository, type MyWeek, type ShiftDay } from '../../data';
 import { unterschied } from './unterschied';
+import { warEigeneSchreibung } from './eigeneSchreibung';
 
 /**
  * Wächter über den eigenen Plan.
@@ -18,6 +19,34 @@ import { unterschied } from './unterschied';
  * die Vorbereitung dafür steht in der Beschreibung im Profil.
  */
 
+/**
+ * Zustand des Waechters, damit das Profil ihn anzeigen kann.
+ *
+ * Ein Modul-weites Signal statt eines Zustands im Baum: Waechter und Anzeige
+ * stehen an verschiedenen Stellen der Seite, und ein gemeinsamer Elternteil
+ * waere nur dafuer da, diesen einen Wert weiterzureichen.
+ */
+type Verbindung = { steht: boolean; meldung?: string; person?: string };
+let verbindung: Verbindung = { steht: false, meldung: 'noch nicht verbunden' };
+const zuhoerer = new Set<(v: Verbindung) => void>();
+
+function setzeVerbindung(v: Verbindung) {
+  verbindung = v;
+  zuhoerer.forEach((f) => f(v));
+}
+
+export function useVerbindung(): Verbindung {
+  const [wert, setWert] = useState(verbindung);
+  useEffect(() => {
+    zuhoerer.add(setWert);
+    setWert(verbindung);
+    return () => {
+      zuhoerer.delete(setWert);
+    };
+  }, []);
+  return wert;
+}
+
 export function Planwaechter() {
   const [meldung, setMeldung] = useState<{ betrifftMich: boolean; text: string } | null>(null);
   const woche = useRef<MyWeek | null>(null);
@@ -29,28 +58,47 @@ export function Planwaechter() {
     repository
       .myWeek()
       .then((w) => {
-        if (!aktiv || !w) return;
+        if (!aktiv) return;
+        if (!w) {
+          setzeVerbindung({
+            steht: false,
+            meldung: 'Dein Konto ist keinem Namen im Dienstplan zugeordnet.',
+          });
+          return;
+        }
         woche.current = w;
 
-        abmelden = repository.watchRosterWeek(w.weekStart, (data) => {
-          const alt = woche.current?.days ?? [];
-          const neu = (data?.[w.employeeId]?.d ?? []) as ShiftDay[];
-          const meine = unterschied(alt, neu);
+        abmelden = repository.watchRosterWeek(
+          w.weekStart,
+          (data) => {
+            // Wer gerade selbst gespeichert hat, weiss Bescheid.
+            if (warEigeneSchreibung()) {
+              woche.current = { ...w, days: (data?.[w.employeeId]?.d ?? []) as ShiftDay[] };
+              return;
+            }
 
-          // Den neuen Stand merken, sonst meldet die naechste Aenderung noch
-          // einmal denselben Unterschied.
-          woche.current = { ...w, days: neu };
+            const alt = woche.current?.days ?? [];
+            const neu = (data?.[w.employeeId]?.d ?? []) as ShiftDay[];
+            const meine = unterschied(alt, neu);
 
-          const text =
-            meine.length > 0
-              ? `Deine Schicht hat sich geändert — ${meine.join(', ')}`
-              : 'Der Dienstplan wurde geändert. Deine Schichten bleiben gleich.';
+            // Den neuen Stand merken, sonst meldet die naechste Aenderung noch
+            // einmal denselben Unterschied.
+            woche.current = { ...w, days: neu };
 
-          setMeldung({ betrifftMich: meine.length > 0, text });
-          zeigeSystemmeldung(meine.length > 0, text);
-        });
+            const text =
+              meine.length > 0
+                ? `Deine Schicht hat sich geändert — ${meine.join(', ')}`
+                : 'Der Dienstplan wurde geändert. Deine Schichten bleiben gleich.';
+
+            setMeldung({ betrifftMich: meine.length > 0, text });
+            zeigeSystemmeldung(meine.length > 0, text);
+          },
+          (steht, meldung) => setzeVerbindung({ steht, meldung, person: w.employeeName }),
+        );
       })
-      .catch(() => {});
+      .catch((e) =>
+        setzeVerbindung({ steht: false, meldung: e instanceof Error ? e.message : String(e) }),
+      );
 
     return () => {
       aktiv = false;

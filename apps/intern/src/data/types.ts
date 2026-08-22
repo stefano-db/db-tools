@@ -375,7 +375,18 @@ export interface Repository {
    * ganzen Woche — wer davon betroffen ist, entscheidet die Oberflaeche, denn
    * nur sie weiss, wessen Plan gerade angezeigt wird.
    */
-  watchRosterWeek(weekStart: ISODate, beiAenderung: (data: RosterWeekData) => void): () => void;
+  watchRosterWeek(
+    weekStart: ISODate,
+    beiAenderung: (data: RosterWeekData) => void,
+    /**
+     * Meldet, ob die Verbindung steht.
+     *
+     * Ohne diese Auskunft ist ein Ausbleiben nicht zu deuten: hat sich nichts
+     * geaendert, oder kommt schlicht nichts an? Beides sieht gleich aus, und
+     * beim Dienstplan ist der Unterschied wesentlich.
+     */
+    beiVerbindung?: (steht: boolean, meldung?: string) => void,
+  ): () => void;
   /**
    * Eine ganze Woche lesen — samt Fassungsnummer.
    *

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
 import { DEPARTMENT_LABEL, repository } from '../../data';
 import { Mascot } from '../../ui/Mascot';
+import { useVerbindung } from '../plan/Planwaechter';
 
 /**
  * Eigenes Konto.
@@ -113,6 +114,7 @@ function Benachrichtigungen() {
   const [stand, setStand] = useState<NotificationPermission | 'nicht-moeglich'>(
     moeglich ? Notification.permission : 'nicht-moeglich',
   );
+  const verbindung = useVerbindung();
 
   return (
     <article className="db-card p-5">
@@ -143,6 +145,39 @@ function Benachrichtigungen() {
           className="db-btn-gold mt-4 px-4 py-2 text-sm"
         >
           Benachrichtigungen einschalten
+        </button>
+      )}
+
+      {/* Zwei Dinge muessen stimmen, und sie haengen nicht zusammen: die
+          Erlaubnis des Geraets und die Verbindung zur Datenbank. Bleibt eine
+          Meldung aus, sagt diese Zeile, welche der beiden fehlt — sonst sucht
+          man an der falschen Stelle. */}
+      <dl className="mt-4 space-y-1 text-xs">
+        <div className="flex justify-between gap-4">
+          <dt className="text-db-text3">Erlaubnis des Geräts</dt>
+          <dd className={stand === 'granted' ? 'text-db-ok' : 'text-db-text2'}>
+            {stand === 'granted' ? 'erteilt' : stand === 'denied' ? 'abgelehnt' : 'noch nicht erteilt'}
+          </dd>
+        </div>
+        <div className="flex justify-between gap-4">
+          <dt className="text-db-text3">Verbindung zum Plan</dt>
+          <dd className={verbindung.steht ? 'text-db-ok' : 'text-db-bad'}>
+            {verbindung.steht ? `steht (als ${verbindung.person ?? '—'})` : (verbindung.meldung ?? 'unterbrochen')}
+          </dd>
+        </div>
+      </dl>
+
+      {stand === 'granted' && (
+        <button
+          onClick={() =>
+            new Notification('Testmeldung', {
+              body: 'So sieht eine Meldung aus. Wenn du das siehst, liegt es nicht am Gerät.',
+              icon: '/apple-touch-icon.png',
+            })
+          }
+          className="db-btn-ghost mt-3 px-4 py-2 text-sm"
+        >
+          Testmeldung senden
         </button>
       )}
 

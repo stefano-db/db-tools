@@ -192,7 +192,12 @@ export class DemoRepository implements Repository {
     return null;
   }
 
-  watchRosterWeek() {
+  watchRosterWeek(
+    _woche: string,
+    _beiAenderung: unknown,
+    beiVerbindung?: (steht: boolean, meldung?: string) => void,
+  ) {
+    beiVerbindung?.(false, 'Demo-Betrieb ohne Datenbank');
     return () => {};
   }
 
