@@ -828,10 +828,15 @@ function TvView({
     const inner = innerRef.current;
     if (!box || !inner) return;
 
+    // Gemessen wird, was der Inhalt wirklich braucht — nicht, was ihm zugewiesen
+    // wurde. Eine Tabelle kann breiter werden als ihr Rahmen, wenn die Spalten
+    // mehr Platz brauchen; nach der zugewiesenen Breite gerechnet, schnitte die
+    // Skalierung dann die letzte Spalte ab.
+    const inhaltBreite = Math.max(inner.offsetWidth, inner.scrollWidth);
+    const inhaltHoehe = Math.max(inner.offsetHeight, inner.scrollHeight);
+
     if (form === 'editor') {
-      const gewuenscht = Math.round(
-        (box.clientWidth * inner.offsetHeight) / Math.max(box.clientHeight, 1),
-      );
+      const gewuenscht = Math.round((box.clientWidth * inhaltHoehe) / Math.max(box.clientHeight, 1));
       const begrenzt = Math.min(2600, Math.max(900, gewuenscht));
       // Nur bei nennenswertem Unterschied nachziehen, sonst pendelt die
       // Rechnung zwischen zwei Werten hin und her.
@@ -842,15 +847,15 @@ function TvView({
     }
     // Die Transformation aendert die Groesse des Elements nicht — gemessen wird
     // also immer der unskalierte Aufbau, egal wie oft wir nachrechnen.
-    const byWidth = box.clientWidth / inner.offsetWidth;
-    const byHeight = box.clientHeight / inner.offsetHeight;
+    const byWidth = box.clientWidth / inhaltBreite;
+    const byHeight = box.clientHeight / inhaltHoehe;
     const scale = Math.min(byWidth, byHeight, 2.2);
     // Der Block ist breiter als der Rahmen und liegt deshalb links an; eine
     // Skalierung aus der Mitte wuerde ihn rechts aus dem Bild schieben. Also
     // linke obere Ecke als Ursprung und die Mitte selbst ausrechnen — sonst
     // fehlen Sonntag und die Wochensumme.
-    const dx = (box.clientWidth - inner.offsetWidth * scale) / 2;
-    const dy = (box.clientHeight - inner.offsetHeight * scale) / 2;
+    const dx = (box.clientWidth - inhaltBreite * scale) / 2;
+    const dy = (box.clientHeight - inhaltHoehe * scale) / 2;
     setFitted({ scale, dx, dy });
   }, [form]);
 
@@ -1069,7 +1074,7 @@ export function TvMatrix({
                           const fremd = b.no !== emp.groupNo;
                           return (
                             <div
-                              className="rounded-lg bg-white px-2 py-1 text-center"
+                              className="rounded-lg bg-white px-3 py-2 text-center"
                               style={{
                                 // Ein leichter Rand in der Bereichsfarbe fasst
                                 // die Zeit ein und bindet sie an ihren Bereich.
@@ -1101,7 +1106,7 @@ export function TvMatrix({
                         // in einer Sekunde ab, wer da ist. Weiss bleibt der
                         // Arbeitstag, damit die Zeit darauf steht.
                         <div
-                          className="rounded-lg px-2 py-1 text-center text-base font-semibold"
+                          className="rounded-lg px-3 py-2 text-center text-base font-semibold"
                           style={ABWESEND[day.status]}
                         >
                           {ABWESEND_WORT[day.status]}

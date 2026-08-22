@@ -32,16 +32,21 @@ export function PlanFlaeche({
     const inhalt = inhaltRef.current;
     if (!rahmen || !inhalt) return;
     // offsetWidth/Height bleiben von der Transformation unberuehrt — gemessen
-    // wird also immer der unskalierte Aufbau.
+    // wird also immer der unskalierte Aufbau. Genommen wird davon der groessere
+    // Wert gegenueber scrollWidth/Height: eine Tabelle kann breiter werden als
+    // ihr Rahmen, und nach der zugewiesenen Breite gerechnet schnitte die
+    // Skalierung dann die letzte Spalte ab.
+    const breiteInhalt = Math.max(inhalt.offsetWidth, inhalt.scrollWidth);
+    const hoeheInhalt = Math.max(inhalt.offsetHeight, inhalt.scrollHeight);
     const scale = Math.min(
-      rahmen.clientWidth / inhalt.offsetWidth,
-      rahmen.clientHeight / inhalt.offsetHeight,
+      rahmen.clientWidth / breiteInhalt,
+      rahmen.clientHeight / hoeheInhalt,
       hoechstens,
     );
     setFit({
       scale,
-      dx: (rahmen.clientWidth - inhalt.offsetWidth * scale) / 2,
-      dy: (rahmen.clientHeight - inhalt.offsetHeight * scale) / 2,
+      dx: (rahmen.clientWidth - breiteInhalt * scale) / 2,
+      dy: (rahmen.clientHeight - hoeheInhalt * scale) / 2,
     });
   }, [hoechstens]);
 
