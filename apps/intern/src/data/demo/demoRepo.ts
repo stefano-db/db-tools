@@ -72,6 +72,8 @@ export class DemoRepository implements Repository {
     localStorage.setItem('bw.employee', name);
   }
 
+  // Drei Werkzeuge statt einem: mit nur einer Kachel laesst sich der
+  // Startbildschirm nicht beurteilen, und genau dafuer ist die Vorfuehrung da.
   async listModules(): Promise<ModuleInfo[]> {
     return [
       {
@@ -81,6 +83,26 @@ export class DemoRepository implements Repository {
         externalUrl: null,
         icon: 'wrench',
         sortOrder: 10,
+        canRead: true,
+        canWrite: true,
+      },
+      {
+        key: 'urkunden',
+        nameDe: 'Urkunden',
+        path: '/urkunden',
+        externalUrl: 'https://kgb-e61.pages.dev/',
+        icon: 'trophy',
+        sortOrder: 20,
+        canRead: true,
+        canWrite: false,
+      },
+      {
+        key: 'dokumente',
+        nameDe: 'Dokumente',
+        path: '/dokumente',
+        externalUrl: null,
+        icon: 'folder',
+        sortOrder: 30,
         canRead: true,
         canWrite: true,
       },

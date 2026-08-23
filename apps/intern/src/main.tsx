@@ -6,6 +6,7 @@ import { MaintenanceShell, RequireAuth } from './app/AppShell';
 import { AuthProvider } from './app/AuthContext';
 import { DataProvider } from './app/DataContext';
 import { AppLayout } from './app/AppLayout';
+import { ModuleProvider } from './app/ModuleContext';
 import { OverviewPage } from './features/portal/OverviewPage';
 import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
@@ -36,8 +37,15 @@ const router = createBrowserRouter([
     element: <RequireAuth />,
     children: [
       {
-        // Neuer Rahmen: Seitenleiste, Kopfzeile, Reiterleiste am Handy.
-        element: <AppLayout />,
+        // Neuer Rahmen: Seitenleiste, Kopfzeile, Reiterleiste am Handy. Die
+        // freigeschalteten Werkzeuge werden einmal geladen und von Leiste und
+        // Startbildschirm gemeinsam gelesen — sonst zeigen die beiden
+        // verschiedene Stände.
+        element: (
+          <ModuleProvider>
+            <AppLayout />
+          </ModuleProvider>
+        ),
         children: [
           { index: true, element: <OverviewPage /> },
           { path: 'profil', element: <ProfilePage /> },

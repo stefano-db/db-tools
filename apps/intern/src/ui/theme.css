@@ -97,6 +97,66 @@ body.db {
   border-color: var(--color-db-gold-dim);
 }
 
+/* ---------------------------------------------------------------------------
+   Startbildschirm
+
+   Kacheln wie die App-Auswahl am Handy: das ganze Feld ist der Knopf, nicht
+   ein Knopf darin. Ein Kasten mit einem zweiten Kasten zum Antippen laesst
+   raten, wohin man tippen soll — und am Handy trifft man den kleineren
+   ohnehin schlechter.
+--------------------------------------------------------------------------- */
+@layer components {
+  .db-kachel {
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    border: 1px solid var(--color-db-line);
+    background: var(--color-db-card);
+    padding: 0.75rem;
+    transition:
+      border-color 0.15s ease,
+      transform 0.15s ease;
+  }
+}
+
+.db-kachel:hover {
+  border-color: var(--color-db-gold-dim);
+  transform: translateY(-2px);
+}
+
+/* Beim Antippen einsinken statt schweben: am Handy gibt es kein Schweben, und
+   ohne Rueckmeldung tippt man zweimal. */
+.db-kachel:active {
+  transform: translateY(0);
+}
+
+@media (min-width: 640px) {
+  .db-kachel {
+    padding: 1rem;
+  }
+}
+
+.db-kachel-symbol {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: 14px;
+  background: var(--color-db-card2);
+  border: 1px solid var(--color-db-line);
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+@media (min-width: 640px) {
+  .db-kachel-symbol {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.5rem;
+  }
+}
+
 /* Goldener Knopf für die jeweils wichtigste Handlung einer Karte. */
 .db-btn-gold {
   background: linear-gradient(180deg, var(--color-db-gold-soft), var(--color-db-gold));

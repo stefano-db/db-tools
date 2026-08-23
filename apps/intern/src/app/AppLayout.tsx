@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { useModule } from './ModuleContext';
+import { bereicheFuer, type Bereich } from './bereiche';
 import { DEPARTMENT_LABEL } from '../data';
 import { Logo, Mascot } from '../ui/Mascot';
 import { ChatBlase } from '../features/chat/ChatBlase';
@@ -14,47 +16,27 @@ import { Planwaechter } from '../features/plan/Planwaechter';
  * nicht heran.
  */
 
+/**
+ * Die Navigation liest denselben Katalog wie der Startbildschirm.
+ *
+ * Vorher stand sie hier als eigene Liste, und die beiden liefen auseinander:
+ * „Tools" und „Meine Schichten" fuehrten auf Adressen, die es gar nicht gab.
+ * Wer darauf tippte, landete wortlos wieder auf der Uebersicht.
+ */
 interface NavEntry {
   to: string;
   label: string;
   icon: string;
   end?: boolean;
-  /** Nur für Leitungen und Administratoren. */
-  leadOnly?: boolean;
-  adminOnly?: boolean;
+  extern?: string | null;
 }
 
-const MAIN: NavEntry[] = [
-  { to: '/', label: 'Übersicht', icon: '🏠', end: true },
-  { to: '/dienstplan', label: 'Dienstplan', icon: '📅' },
-  { to: '/meine-schichten', label: 'Meine Schichten', icon: '🗓' },
-  // Ohne Bereichspruefung: Fragen hat jeder, und wer nicht weiterweiss, soll
-  // nicht erst suchen muessen, ob er darf.
-  { to: '/chat', label: 'Fragen an Pinny', icon: '💬' },
-];
+const UEBERSICHT: NavEntry = { to: '/', label: 'Übersicht', icon: '🏠', end: true };
+const PROFIL: NavEntry = { to: '/profil', label: 'Profil', icon: '🙂' };
 
-const AREA: NavEntry[] = [
-  { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
-  { to: '/dokumente', label: 'Infos & Docs', icon: '📁' },
-];
-
-const ADMIN: NavEntry[] = [
-  { to: '/verwaltung', label: 'Verwaltung', icon: '👥', leadOnly: true },
-];
-
-const ACCOUNT: NavEntry[] = [{ to: '/profil', label: 'Profil', icon: '🙂' }];
-
-/** Am Handy nur die wichtigsten fünf — mehr passt nicht in eine Reiterleiste. */
-const MOBILE: NavEntry[] = [
-  { to: '/', label: 'Übersicht', icon: '🏠', end: true },
-  { to: '/dienstplan', label: 'Plan', icon: '📅' },
-  { to: '/werkzeuge', label: 'Tools', icon: '🧰' },
-  { to: '/dokumente', label: 'Docs', icon: '📁' },
-  { to: '/profil', label: 'Profil', icon: '🙂' },
-];
-// „Fragen" steht hier bewusst nicht: am Handy sitzt Pinny als Blase unten
-// rechts, und zweimal derselbe Weg in einer fuenfteiligen Leiste kostet nur
-// Platz. In der Seitenleiste am Rechner steht er dagegen mit.
+function alsEintrag(b: Bereich): NavEntry {
+  return { to: b.ziel, label: b.titel, icon: b.symbol, extern: b.extern };
+}
 
 export function AppLayout() {
   const { session } = useAuth();
@@ -69,8 +51,29 @@ export function AppLayout() {
   }, []);
 
   const mayLead = session?.isLead === true || session?.isAdmin === true;
-  const visible = (list: NavEntry[]) =>
-    list.filter((e) => (!e.leadOnly || mayLead) && (!e.adminOnly || session?.isAdmin));
+  const { module } = useModule();
+  const gruppen = bereicheFuer(module ?? [], mayLead);
+
+  // Das eigene Konto steht unten bei „Konto", nicht zwischen den Werkzeugen.
+  const fuerAlle = gruppen.alle.filter((b) => b.schluessel !== 'profil').map(alsEintrag);
+  const meine = gruppen.meine.map(alsEintrag);
+  const leitung = gruppen.leitung.map(alsEintrag);
+  const bereichName = session?.isAdmin
+    ? 'Alle Bereiche'
+    : session?.department
+      ? DEPARTMENT_LABEL[session.department]
+      : 'Mein Bereich';
+
+  // Am Handy passen fuenf Reiter, nicht mehr. Der eigene Bereich steht dabei
+  // vor allem Allgemeinen ausser dem Dienstplan: wer in der Mechanik arbeitet,
+  // braucht die Bahnwartung oefter als die Dokumente. Das Konto haelt den
+  // letzten Platz, damit der Abmelden-Weg nicht wandert.
+  const plan = fuerAlle.filter((e) => e.to === '/dienstplan');
+  const uebrig = fuerAlle.filter((e) => e.to !== '/dienstplan');
+  const mobil = [UEBERSICHT, ...plan, ...meine, ...uebrig]
+    .slice(0, 4)
+    .concat(PROFIL)
+    .filter((e, i, liste) => liste.findIndex((x) => x.to === e.to) === i);
 
   return (
     <div className="min-h-screen bg-db-bg text-db-text">
@@ -83,17 +86,21 @@ export function AppLayout() {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3">
-          <Group items={visible(MAIN)} />
-          <GroupTitle>Mein Bereich</GroupTitle>
-          <Group items={visible(AREA)} />
-          {mayLead && (
+          <Group items={[UEBERSICHT, ...fuerAlle]} />
+          {meine.length > 0 && (
+            <>
+              <GroupTitle>{bereichName}</GroupTitle>
+              <Group items={meine} />
+            </>
+          )}
+          {leitung.length > 0 && (
             <>
               <GroupTitle>Leitung</GroupTitle>
-              <Group items={visible(ADMIN)} />
+              <Group items={leitung} />
             </>
           )}
           <GroupTitle>Konto</GroupTitle>
-          <Group items={visible(ACCOUNT)} />
+          <Group items={[PROFIL]} />
         </nav>
 
         <NavLink
@@ -165,7 +172,7 @@ export function AppLayout() {
         className="fixed inset-x-0 bottom-0 z-30 flex border-t border-db-line bg-db-card lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        {visible(MOBILE).map((e) => (
+        {mobil.map((e) => (
           <TabLink key={e.to} entry={e} />
         ))}
       </nav>
@@ -192,20 +199,26 @@ function Group({ items }: { items: NavEntry[] }) {
 }
 
 /**
- * Eigenständige Seiten wie der Dienstplan liegen neben der React-Anwendung und
- * brauchen einen vollen Seitenwechsel — der Router kennt sie nicht.
+ * Eigenständige Werkzeuge liegen neben der React-Anwendung — das Urkundensystem
+ * etwa. Sie brauchen einen vollen Seitenwechsel, der Router kennt sie nicht.
  */
-function isStandalone(to: string) {
-  return to.endsWith('.html');
+function eigenstaendig(entry: NavEntry) {
+  return typeof entry.extern === 'string' && entry.extern !== '';
 }
 
 function SideLink({ entry }: { entry: NavEntry }) {
   const cls =
     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-db-text2 hover:bg-db-card2 hover:text-db-text';
 
-  if (isStandalone(entry.to)) {
+  if (eigenstaendig(entry)) {
+    const fremd = !entry.extern!.startsWith('/');
     return (
-      <a href={entry.to} className={cls}>
+      <a
+        href={entry.extern!}
+        target={fremd ? '_blank' : undefined}
+        rel={fremd ? 'noopener noreferrer' : undefined}
+        className={cls}
+      >
         <span aria-hidden="true">{entry.icon}</span>
         {entry.label}
       </a>
@@ -231,9 +244,15 @@ function TabLink({ entry }: { entry: NavEntry }) {
   const cls =
     'flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-2 text-[10px] text-db-text3';
 
-  if (isStandalone(entry.to)) {
+  if (eigenstaendig(entry)) {
+    const fremd = !entry.extern!.startsWith('/');
     return (
-      <a href={entry.to} className={cls}>
+      <a
+        href={entry.extern!}
+        target={fremd ? '_blank' : undefined}
+        rel={fremd ? 'noopener noreferrer' : undefined}
+        className={cls}
+      >
         <span className="text-lg" aria-hidden="true">
           {entry.icon}
         </span>

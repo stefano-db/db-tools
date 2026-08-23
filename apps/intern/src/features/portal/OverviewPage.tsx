@@ -1,31 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
-import { DEPARTMENT_LABEL, repository, type ModuleInfo, type MyWeek, type ShiftDay } from '../../data';
-import { Mascot, type MascotName } from '../../ui/Mascot';
+import { useModule } from '../../app/ModuleContext';
+import { bereicheFuer, type Bereich } from '../../app/bereiche';
+import { DEPARTMENT_LABEL, repository, type MyWeek, type ShiftDay } from '../../data';
+import { Mascot } from '../../ui/Mascot';
 
 /**
  * Übersicht — die Startseite nach der Anmeldung.
  *
- * Zeigt in dieser Reihenfolge: die eigene nächste Schicht, die laufende
- * Dienstplanwoche, die freigeschalteten Werkzeuge. Was jemand als Erstes
- * wissen will, steht oben; alles andere ist eine Bildschirmhöhe entfernt.
+ * Oben die eigene Schicht, darunter der Startbildschirm: alles, was man
+ * benutzen darf, als Kacheln nebeneinander wie die App-Auswahl am Handy.
+ *
+ * Gegliedert nach Zugehörigkeit statt in einer langen Reihe. „Mein Bereich"
+ * ist das, wofür man zuständig ist; „Für alle" geht jeden an; „Leitung" sieht
+ * nur, wer leitet. Wer am Counter arbeitet, findet hier keine Bahnwartung —
+ * nicht weil sie versteckt wäre, sondern weil sie ihn nichts angeht.
  */
 export function OverviewPage() {
   const { session } = useAuth();
-  const [modules, setModules] = useState<ModuleInfo[] | null>(null);
+  const { module, fehler } = useModule();
   const [week, setWeek] = useState<MyWeek | null>(null);
   // Welcher Tag in der Schnellansicht steht. Heute ist der Anfang: danach wird
   // am oeftesten gefragt, und von dort blaettert man weiter.
   const [tag, setTag] = useState(() => (new Date().getDay() + 6) % 7);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    repository
-      .listModules()
-      .then((m) => active && setModules(m))
-      .catch((e) => active && setError(e instanceof Error ? e.message : String(e)));
     repository
       .myWeek()
       .then((w) => active && setWeek(w))
@@ -35,10 +36,14 @@ export function OverviewPage() {
     };
   }, []);
 
+  const darfLeiten = session?.isLead === true || session?.isAdmin === true;
+  const gruppen = bereicheFuer(module ?? [], darfLeiten);
+  const bereichName = session?.department ? DEPARTMENT_LABEL[session.department] : null;
+
   return (
-    <div className="space-y-5">
-      {error && (
-        <p className="db-card border-db-bad/50 px-4 py-3 text-sm text-db-bad">■ {error}</p>
+    <div className="space-y-8">
+      {fehler && (
+        <p className="db-card border-db-bad/50 px-4 py-3 text-sm text-db-bad">■ {fehler}</p>
       )}
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -46,30 +51,122 @@ export function OverviewPage() {
         <WeekCard week={week} tag={tag} setzeTag={setTag} />
       </div>
 
-      <section>
-        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h2 className="text-lg font-bold">Deine Tools</h2>
-          <span className="text-xs text-db-text3">
-            {session?.isAdmin
-              ? 'Als Administrator siehst du alle Bereiche'
-              : `Bereich ${session?.department ? DEPARTMENT_LABEL[session.department] : '—'}`}
-          </span>
-        </div>
+      {/* Der eigene Bereich zuerst: das ist die Arbeit, alles andere ist
+          Beiwerk. Fehlt er, fehlt auch die Ueberschrift — eine leere Rubrik
+          sieht nach Fehler aus. */}
+      {gruppen.meine.length > 0 && (
+        <Abschnitt
+          titel={session?.isAdmin ? 'Alle Bereiche' : (bereichName ?? 'Deine Werkzeuge')}
+          hinweis={
+            session?.isAdmin
+              ? 'Als Administrator siehst du die Werkzeuge aller Bereiche.'
+              : 'Was zu deinem Bereich gehört.'
+          }
+          bereiche={gruppen.meine}
+        />
+      )}
 
-        {modules !== null && modules.length === 0 && (
-          <p className="db-card px-4 py-6 text-db-text2">
-            Für dein Konto ist noch kein Werkzeug freigeschaltet. Deine Bereichsleitung kann das
-            ändern.
-          </p>
-        )}
+      <Abschnitt titel="Für alle" hinweis="Geht jeden an, unabhängig vom Bereich." bereiche={gruppen.alle} />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {(modules ?? []).map((m) => (
-            <ToolCard key={m.key} module={m} />
-          ))}
-        </div>
-      </section>
+      {gruppen.leitung.length > 0 && (
+        <Abschnitt
+          titel="Leitung"
+          hinweis="Sieht nur, wer einen Bereich leitet."
+          bereiche={gruppen.leitung}
+        />
+      )}
+
+      {module !== null && gruppen.meine.length === 0 && !session?.isAdmin && (
+        <p className="db-card px-4 py-5 text-sm text-db-text2">
+          Für deinen Bereich ist noch kein eigenes Werkzeug freigeschaltet. Deine Bereichsleitung
+          kann das in der Verwaltung ändern.
+        </p>
+      )}
     </div>
+  );
+}
+
+function Abschnitt({
+  titel,
+  hinweis,
+  bereiche,
+}: {
+  titel: string;
+  hinweis: string;
+  bereiche: Bereich[];
+}) {
+  return (
+    <section>
+      <h2 className="text-lg font-bold">{titel}</h2>
+      <p className="mt-0.5 text-sm text-db-text3">{hinweis}</p>
+      {/* Zwei Spalten schon am Handy: untereinander waere es eine Liste, keine
+          App-Auswahl — und der Sinn der Kacheln ist, dass man sie mit einem
+          Blick abzaehlt statt sie zu lesen. */}
+      <div className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-3">
+        {bereiche.map((b) => (
+          <Kachel key={b.schluessel} bereich={b} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Eine Kachel des Startbildschirms.
+ *
+ * Zeichen, Name, ein Satz. Der Satz ist der Grund, warum das hier kein Raster
+ * aus Symbolen ist: Symbole muss man kennen, Sätze nicht — und wer neu
+ * anfängt, kennt keines davon.
+ */
+function Kachel({ bereich: b }: { bereich: Bereich }) {
+  const inhalt = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <span className="db-kachel-symbol" aria-hidden="true">
+          {b.symbol}
+        </span>
+        {b.nurLesen && (
+          <span className="rounded-full bg-db-card2 px-2 py-0.5 text-[10px] text-db-text3">
+            nur ansehen
+          </span>
+        )}
+      </div>
+      <h3 className="mt-2.5 leading-tight font-bold sm:mt-3">
+        {b.titel}
+        {b.extern && !b.extern.startsWith('/') && (
+          <span className="ml-1.5 align-middle text-xs font-normal text-db-text3">↗</span>
+        )}
+      </h3>
+      {/* Am Handy gekuerzt statt weggelassen: ein Satz, der die Kachel auf die
+          doppelte Hoehe treibt, kostet mehr, als er erklaert — aber ganz ohne
+          ihn muss man das Zeichen kennen, und wer neu anfaengt, kennt keines. */}
+      <p className="mt-1 line-clamp-3 text-xs text-db-text2 sm:line-clamp-none sm:text-sm">
+        {b.text}
+      </p>
+    </>
+  );
+
+  // Fremde Adressen oeffnen in einem neuen Tab, damit die eigene Sitzung
+  // stehen bleibt. Eigenstaendige Seiten daneben brauchen einen vollen
+  // Seitenwechsel — der Router der Plattform kennt sie nicht.
+  if (b.extern) {
+    const eigeneSeite = b.extern.startsWith('/');
+    return (
+      <a
+        href={b.extern}
+        target={eigeneSeite ? undefined : '_blank'}
+        rel={eigeneSeite ? undefined : 'noopener noreferrer'}
+        className="db-kachel"
+      >
+        {inhalt}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={b.ziel} className="db-kachel">
+      {inhalt}
+    </Link>
   );
 }
 
@@ -401,63 +498,6 @@ function WeekCard({
           : 'Die farbigen Balken zeigen deine Schichten, sobald dein Konto im Dienstplan zugeordnet ist.'}
       </p>
     </article>
-  );
-}
-
-const TOOL_MASCOT: Record<string, MascotName> = {
-  maintenance: 'mechanik',
-  urkunden: 'counter',
-  dokumente: 'service',
-  dienstplan: 'winken',
-};
-
-const TOOL_TEXT: Record<string, string> = {
-  maintenance: 'Bahnwartung, Frame-Stände, Störungen und Reparaturen.',
-  urkunden: 'Events anlegen, auswerten und Urkunden drucken.',
-  dokumente: 'Formulare, Preislisten und Aushänge zum Ausdrucken.',
-  dienstplan: 'Wochenplan ansehen und — als Leitung — bearbeiten.',
-};
-
-function ToolCard({ module: m }: { module: ModuleInfo }) {
-  const inner = (
-    <>
-      <div className="flex items-start justify-between">
-        <Mascot name={TOOL_MASCOT[m.key] ?? 'profil'} size={56} />
-        {!m.canWrite && (
-          <span className="rounded-full bg-db-card2 px-2 py-0.5 text-[10px] text-db-text3">
-            nur ansehen
-          </span>
-        )}
-      </div>
-      <h3 className="mt-3 font-bold">{m.nameDe}</h3>
-      <p className="mt-1 flex-1 text-sm text-db-text2">{TOOL_TEXT[m.key] ?? 'Öffnen'}</p>
-      <span className="db-btn-gold mt-4 block px-4 py-2 text-center text-sm">Öffnen</span>
-    </>
-  );
-
-  const cls = 'db-card db-card-hover flex flex-col p-4 transition';
-  const target = m.externalUrl ?? m.path;
-
-  // Adressen außerhalb der Plattform öffnen in einem neuen Tab, eigenständige
-  // Seiten daneben brauchen einen vollen Seitenwechsel.
-  if (m.externalUrl) {
-    const sameSite = m.externalUrl.startsWith('/');
-    return (
-      <a
-        href={target}
-        target={sameSite ? undefined : '_blank'}
-        rel={sameSite ? undefined : 'noopener noreferrer'}
-        className={cls}
-      >
-        {inner}
-      </a>
-    );
-  }
-
-  return (
-    <Link to={target} className={cls}>
-      {inner}
-    </Link>
   );
 }
 

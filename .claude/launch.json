@@ -2,10 +2,39 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "vektor",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "apps/vektor",
+        "run",
+        "dev:renderer"
+      ],
+      "port": 5173
+    },
+    {
       "name": "schnitt",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["schnitt/server.mjs"],
+      "runtimeArgs": [
+        "schnitt/server.mjs"
+      ],
       "port": 4321
+    },
+    {
+      "name": "intern-demo",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "apps/intern",
+        "run",
+        "dev",
+        "--",
+        "--mode",
+        "demo",
+        "--port",
+        "5179"
+      ],
+      "port": 5179
     }
   ]
 }
