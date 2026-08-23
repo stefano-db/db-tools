@@ -9,6 +9,7 @@ import {
   hinweisText,
   hinweise,
   lage,
+  saison,
   tageBisAblauf,
   type Lage,
 } from './schliessfachModel';
@@ -105,27 +106,33 @@ export function SchliessfachPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="nicht-drucken flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold">Schließfächer</h1>
           <p className="text-sm text-db-text2">
             Vermietung und Fristen. Die Farben sind dieselben wie im Brunswick.
           </p>
         </div>
-        {darfAendern && (
-          <button onClick={() => setOffen('neu')} className="db-btn-gold px-4 py-2.5 text-sm">
-            + Fach anlegen
+        <div className="flex gap-2">
+          <button onClick={() => window.print()} className="db-btn-ghost px-4 py-2.5 text-sm">
+            <Icon name="liste" size={15} className="mr-1.5 inline" />
+            Liste drucken
           </button>
-        )}
+          {darfAendern && (
+            <button onClick={() => setOffen('neu')} className="db-btn-gold px-4 py-2.5 text-sm">
+              + Fach anlegen
+            </button>
+          )}
+        </div>
       </div>
 
       {fehler && (
-        <p className="db-card border-db-bad px-4 py-3 text-sm text-db-bad">■ {fehler}</p>
+        <p className="nicht-drucken db-card border-db-bad px-4 py-3 text-sm text-db-bad">■ {fehler}</p>
       )}
 
       {/* Was ansteht, bevor irgendetwas anderes kommt. */}
       {meldungen.length > 0 && (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="nicht-drucken grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {meldungen.map((h) => (
             <button
               key={h.lage}
@@ -156,7 +163,7 @@ export function SchliessfachPage() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="nicht-drucken flex flex-wrap items-center gap-2">
         <div className="flex gap-1 rounded-xl border border-db-line p-1">
           {(
             [
@@ -184,7 +191,7 @@ export function SchliessfachPage() {
       </div>
 
       {zeigen && (
-        <p className="flex flex-wrap items-center gap-2 text-sm text-db-text2">
+        <p className="nicht-drucken flex flex-wrap items-center gap-2 text-sm text-db-text2">
           Es werden nur Fächer gezeigt, die <strong className="text-db-text">{LAGE_TEXT[zeigen]}</strong> sind.
           <button
             onClick={() => setzeParam({}, { replace: true })}
@@ -227,6 +234,8 @@ export function SchliessfachPage() {
 
       <Legende />
 
+      <Druckliste faecher={gefiltert} heute={heute} frist={frist} nurLage={zeigen} />
+
       {offen && (
         <Bearbeiten
           fach={offen === 'neu' ? null : offen}
@@ -261,7 +270,7 @@ function Kacheln({
   onWaehlen: (f: Schliessfach) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="nicht-drucken flex flex-wrap gap-1.5">
       {faecher.map((f) => {
         const l = lage(f, heute, frist);
         const farbe = FARBE[l];
@@ -305,7 +314,7 @@ function Liste({
   onWaehlen: (f: Schliessfach) => void;
 }) {
   return (
-    <div className="db-card overflow-x-auto">
+    <div className="nicht-drucken db-card overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-db-line text-left text-xs tracking-wide text-db-text3 uppercase">
@@ -383,7 +392,7 @@ function Legende() {
     'defekt',
   ];
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-db-text2">
+    <div className="nicht-drucken flex flex-wrap gap-x-4 gap-y-2 text-xs text-db-text2">
       {gezeigt.map((l) => (
         <span key={l} className="inline-flex items-center gap-1.5">
           <span
@@ -662,6 +671,103 @@ function Bearbeiten({
         </div>
       </form>
     </div>
+  );
+}
+
+/**
+ * Die Liste, wie sie in die Klarsichthülle kommt.
+ *
+ * Nachgebaut nach dem Blatt, das im Haus liegt: Nummer, Größe, Name, und eine
+ * leere Spalte zum Abhaken. Die leere Spalte ist Absicht — am Counter wird mit
+ * dem Kugelschreiber gearbeitet, und eine gedruckte Liste, auf der man nichts
+ * notieren kann, wird eine zweite Liste daneben erzeugen.
+ *
+ * Zwei Spalten nebeneinander, weil dreiundachtzig Zeilen untereinander drei
+ * Seiten wären. So passt der ganze Bestand auf ein Blatt, und das war beim
+ * Dienstplan schon die halbe Miete.
+ *
+ * Sie erscheint nur im Druck. Auf dem Bildschirm gibt es die Kacheln und die
+ * Liste; ein drittes Abbild derselben Daten wäre nur eine weitere Stelle, die
+ * jemand pflegen muss.
+ */
+function Druckliste({
+  faecher,
+  heute,
+  frist,
+  nurLage,
+}: {
+  faecher: Schliessfach[];
+  heute: Date;
+  frist: number;
+  nurLage: Lage | null;
+}) {
+  const jahr = saison(faecher);
+  const mitte = Math.ceil(faecher.length / 2);
+  const spalten = [faecher.slice(0, mitte), faecher.slice(mitte)];
+
+  return (
+    <>
+      {/* Hochformat statt Querformat: das Blatt liegt in einer Huelle und wird
+          von oben nach unten gelesen. Die Regel steht hier und nicht in der
+          Formatvorlage, weil @page nicht auf eine Seite eingegrenzt werden
+          kann — was zuletzt kommt, gilt, und dieser Block kommt nur mit, wenn
+          diese Seite offen ist. */}
+      <style>{`@media print { @page { size: A4 portrait; margin: 12mm; } }`}</style>
+
+      <div className="nur-drucken hidden">
+        <div className="fachliste-kopf">
+          <h1>
+            Schließfächer{jahr ? ` ${jahr}` : ''}
+            {nurLage ? ` — nur ${LAGE_TEXT[nurLage]}` : ''}
+          </h1>
+          <span>
+            {faecher.length} {faecher.length === 1 ? 'Fach' : 'Fächer'} · Stand{' '}
+            {heute.toLocaleDateString('de-DE')}
+          </span>
+        </div>
+
+        {/* Ab etwa sechzig Faechern wird es eng: zwei Spalten a 42 Zeilen bei
+            gewoehnlicher Zeilenhoehe waeren gut 300 Millimeter und damit ein
+            zweites Blatt. Dann rueckt die Liste zusammen, statt umzubrechen —
+            der ganze Bestand auf einem Blatt ist der Sinn der Sache. */}
+        <div className={`fachliste${faecher.length > 60 ? ' eng' : ''}`}>
+          {spalten.map((spalte, i) => (
+            <table key={i}>
+              <thead>
+                <tr>
+                  <th className="w-nr">Nr.</th>
+                  <th className="w-gr">Größe</th>
+                  <th>Name</th>
+                  <th className="w-bis">bis</th>
+                  <th className="w-hak">Bezahlt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {spalte.map((f) => {
+                  const l = lage(f, heute, frist);
+                  return (
+                    <tr key={f.id} className={l === 'abgelaufen' || l === 'faellig' ? 'auffaellig' : ''}>
+                      <td className="w-nr">{f.nummer}</td>
+                      <td className="w-gr">{f.groesse}</td>
+                      <td>
+                        {f.mieter ?? ''}
+                        {f.zustand === 'defekt' && ' (defekt)'}
+                        {f.zustand === 'reserviert' && ' (reserviert)'}
+                      </td>
+                      <td className="w-bis">{f.mieteBis ? formatDatum(f.mieteBis) : ''}</td>
+                      {/* Leer und mit Rahmen: hier wird von Hand abgehakt. Ein
+                          gedrucktes Haekchen naehme genau das weg, wofuer die
+                          Liste ausgedruckt wird. */}
+                      <td className="w-hak">{f.bezahlt ? '✓' : ''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 

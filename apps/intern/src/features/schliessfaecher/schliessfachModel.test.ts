@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { hinweise, hinweisText, lage, tageBisAblauf, type Schliessfach } from './schliessfachModel';
+import {
+  hinweise,
+  hinweisText,
+  lage,
+  saison,
+  tageBisAblauf,
+  type Schliessfach,
+} from './schliessfachModel';
 
 const HEUTE = new Date(2026, 7, 23); // 23.08.2026
 
@@ -110,5 +117,33 @@ describe('hinweise', () => {
     expect(hinweisText({ lage: 'abgelaufen', anzahl: 2, faecher: [1, 3] })).toBe(
       '2 Fächer sind abgelaufen',
     );
+  });
+});
+
+describe('saison', () => {
+  it('spannt vom frühesten Beginn bis zum spätesten Ende', () => {
+    expect(
+      saison([
+        fach({ mieteVon: '2026-09-01', mieteBis: '2027-08-31' }),
+        fach({ mieteVon: '2026-10-01', mieteBis: '2027-09-30' }),
+      ]),
+    ).toBe('2026/2027');
+  });
+
+  it('nennt nur ein Jahr, wenn alles hineinfällt', () => {
+    expect(saison([fach({ mieteVon: '2026-01-01', mieteBis: '2026-12-31' })])).toBe('2026');
+  });
+
+  it('zählt nur laufende Mieten — leere Fächer verfälschen die Jahreszahl nicht', () => {
+    expect(
+      saison([
+        fach({ zustand: 'frei', mieter: null, mieteVon: '2019-01-01', mieteBis: '2019-12-31' }),
+        fach({ mieteVon: '2026-01-01', mieteBis: '2026-12-31' }),
+      ]),
+    ).toBe('2026');
+  });
+
+  it('schweigt, wenn nichts vermietet ist', () => {
+    expect(saison([fach({ zustand: 'frei', mieter: null, mieteVon: null, mieteBis: null })])).toBeNull();
   });
 });

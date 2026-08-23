@@ -532,6 +532,145 @@ body.db-breit .db-kopfzeile {
     margin: 8mm;
   }
 
+  /* ---------------------------------------------------------------------------
+     Die Liste der Schliessfaecher
+
+     Nachgebaut nach dem Blatt, das im Haus in der Klarsichthuelle liegt. Alles
+     in Millimeter und Punkt: Ein Ausdruck ist nicht responsiv, er ist 210
+     Millimeter breit — und Angaben in Pixeln fallen je nach Drucker anders aus.
+  --------------------------------------------------------------------------- */
+  body:has(.fachliste) {
+    background: #fff !important;
+  }
+
+  body:has(.fachliste) #root,
+  body:has(.fachliste) #root > div,
+  body:has(.fachliste) .min-h-screen,
+  body:has(.fachliste) main {
+    background: transparent !important;
+    color: #000 !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body:has(.fachliste) aside,
+  body:has(.fachliste) header,
+  body:has(.fachliste) nav,
+  body:has(.fachliste) .nicht-drucken {
+    display: none !important;
+  }
+
+  body:has(.fachliste) .nur-drucken {
+    display: block !important;
+  }
+
+  .fachliste-kopf {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6mm;
+    border-bottom: 0.6pt solid #000;
+    padding-bottom: 2mm;
+    margin-bottom: 3mm;
+  }
+
+  .fachliste-kopf h1 {
+    font-size: 13pt;
+    font-weight: 700;
+  }
+
+  .fachliste-kopf span {
+    font-size: 8pt;
+    color: #444;
+  }
+
+  /* Zwei Spalten nebeneinander: dreiundachtzig Zeilen untereinander waeren drei
+     Seiten. So passt der ganze Bestand auf ein Blatt. */
+  .fachliste {
+    display: flex;
+    gap: 6mm;
+    align-items: flex-start;
+  }
+
+  .fachliste table {
+    flex: 1;
+    border-collapse: collapse;
+    font-size: 8pt;
+  }
+
+  .fachliste th {
+    border-bottom: 0.6pt solid #000;
+    padding: 1mm 1.2mm;
+    text-align: left;
+    font-size: 7pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .fachliste td {
+    border-bottom: 0.3pt solid #bbb;
+    padding: 1.1mm 1.2mm;
+    height: 5mm;
+  }
+
+  .fachliste .w-nr {
+    width: 8mm;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .fachliste .w-gr {
+    width: 10mm;
+  }
+  .fachliste .w-bis {
+    width: 15mm;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Die Spalte zum Abhaken: leer, mit eigenem Rahmen. Am Counter wird mit dem
+     Kugelschreiber gearbeitet, und eine Liste ohne Platz dafuer erzeugt eine
+     zweite Liste daneben. */
+  .fachliste .w-hak {
+    width: 13mm;
+    border-left: 0.3pt solid #bbb;
+    text-align: center;
+  }
+
+  /* Was auslaeuft, faellt auch auf Papier auf — dort, wo auf dem alten Blatt
+     der Textmarker lag. Grau statt farbig: der Drucker am Counter ist ein
+     Schwarzweissdrucker. */
+  .fachliste tr.auffaellig td {
+    background: #e4e4e4 !important;
+    font-weight: 600;
+  }
+
+  /* Der ganze Bestand auf ein Blatt. Bei 83 Faechern sind das zweimal 42
+     Zeilen; mit gewoehnlicher Zeilenhoehe waeren es 300 Millimeter und damit
+     ein zweites Blatt. */
+  .fachliste.eng table {
+    font-size: 7.5pt;
+  }
+
+  .fachliste.eng td {
+    height: 4mm;
+    padding: 0.5mm 1.2mm;
+  }
+
+  .fachliste.eng th {
+    padding: 0.6mm 1.2mm;
+  }
+
+  /* Reisst es doch auf zwei Seiten, dann wenigstens sauber: keine
+     halbierten Zeilen, und die Ueberschrift wiederholt sich. */
+  .fachliste tr {
+    break-inside: avoid;
+  }
+
+  .fachliste thead {
+    display: table-header-group;
+  }
+
   /* Alles, was Farbe traegt, muss auf Weiss zurueck.
      Der dunkle Grund der Plattform liegt auf mehreren Ebenen — html, body und
      die Huelle des Rahmens mit ihrer Mindesthoehe. Faerbt man nur den body,

@@ -124,6 +124,31 @@ export function hinweisText(h: Hinweis): string {
   }
 }
 
+/**
+ * Die Saison, wie sie auf dem Blatt oben steht: „2026/2027".
+ *
+ * Abgeleitet statt getippt. Auf dem Papier musste jemand die Jahreszahl jedes
+ * Mal ändern und hat es irgendwann vergessen — dann steht ein Jahr auf einer
+ * Liste, das nicht mehr stimmt, und niemand traut ihr mehr.
+ *
+ * Gerechnet wird über die laufenden Mieten: das früheste Beginnjahr bis zum
+ * spätesten Endjahr. Fallen sie zusammen, steht nur ein Jahr da.
+ */
+export function saison(faecher: Schliessfach[]): string | null {
+  const jahre: number[] = [];
+  for (const f of faecher) {
+    if (f.zustand !== 'vermietet') continue;
+    for (const datum of [f.mieteVon, f.mieteBis]) {
+      const jahr = Number(datum?.slice(0, 4));
+      if (Number.isFinite(jahr) && jahr > 1900) jahre.push(jahr);
+    }
+  }
+  if (jahre.length === 0) return null;
+  const von = Math.min(...jahre);
+  const bis = Math.max(...jahre);
+  return von === bis ? String(von) : `${von}/${bis}`;
+}
+
 /** Fächer in der Reihenfolge, in der sie an der Wand hängen. */
 export function nachNummer(faecher: Schliessfach[]): Schliessfach[] {
   return [...faecher].sort((a, b) => a.nummer - b.nummer);
