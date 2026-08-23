@@ -213,6 +213,31 @@ export interface DocumentRow {
   previewUrl: string | null;
 }
 
+/**
+ * Ein Schließfach.
+ *
+ * Gespeichert wird nur, was jemand entschieden hat. Ob eines abgelaufen ist,
+ * wird gerechnet — ein Feld dafür wäre am Tag nach dem Setzen falsch.
+ */
+export type SchliessfachZustand = 'frei' | 'reserviert' | 'vermietet' | 'lager' | 'defekt';
+
+export interface Schliessfach {
+  id: string;
+  nummer: number;
+  /** „S", „M", „L" — freies Kürzel, weil sich die Größen im Haus ändern. */
+  groesse: string;
+  zustand: SchliessfachZustand;
+  /** Wer mietet. Auch „Lager" oder „Vereinsfach SV Fellbach" stehen hier. */
+  mieter: string | null;
+  kontakt: string | null;
+  mieteVon: string | null;
+  mieteBis: string | null;
+  bezahlt: boolean;
+  /** Im Brunswick orange: es steht mehr Guthaben auf dem Fach als nötig. */
+  ueberzahlung: boolean;
+  notiz: string | null;
+}
+
 /** Ein Name im Dienstplan. Nicht jeder hat ein Konto, nicht jedes Konto steht im Plan. */
 export interface RosterEmployeeRow {
   id: string;
@@ -343,6 +368,16 @@ export interface Repository {
     /** Bereich, dem die Unterlage gehört. Null heisst: geht alle an. */
     bereich: Department | null;
   }): Promise<void>;
+  // --- Schliessfaecher ------------------------------------------------------
+  schliessfaecher(): Promise<Schliessfach[]>;
+  /** Anlegen oder ändern. Ohne id wird ein neues Fach angelegt. */
+  schliessfachSpeichern(fach: Omit<Schliessfach, 'id'> & { id?: string }): Promise<void>;
+  /** Fächer von..bis in einem Zug anlegen — für die Ersteinrichtung. */
+  schliessfaecherAnlegen(von: number, bis: number, groesse: string): Promise<number>;
+  schliessfachLoeschen(id: string): Promise<void>;
+  /** Ab wie vielen Tagen vor Ablauf ein Fach als fällig gilt. */
+  schliessfachFrist(): Promise<number>;
+
   /** Zeitlich begrenzte Adresse zum Ansehen, Drucken oder Herunterladen. */
   documentUrl(id: string, forDownload?: boolean): Promise<string>;
   markDocumentPrinted(id: string): Promise<void>;

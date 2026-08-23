@@ -123,6 +123,15 @@ const ZU_MODUL: Record<
     ],
   },
   urkunden: { symbol: 'pokal', text: 'Events anlegen, auswerten und Urkunden drucken.' },
+  schliessfaecher: {
+    symbol: 'schloss',
+    text: 'Vermietung, Fristen und offene Zahlungen — dieselben Farben wie im Brunswick.',
+    unterpunkte: [
+      { titel: 'Kacheln', ziel: '/schliessfaecher', symbol: 'liste' },
+      { titel: 'Fällig', ziel: '/schliessfaecher?zeigen=faellig', symbol: 'uhr' },
+      { titel: 'Offen', ziel: '/schliessfaecher?zeigen=unbezahlt', symbol: 'geld' },
+    ],
+  },
   dokumente: { symbol: 'ordner', text: 'Formulare, Preislisten und Aushänge zum Ausdrucken.' },
   counter: { symbol: 'bildschirm', text: 'Kasse, Bahnvergabe und Tagesabschluss.' },
 };

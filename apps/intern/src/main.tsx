@@ -14,6 +14,7 @@ import { DocumentsPage } from './features/documents/DocumentsPage';
 import { RosterPage } from './features/roster/RosterDraftPage';
 import { PublicPlanPage } from './features/roster/PublicPlanPage';
 import { ChatPage } from './features/chat/ChatPage';
+import { SchliessfachPage } from './features/schliessfaecher/SchliessfachPage';
 import { DashboardPage } from './features/dashboard/DashboardPage';
 import { FrameEntryPage } from './features/entry/FrameEntryPage';
 import { HistoryPage } from './features/history/HistoryPage';
@@ -53,6 +54,7 @@ const router = createBrowserRouter([
           { path: 'chat', element: <ChatPage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
+          { path: 'schliessfaecher', element: <SchliessfachPage /> },
           { path: 'dienstplan', element: <RosterPage /> },
           // Der alte Pfad bleibt eine Weile gueltig: er steht in Lesezeichen
           // und in den Antworten des Chats.

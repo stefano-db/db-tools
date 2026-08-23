@@ -33,6 +33,8 @@ export type SymbolName =
   | 'teilen'
   | 'bildschirm'
   | 'liste'
+  | 'schloss'
+  | 'geld'
   | 'pfeil';
 
 /** Nur der Pfadinhalt — Rahmen, Farbe und Strichstärke stehen unten. */
@@ -59,6 +61,8 @@ const PFADE: Record<SymbolName, string> = {
   teilen: 'M18 8.2a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2zM6 15.1a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2zM18 22a2.6 2.6 0 1 0 0-5.2A2.6 2.6 0 0 0 18 22zM8.3 11.3l7.4-3.7M8.3 13.7l7.4 3.7',
   bildschirm: 'M3.5 4.5h17v11h-17zM8.5 20h7M12 15.5V20',
   liste: 'M8.5 6.5h12M8.5 12h12M8.5 17.5h12M4 6.5h.01M4 12h.01M4 17.5h.01',
+  schloss: 'M6 10.5h12V20H6zM8.5 10.5V7.5a3.5 3.5 0 0 1 7 0v3M12 14.5v2',
+  geld: 'M3.5 6.5h17v11h-17zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6.5 9.5h.01M17.5 14.5h.01',
   pfeil: 'M9 5.5 15.5 12 9 18.5',
 };
 

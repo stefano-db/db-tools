@@ -6,6 +6,7 @@ import { BEREICH_FARBE, akzentFarbe, bereicheFuer, type Bereich } from '../../ap
 import { DEPARTMENT_LABEL, repository, type Department, type MyWeek, type ShiftDay } from '../../data';
 import { Mascot } from '../../ui/Mascot';
 import { Icon } from '../../ui/Icon';
+import { SchliessfachHinweis } from '../schliessfaecher/SchliessfachHinweis';
 
 /**
  * Übersicht — die Startseite nach der Anmeldung.
@@ -51,6 +52,10 @@ export function OverviewPage() {
         <SchichtKarte week={week} tag={tag} setzeTag={setTag} />
         <WeekCard week={week} tag={tag} setzeTag={setTag} />
       </div>
+
+      {/* Nur fuer den Bereich, der die Faecher vermietet — und nur, wenn etwas
+          ansteht. Sonst verschwindet der Kasten von selbst. */}
+      {module?.some((m) => m.key === 'schliessfaecher') && <SchliessfachHinweis />}
 
       {/* Der eigene Bereich zuerst: das ist die Arbeit, alles andere ist
           Beiwerk. Fehlt er, fehlt auch die Ueberschrift — eine leere Rubrik

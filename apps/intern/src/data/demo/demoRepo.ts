@@ -6,6 +6,7 @@ import {
   type MaintenanceSettings,
 } from '../../core';
 import type {
+  Schliessfach,
   Department,
   CompleteMaintenanceInput,
   IssueRow,
@@ -98,6 +99,16 @@ export class DemoRepository implements Repository {
         canWrite: false,
       },
       {
+        key: 'schliessfaecher',
+        nameDe: 'Schließfächer',
+        path: '/schliessfaecher',
+        externalUrl: null,
+        icon: 'lock',
+        sortOrder: 25,
+        canRead: true,
+        canWrite: true,
+      },
+      {
         key: 'dokumente',
         nameDe: 'Dokumente',
         path: '/dokumente',
@@ -114,8 +125,58 @@ export class DemoRepository implements Repository {
     return {
       maintenance: ['mechanik'] as Department[],
       urkunden: ['counter'] as Department[],
+      schliessfaecher: ['counter'] as Department[],
       dokumente: ['mechanik', 'counter', 'service', 'kueche'] as Department[],
     };
+  }
+
+  // Ein Bestand zum Ansehen. Erfundene Namen — echte gehoeren nicht in ein
+  // Verzeichnis, und zum Beurteilen der Anzeige taugen sie genauso.
+  private faecher: Schliessfach[] = [
+    { id: 'f1', nummer: 1, groesse: 'S', zustand: 'vermietet', mieter: 'M. Berger', kontakt: null, mieteVon: '2026-01-01', mieteBis: '2026-12-31', bezahlt: true, ueberzahlung: false, notiz: null },
+    { id: 'f2', nummer: 2, groesse: 'S', zustand: 'frei', mieter: null, kontakt: null, mieteVon: null, mieteBis: null, bezahlt: false, ueberzahlung: false, notiz: null },
+    { id: 'f3', nummer: 3, groesse: 'S', zustand: 'reserviert', mieter: 'T. Kühn', kontakt: null, mieteVon: null, mieteBis: null, bezahlt: false, ueberzahlung: false, notiz: 'hält bis Freitag' },
+    { id: 'f4', nummer: 4, groesse: 'S', zustand: 'vermietet', mieter: 'A. Roth', kontakt: '0171 …', mieteVon: '2025-09-01', mieteBis: '2026-09-10', bezahlt: true, ueberzahlung: false, notiz: null },
+    { id: 'f5', nummer: 5, groesse: 'M', zustand: 'vermietet', mieter: 'L. Schuster', kontakt: null, mieteVon: '2025-06-01', mieteBis: '2026-06-30', bezahlt: true, ueberzahlung: false, notiz: null },
+    { id: 'f6', nummer: 6, groesse: 'S', zustand: 'vermietet', mieter: 'P. Winkler', kontakt: null, mieteVon: '2026-01-01', mieteBis: '2026-12-31', bezahlt: false, ueberzahlung: false, notiz: null },
+    { id: 'f7', nummer: 7, groesse: 'S', zustand: 'vermietet', mieter: 'Lager', kontakt: null, mieteVon: '2026-01-01', mieteBis: '2027-12-31', bezahlt: true, ueberzahlung: true, notiz: 'für zwei Jahre gezahlt' },
+    { id: 'f8', nummer: 8, groesse: 'M', zustand: 'defekt', mieter: null, kontakt: null, mieteVon: null, mieteBis: null, bezahlt: false, ueberzahlung: false, notiz: 'Schloss klemmt' },
+    { id: 'f9', nummer: 9, groesse: 'S', zustand: 'lager', mieter: 'Lager', kontakt: null, mieteVon: null, mieteBis: null, bezahlt: false, ueberzahlung: false, notiz: null },
+    { id: 'f10', nummer: 10, groesse: 'S', zustand: 'frei', mieter: null, kontakt: null, mieteVon: null, mieteBis: null, bezahlt: false, ueberzahlung: false, notiz: null },
+  ];
+
+  async schliessfaecher() {
+    return this.faecher.map((f) => ({ ...f }));
+  }
+
+  async schliessfachSpeichern(fach: Omit<Schliessfach, 'id'> & { id?: string }) {
+    if (fach.id) {
+      this.faecher = this.faecher.map((f) => (f.id === fach.id ? { ...f, ...fach, id: f.id } : f));
+    } else {
+      this.faecher = [...this.faecher, { ...fach, id: `f${Date.now()}` }];
+    }
+  }
+
+  async schliessfaecherAnlegen(von: number, bis: number, groesse: string) {
+    let neue = 0;
+    for (let n = von; n <= bis; n++) {
+      if (this.faecher.some((f) => f.nummer === n)) continue;
+      this.faecher.push({
+        id: `f${n}-${Date.now()}`, nummer: n, groesse, zustand: 'frei',
+        mieter: null, kontakt: null, mieteVon: null, mieteBis: null,
+        bezahlt: false, ueberzahlung: false, notiz: null,
+      });
+      neue++;
+    }
+    return neue;
+  }
+
+  async schliessfachLoeschen(id: string) {
+    this.faecher = this.faecher.filter((f) => f.id !== id);
+  }
+
+  async schliessfachFrist() {
+    return 42;
   }
 
   onAuthChange(): () => void {

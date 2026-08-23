@@ -14,10 +14,32 @@ import type {
   UserRow,
   CreateUserInput,
   DocumentRow,
+  Schliessfach,
   Department,
   RosterEmployeeRow,
   MyWeek,
 } from '../types';
+
+/**
+ * Fehlermeldungen der Datenbank in Sätze übersetzen.
+ *
+ * „duplicate key value violates unique constraint" sagt einem Menschen am
+ * Counter nichts. Die Regeln, die hier greifen können, sind zu dritt — also
+ * werden sie beim Namen genannt.
+ */
+function uebersetzeFachFehler(meldung: string): string {
+  const m = meldung.toLowerCase();
+  if (m.includes('schliessfaecher_nummer_key') || m.includes('duplicate key')) {
+    return 'Diese Fachnummer gibt es schon.';
+  }
+  if (m.includes('mieter_bei_vermietung')) {
+    return 'Ein verliehenes Fach braucht einen Namen.';
+  }
+  if (m.includes('zeitraum_sinnvoll')) {
+    return 'Das Ende der Miete liegt vor ihrem Beginn.';
+  }
+  return meldung;
+}
 
 /** Montag der laufenden Woche als YYYY-MM-DD. */
 function mondayOfCurrentWeek(): string {
@@ -477,6 +499,87 @@ export class SupabaseRepository implements Repository {
       .update({ archived_at: new Date().toISOString(), archived_by: await this.userId() })
       .eq('id', id);
     if (error) throw new Error(error.message);
+  }
+
+  // --- Schliessfaecher ------------------------------------------------------
+
+  async schliessfaecher(): Promise<Schliessfach[]> {
+    const { data, error } = await this.client
+      .from('schliessfaecher')
+      .select('*')
+      .order('nummer');
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((f: any) => ({
+      id: f.id,
+      nummer: f.nummer,
+      groesse: f.groesse ?? 'S',
+      zustand: f.zustand,
+      mieter: f.mieter,
+      kontakt: f.kontakt,
+      mieteVon: f.miete_von,
+      mieteBis: f.miete_bis,
+      bezahlt: f.bezahlt === true,
+      ueberzahlung: f.ueberzahlung === true,
+      notiz: f.notiz,
+    }));
+  }
+
+  async schliessfachSpeichern(
+    fach: Omit<Schliessfach, 'id'> & { id?: string },
+  ): Promise<void> {
+    const zeile = {
+      nummer: fach.nummer,
+      groesse: fach.groesse.trim() || 'S',
+      zustand: fach.zustand,
+      // Ein leeres Feld ist kein leerer Text, sondern nichts. Sonst steht
+      // spaeter in der Liste ein Name, der aus einem Leerzeichen besteht.
+      mieter: fach.mieter?.trim() || null,
+      kontakt: fach.kontakt?.trim() || null,
+      miete_von: fach.mieteVon || null,
+      miete_bis: fach.mieteBis || null,
+      bezahlt: fach.bezahlt,
+      ueberzahlung: fach.ueberzahlung,
+      notiz: fach.notiz?.trim() || null,
+      updated_at: new Date().toISOString(),
+      updated_by: await this.userId(),
+    };
+
+    const { error } = fach.id
+      ? await this.client.from('schliessfaecher').update(zeile).eq('id', fach.id)
+      : await this.client.from('schliessfaecher').insert(zeile);
+    if (error) throw new Error(uebersetzeFachFehler(error.message));
+  }
+
+  async schliessfaecherAnlegen(von: number, bis: number, groesse: string): Promise<number> {
+    const zeilen = [];
+    for (let n = von; n <= bis; n++) {
+      zeilen.push({ nummer: n, groesse: groesse.trim() || 'S', zustand: 'frei' as const });
+    }
+    // Vorhandene Nummern bleiben, wie sie sind: die Einrichtung soll sich
+    // wiederholen lassen, ohne dass jemand Vermietungen ueberschreibt.
+    const { data, error } = await this.client
+      .from('schliessfaecher')
+      .upsert(zeilen, { onConflict: 'nummer', ignoreDuplicates: true })
+      .select('id');
+    if (error) throw new Error(error.message);
+    return data?.length ?? 0;
+  }
+
+  async schliessfachLoeschen(id: string): Promise<void> {
+    const { error } = await this.client.from('schliessfaecher').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  async schliessfachFrist(): Promise<number> {
+    const { data } = await this.client
+      .from('app_konfiguration')
+      .select('wert')
+      .eq('schluessel', 'schliessfach_frist_tage')
+      .maybeSingle();
+    const zahl = Number(data?.wert);
+    // Sechs Wochen, falls die Zeile fehlt. Lieber zu frueh erinnern als gar
+    // nicht — eine fehlende Einstellung darf keine Warnung verschlucken.
+    return Number.isFinite(zahl) && zahl > 0 ? zahl : 42;
   }
 
   // --- Dienstplan -----------------------------------------------------------
