@@ -5,6 +5,7 @@ import { useModule } from '../../app/ModuleContext';
 import { bereicheFuer, type Bereich } from '../../app/bereiche';
 import { DEPARTMENT_LABEL, repository, type MyWeek, type ShiftDay } from '../../data';
 import { Mascot } from '../../ui/Mascot';
+import { Icon } from '../../ui/Icon';
 
 /**
  * Übersicht — die Startseite nach der Anmeldung.
@@ -99,10 +100,10 @@ function Abschnitt({
     <section>
       <h2 className="text-lg font-bold">{titel}</h2>
       <p className="mt-0.5 text-sm text-db-text3">{hinweis}</p>
-      {/* Zwei Spalten schon am Handy: untereinander waere es eine Liste, keine
-          App-Auswahl — und der Sinn der Kacheln ist, dass man sie mit einem
-          Blick abzaehlt statt sie zu lesen. */}
-      <div className="mt-3 grid grid-cols-2 gap-3 xl:grid-cols-3">
+      {/* Kategorien nebeneinander, sobald Platz ist. Ein Block mit vier
+          Einstiegen braucht Breite; zwei davon nebeneinander sparen auf einem
+          Rechner eine halbe Bildschirmhoehe. */}
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {bereiche.map((b) => (
           <Kachel key={b.schluessel} bereich={b} />
         ))}
@@ -112,43 +113,69 @@ function Abschnitt({
 }
 
 /**
- * Eine Kachel des Startbildschirms.
+ * Eine Kategorie des Startbildschirms.
  *
- * Zeichen, Name, ein Satz. Der Satz ist der Grund, warum das hier kein Raster
- * aus Symbolen ist: Symbole muss man kennen, Sätze nicht — und wer neu
- * anfängt, kennt keines davon.
+ * Oben, was der Bereich ist: Zeichen, Name, ein Satz. Der Satz ist der Grund,
+ * warum das hier kein blosses Raster aus Symbolen ist — Symbole muss man
+ * kennen, Sätze nicht, und wer neu anfängt, kennt keines davon.
+ *
+ * Darunter die Einstiege, sofern es welche gibt. Ohne sie führt eine Kachel nur
+ * bis zur Tür, und dahinter fängt das Suchen an: Wer die Frame-Stände eintragen
+ * will, soll nicht erst die Bahnwartung öffnen und dort den richtigen Reiter
+ * suchen müssen.
  */
 function Kachel({ bereich: b }: { bereich: Bereich }) {
+  return (
+    <article className="db-kachel">
+      <Kopf bereich={b} />
+      {b.unterpunkte && b.unterpunkte.length > 0 && (
+        <div className="mt-3 grid grid-cols-4 gap-1.5 border-t border-db-line pt-3">
+          {b.unterpunkte.map((u) => (
+            <Link key={u.ziel} to={u.ziel} className="db-einstieg" title={u.titel}>
+              <Icon name={u.symbol} size={20} />
+              {/* Umbrechen statt abschneiden: „Frame-St…" erklaert nichts, und
+                  auf 75 Punkten passt kein zweites Wort in eine Zeile. */}
+              <span className="mt-1.5 block w-full text-center text-[10px] leading-tight sm:text-[11px]">
+                {u.titel}
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </article>
+  );
+}
+
+/** Der obere Teil einer Kategorie — und zugleich der Weg hinein. */
+function Kopf({ bereich: b }: { bereich: Bereich }) {
   const inhalt = (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <span className="db-kachel-symbol" aria-hidden="true">
-          {b.symbol}
+      <span className="db-kachel-symbol" aria-hidden="true">
+        <Icon name={b.symbol} size={22} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 font-bold">
+          <span className="truncate">{b.titel}</span>
+          {b.extern && !b.extern.startsWith('/') && (
+            <span className="text-xs font-normal text-db-text3">↗</span>
+          )}
+          {b.nurLesen && (
+            <span className="ml-auto rounded-full bg-db-card2 px-2 py-0.5 text-[10px] font-normal text-db-text3">
+              nur ansehen
+            </span>
+          )}
         </span>
-        {b.nurLesen && (
-          <span className="rounded-full bg-db-card2 px-2 py-0.5 text-[10px] text-db-text3">
-            nur ansehen
-          </span>
-        )}
-      </div>
-      <h3 className="mt-2.5 leading-tight font-bold sm:mt-3">
-        {b.titel}
-        {b.extern && !b.extern.startsWith('/') && (
-          <span className="ml-1.5 align-middle text-xs font-normal text-db-text3">↗</span>
-        )}
-      </h3>
-      {/* Am Handy gekuerzt statt weggelassen: ein Satz, der die Kachel auf die
-          doppelte Hoehe treibt, kostet mehr, als er erklaert — aber ganz ohne
-          ihn muss man das Zeichen kennen, und wer neu anfaengt, kennt keines. */}
-      <p className="mt-1 line-clamp-3 text-xs text-db-text2 sm:line-clamp-none sm:text-sm">
-        {b.text}
-      </p>
+        <span className="mt-0.5 block text-xs text-db-text2 sm:text-sm">{b.text}</span>
+      </span>
+      <Icon name="pfeil" size={16} className="mt-1 text-db-text3" />
     </>
   );
 
-  // Fremde Adressen oeffnen in einem neuen Tab, damit die eigene Sitzung
-  // stehen bleibt. Eigenstaendige Seiten daneben brauchen einen vollen
-  // Seitenwechsel — der Router der Plattform kennt sie nicht.
+  const cls = 'flex items-start gap-3 text-left';
+
+  // Fremde Adressen oeffnen in einem neuen Tab, damit die eigene Sitzung stehen
+  // bleibt. Eigenstaendige Seiten daneben brauchen einen vollen Seitenwechsel —
+  // der Router der Plattform kennt sie nicht.
   if (b.extern) {
     const eigeneSeite = b.extern.startsWith('/');
     return (
@@ -156,7 +183,7 @@ function Kachel({ bereich: b }: { bereich: Bereich }) {
         href={b.extern}
         target={eigeneSeite ? undefined : '_blank'}
         rel={eigeneSeite ? undefined : 'noopener noreferrer'}
-        className="db-kachel"
+        className={cls}
       >
         {inhalt}
       </a>
@@ -164,7 +191,7 @@ function Kachel({ bereich: b }: { bereich: Bereich }) {
   }
 
   return (
-    <Link to={b.ziel} className="db-kachel">
+    <Link to={b.ziel} className={cls}>
       {inhalt}
     </Link>
   );

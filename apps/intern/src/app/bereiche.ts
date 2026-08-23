@@ -1,4 +1,5 @@
 import type { ModuleInfo } from '../data';
+import type { SymbolName } from '../ui/Icon';
 
 /**
  * Was es in der Plattform gibt — an einer Stelle.
@@ -19,8 +20,16 @@ export interface Bereich {
   text: string;
   ziel: string;
   /** Zeichen für die Kachel — jedes nur einmal, sonst taugt es nicht zum Wiederfinden. */
-  symbol: string;
+  symbol: SymbolName;
   gruppe: Gruppe;
+  /**
+   * Was innerhalb dieses Bereichs unmittelbar erreichbar ist.
+   *
+   * Ohne sie führt jede Kachel nur bis zur Tür, und dahinter fängt das Suchen
+   * an. Wer die Frame-Stände eintragen will, soll nicht erst die Bahnwartung
+   * öffnen und dort den richtigen Reiter finden müssen.
+   */
+  unterpunkte?: Unterpunkt[];
   /** Adresse außerhalb der Plattform, falls das Werkzeug eigenständig ist. */
   extern?: string | null;
   /** Nur ansehen, nicht ändern. */
@@ -28,6 +37,12 @@ export interface Bereich {
 }
 
 export type Gruppe = 'meine' | 'alle' | 'leitung';
+
+export interface Unterpunkt {
+  titel: string;
+  ziel: string;
+  symbol: SymbolName;
+}
 
 /**
  * Fest eingebaute Bereiche — sie hängen an keiner Freigabe.
@@ -42,15 +57,23 @@ export const FESTE_BEREICHE: Bereich[] = [
     titel: 'Dienstplan',
     text: 'Wer wann arbeitet — die ganze Woche auf einen Blick.',
     ziel: '/dienstplan',
-    symbol: '📅',
+    symbol: 'kalender',
     gruppe: 'alle',
+    unterpunkte: [
+      { titel: 'Wochenplan', ziel: '/dienstplan', symbol: 'kalender' },
+      // Die Wandtafel hat eine eigene Adresse, damit der Fernseher im Center
+      // sie als Lesezeichen bekommt statt jedes Mal durchgeklickt zu werden.
+      { titel: 'Wandtafel', ziel: '/dienstplan?ansicht=tafel', symbol: 'bildschirm' },
+      { titel: 'Teilen & Drucken', ziel: '/dienstplan?ansicht=teilen', symbol: 'teilen' },
+      { titel: 'Mitarbeiter', ziel: '/dienstplan?ansicht=team', symbol: 'leute' },
+    ],
   },
   {
     schluessel: 'chat',
     titel: 'Fragen an Pinny',
     text: 'Fragen zur Arbeit und zur App. Pinny antwortet.',
     ziel: '/chat',
-    symbol: '💬',
+    symbol: 'sprechblase',
     gruppe: 'alle',
   },
   {
@@ -58,7 +81,7 @@ export const FESTE_BEREICHE: Bereich[] = [
     titel: 'Profil',
     text: 'Dein Name, Benachrichtigungen aufs Handy, Abmelden.',
     ziel: '/profil',
-    symbol: '🙂',
+    symbol: 'person',
     gruppe: 'alle',
   },
   {
@@ -66,20 +89,29 @@ export const FESTE_BEREICHE: Bereich[] = [
     titel: 'Verwaltung',
     text: 'Mitarbeiter anlegen, Bereichen zuordnen, Rechte vergeben.',
     ziel: '/verwaltung',
-    symbol: '👥',
+    symbol: 'leute',
     gruppe: 'leitung',
   },
 ];
 
-/** Zeichen und Erklärung zu den freigeschalteten Werkzeugen. */
-const ZU_MODUL: Record<string, { symbol: string; text: string }> = {
+/** Zeichen, Erklärung und Einstiege der freigeschalteten Werkzeuge. */
+const ZU_MODUL: Record<
+  string,
+  { symbol: SymbolName; text: string; unterpunkte?: Unterpunkt[] }
+> = {
   maintenance: {
-    symbol: '🔧',
+    symbol: 'schluessel',
     text: 'Frame-Stände eintragen, fällige Wartungen und gemeldete Störungen.',
+    unterpunkte: [
+      { titel: 'Übersicht', ziel: '/wartung', symbol: 'anzeige' },
+      { titel: 'Frame-Stände', ziel: '/wartung/eingabe', symbol: 'liste' },
+      { titel: 'Historie', ziel: '/wartung/historie', symbol: 'verlauf' },
+      { titel: 'Einstellungen', ziel: '/wartung/einstellungen', symbol: 'zahnrad' },
+    ],
   },
-  urkunden: { symbol: '🏆', text: 'Events anlegen, auswerten und Urkunden drucken.' },
-  dokumente: { symbol: '📁', text: 'Formulare, Preislisten und Aushänge zum Ausdrucken.' },
-  counter: { symbol: '🖥️', text: 'Kasse, Bahnvergabe und Tagesabschluss.' },
+  urkunden: { symbol: 'pokal', text: 'Events anlegen, auswerten und Urkunden drucken.' },
+  dokumente: { symbol: 'ordner', text: 'Formulare, Preislisten und Aushänge zum Ausdrucken.' },
+  counter: { symbol: 'bildschirm', text: 'Kasse, Bahnvergabe und Tagesabschluss.' },
 };
 
 /**
@@ -100,8 +132,9 @@ export function alsBereiche(module: ModuleInfo[]): Bereich[] {
       titel: m.nameDe,
       text: zusatz?.text ?? 'Öffnen',
       ziel: m.path.replace(/\/+$/, '') || '/',
-      symbol: zusatz?.symbol ?? '📋',
+      symbol: zusatz?.symbol ?? 'liste',
       gruppe: FUER_ALLE.has(m.key) ? 'alle' : 'meine',
+      unterpunkte: zusatz?.unterpunkte,
       extern: m.externalUrl,
       nurLesen: !m.canWrite,
     };

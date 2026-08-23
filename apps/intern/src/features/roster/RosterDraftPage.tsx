@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
 import { repository, type ShareLink } from '../../data';
 import { teileBild, zeichnePlan } from './planAlsBild';
@@ -149,14 +150,33 @@ export function RosterPage() {
   const { session } = useAuth();
   const canEdit = session?.isLead || session?.isAdmin || session === null;
 
-  const [tab, setTab] = useState<'plan' | 'team' | 'teilen'>('plan');
+  /**
+   * Welcher Reiter offen ist, steht in der Adresse.
+   *
+   * Vorher war es blosser Zustand, und damit gab es fuer die Wandtafel keine
+   * Adresse — der Fernseher im Center musste jedes Mal von Hand durchgeklickt
+   * werden. Jetzt laesst sich jede Ansicht als Lesezeichen ablegen, und der
+   * Startbildschirm fuehrt unmittelbar dorthin.
+   */
+  const [suche, setzeSuche] = useSearchParams();
+  const ansicht = suche.get('ansicht') ?? 'plan';
+  const tab: 'plan' | 'team' | 'teilen' =
+    ansicht === 'team' ? 'team' : ansicht === 'teilen' ? 'teilen' : 'plan';
+  const tvOpen = ansicht === 'tafel';
+  const setTab = useCallback(
+    (wert: string) => {
+      // 'plan' ist der Normalfall und braucht keinen Zusatz in der Adresse.
+      setzeSuche(wert === 'plan' ? {} : { ansicht: wert }, { replace: true });
+    },
+    [setzeSuche],
+  );
+
   const [offset, setOffset] = useState(0);
   const [employees, setEmployees] = useState<Employee[]>(DEMO_EMPLOYEES);
   const [plan, setPlan] = useState<WeekPlan>({});
   const [undoStack, setUndoStack] = useState<WeekPlan[]>([]);
   const [editing, setEditing] = useState<{ empId: string; day: number; rect: DOMRect } | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [tvOpen, setTvOpen] = useState(false);
 
   /**
    * Fassung der geladenen Woche und was zuletzt geschrieben wurde.
@@ -465,7 +485,7 @@ export function RosterPage() {
               onWeek={setOffset}
               onUndo={undo}
               onAction={flash}
-              onTv={() => setTvOpen(true)}
+              onTv={() => setTab('tafel')}
               stand={speicherstand}
               standText={speicherText}
             />
@@ -555,7 +575,7 @@ export function RosterPage() {
           monday={monday}
           todayIndex={todayIndex}
           weekOf={weekOf}
-          onClose={() => setTvOpen(false)}
+          onClose={() => setTab('plan')}
         />
       )}
 

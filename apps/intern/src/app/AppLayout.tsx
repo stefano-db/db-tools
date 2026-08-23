@@ -5,6 +5,7 @@ import { useModule } from './ModuleContext';
 import { bereicheFuer, type Bereich } from './bereiche';
 import { DEPARTMENT_LABEL } from '../data';
 import { Logo, Mascot } from '../ui/Mascot';
+import { Icon, type SymbolName } from '../ui/Icon';
 import { ChatBlase } from '../features/chat/ChatBlase';
 import { Planwaechter } from '../features/plan/Planwaechter';
 
@@ -26,13 +27,13 @@ import { Planwaechter } from '../features/plan/Planwaechter';
 interface NavEntry {
   to: string;
   label: string;
-  icon: string;
+  icon: SymbolName;
   end?: boolean;
   extern?: string | null;
 }
 
-const UEBERSICHT: NavEntry = { to: '/', label: 'Übersicht', icon: '🏠', end: true };
-const PROFIL: NavEntry = { to: '/profil', label: 'Profil', icon: '🙂' };
+const UEBERSICHT: NavEntry = { to: '/', label: 'Übersicht', icon: 'haus', end: true };
+const PROFIL: NavEntry = { to: '/profil', label: 'Profil', icon: 'person' };
 
 function alsEintrag(b: Bereich): NavEntry {
   return { to: b.ziel, label: b.titel, icon: b.symbol, extern: b.extern };
@@ -219,7 +220,7 @@ function SideLink({ entry }: { entry: NavEntry }) {
         rel={fremd ? 'noopener noreferrer' : undefined}
         className={cls}
       >
-        <span aria-hidden="true">{entry.icon}</span>
+        <Icon name={entry.icon} size={18} />
         {entry.label}
       </a>
     );
@@ -233,7 +234,7 @@ function SideLink({ entry }: { entry: NavEntry }) {
         `${cls} ${isActive ? 'bg-db-card2 !text-db-gold' : ''}`
       }
     >
-      <span aria-hidden="true">{entry.icon}</span>
+      <Icon name={entry.icon} size={18} />
       {entry.label}
     </NavLink>
   );
@@ -253,9 +254,7 @@ function TabLink({ entry }: { entry: NavEntry }) {
         rel={fremd ? 'noopener noreferrer' : undefined}
         className={cls}
       >
-        <span className="text-lg" aria-hidden="true">
-          {entry.icon}
-        </span>
+        <Icon name={entry.icon} size={20} />
         <span className="w-full truncate text-center">{entry.label}</span>
       </a>
     );
@@ -267,9 +266,7 @@ function TabLink({ entry }: { entry: NavEntry }) {
       end={entry.end}
       className={({ isActive }) => `${cls} ${isActive ? '!text-db-gold' : ''}`}
     >
-      <span className="text-lg" aria-hidden="true">
-        {entry.icon}
-      </span>
+      <Icon name={entry.icon} size={20} />
       <span className="w-full truncate text-center">{entry.label}</span>
     </NavLink>
   );
