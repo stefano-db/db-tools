@@ -308,6 +308,14 @@ export interface Repository {
   updateDisplayName(name: string): Promise<void>;
   /** Module, die dieser Mitarbeiter aufrufen darf. */
   listModules(): Promise<ModuleInfo[]>;
+  /**
+   * Welches Werkzeug welchem Bereich gehoert.
+   *
+   * Fuer die Anzeige, nicht fuer die Rechte — die stehen ohnehin in der
+   * Datenbank. Die Uebersicht braucht es, um einer Kachel ihre Farbe zu geben
+   * und der Geschaeftsfuehrung zu zeigen, wem ein Werkzeug gehoert.
+   */
+  modulZuordnung(): Promise<Record<string, Department[]>>;
   /** Vollständige Sicherung aller Tabellen — Tabellenname -> Zeilen. */
   exportBackup(): Promise<BackupBundle>;
 

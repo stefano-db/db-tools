@@ -1,4 +1,4 @@
-import type { ModuleInfo } from '../data';
+import type { Department, ModuleInfo } from '../data';
 import type { SymbolName } from '../ui/Icon';
 
 /**
@@ -23,6 +23,14 @@ export interface Bereich {
   symbol: SymbolName;
   gruppe: Gruppe;
   /**
+   * Welchen Bereichen dieses Werkzeug gehört. Leer heisst: allen.
+   *
+   * Nur für die Anzeige — wer heran darf, entscheidet die Datenbank. Gehört es
+   * genau einem Bereich, trägt die Kachel dessen Farbe; gehört es mehreren,
+   * bleibt sie golden und nennt die Bereiche darunter.
+   */
+  abteilungen?: Department[];
+  /**
    * Was innerhalb dieses Bereichs unmittelbar erreichbar ist.
    *
    * Ohne sie führt jede Kachel nur bis zur Tür, und dahinter fängt das Suchen
@@ -36,7 +44,12 @@ export interface Bereich {
   nurLesen?: boolean;
 }
 
-export type Gruppe = 'meine' | 'alle' | 'leitung';
+/**
+ * „konto" ist keine Rubrik des Startbildschirms, sondern nur der Navigation.
+ * Das eigene Profil steht in der Seitenleiste und am Handy in der Reiterleiste;
+ * eine Kachel dafuer waere der dritte Weg zur selben Tuer.
+ */
+export type Gruppe = 'meine' | 'alle' | 'leitung' | 'konto';
 
 export interface Unterpunkt {
   titel: string;
@@ -82,7 +95,7 @@ export const FESTE_BEREICHE: Bereich[] = [
     text: 'Dein Name, Benachrichtigungen aufs Handy, Abmelden.',
     ziel: '/profil',
     symbol: 'person',
-    gruppe: 'alle',
+    gruppe: 'konto',
   },
   {
     schluessel: 'verwaltung',
@@ -127,8 +140,32 @@ const ZU_MODUL: Record<
  */
 const FUER_ALLE = new Set<string>();
 
+/** Farbe je Bereich — dieselbe wie auf der Wandtafel, für dunklen Grund aufgehellt. */
+export const BEREICH_FARBE: Record<Department, string> = {
+  mechanik: 'var(--color-bereich-mechanik)',
+  counter: 'var(--color-bereich-counter)',
+  service: 'var(--color-bereich-service)',
+  kueche: 'var(--color-bereich-kueche)',
+};
+
+/**
+ * Die Farbe einer Kachel.
+ *
+ * Genau ein Bereich: dessen Farbe. Mehrere oder keiner: Gold, die Hausfarbe.
+ * Eine Kachel, die vier Bereichen gehört, in einer der vier Farben zu malen
+ * wäre eine Behauptung, die nicht stimmt.
+ */
+export function akzentFarbe(b: Bereich): string {
+  return b.abteilungen?.length === 1
+    ? BEREICH_FARBE[b.abteilungen[0]]
+    : 'var(--color-db-gold)';
+}
+
 /** Die freigeschalteten Werkzeuge als Bereiche. */
-export function alsBereiche(module: ModuleInfo[]): Bereich[] {
+export function alsBereiche(
+  module: ModuleInfo[],
+  zuordnung: Record<string, Department[]> = {},
+): Bereich[] {
   return module.map((m) => {
     const zusatz = ZU_MODUL[m.key];
     return {
@@ -138,6 +175,7 @@ export function alsBereiche(module: ModuleInfo[]): Bereich[] {
       ziel: m.path.replace(/\/+$/, '') || '/',
       symbol: zusatz?.symbol ?? 'liste',
       gruppe: FUER_ALLE.has(m.key) ? 'alle' : 'meine',
+      abteilungen: zuordnung[m.key],
       unterpunkte: zusatz?.unterpunkte,
       extern: m.externalUrl,
       nurLesen: !m.canWrite,
@@ -156,14 +194,16 @@ export function alsBereiche(module: ModuleInfo[]): Bereich[] {
 export function bereicheFuer(
   module: ModuleInfo[],
   darfLeiten: boolean,
+  zuordnung: Record<string, Department[]> = {},
 ): Record<Gruppe, Bereich[]> {
-  const alle = [...alsBereiche(module), ...FESTE_BEREICHE].filter(
+  const alle = [...alsBereiche(module, zuordnung), ...FESTE_BEREICHE].filter(
     (b) => b.gruppe !== 'leitung' || darfLeiten,
   );
   return {
     meine: alle.filter((b) => b.gruppe === 'meine'),
     alle: alle.filter((b) => b.gruppe === 'alle').sort(nachWichtigkeit),
     leitung: alle.filter((b) => b.gruppe === 'leitung'),
+    konto: alle.filter((b) => b.gruppe === 'konto'),
   };
 }
 

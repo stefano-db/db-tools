@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { repository, type ModuleInfo } from '../data';
+import { repository, type Department, type ModuleInfo } from '../data';
 
 /**
  * Die freigeschalteten Werkzeuge, einmal geladen.
@@ -12,23 +12,33 @@ import { repository, type ModuleInfo } from '../data';
 interface Stand {
   /** null heißt: wird noch geladen. */
   module: ModuleInfo[] | null;
+  /** Welches Werkzeug welchem Bereich gehört — nur für die Anzeige. */
+  zuordnung: Record<string, Department[]>;
   fehler: string | null;
 }
 
-const Zusammenhang = createContext<Stand>({ module: null, fehler: null });
+const LEER: Stand = { module: null, zuordnung: {}, fehler: null };
+
+const Zusammenhang = createContext<Stand>(LEER);
 
 export function ModuleProvider({ children }: { children: ReactNode }) {
-  const [stand, setStand] = useState<Stand>({ module: null, fehler: null });
+  const [stand, setStand] = useState<Stand>(LEER);
 
   useEffect(() => {
     let laeuft = true;
-    repository
-      .listModules()
-      .then((m) => laeuft && setStand({ module: m, fehler: null }))
+    // Beides zusammen: die Zuordnung ohne die Werkzeuge waere nutzlos, und die
+    // Werkzeuge ohne sie erst farbig, wenn die zweite Antwort eintrifft — ein
+    // Aufblitzen, das nach Fehler aussieht.
+    Promise.all([repository.listModules(), repository.modulZuordnung().catch(() => ({}))])
+      .then(([m, z]) => laeuft && setStand({ module: m, zuordnung: z, fehler: null }))
       .catch(
         (e) =>
           laeuft &&
-          setStand({ module: [], fehler: e instanceof Error ? e.message : String(e) }),
+          setStand({
+            module: [],
+            zuordnung: {},
+            fehler: e instanceof Error ? e.message : String(e),
+          }),
       );
     return () => {
       laeuft = false;

@@ -193,6 +193,21 @@ export class SupabaseRepository implements Repository {
     return modules.filter((m) => m.canRead);
   }
 
+  async modulZuordnung(): Promise<Record<string, Department[]>> {
+    const { data, error } = await this.client
+      .from('department_module_access')
+      .select('department, module_key');
+    if (error) throw new Error(error.message);
+
+    const zuordnung: Record<string, Department[]> = {};
+    for (const zeile of data ?? []) {
+      const key = (zeile as { module_key: string }).module_key;
+      const bereich = (zeile as { department: Department }).department;
+      (zuordnung[key] ??= []).push(bereich);
+    }
+    return zuordnung;
+  }
+
   /**
    * Vollstaendige Sicherung. Es wird gelesen, was der angemeldete Benutzer laut
    * RLS sehen darf — deshalb ist der Export Administratoren vorbehalten.

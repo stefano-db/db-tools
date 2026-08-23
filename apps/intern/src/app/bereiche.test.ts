@@ -29,10 +29,18 @@ describe('bereicheFuer', () => {
     expect(mechanik.alle.map((b) => b.schluessel)).not.toContain('dokumente');
   });
 
-  it('gibt jedem den Dienstplan, das Fragen und das eigene Konto', () => {
+  it('gibt jedem den Dienstplan und das Fragen', () => {
     const ohne = bereicheFuer([], false);
-    expect(ohne.alle.map((b) => b.schluessel)).toEqual(['dienstplan', 'chat', 'profil']);
+    expect(ohne.alle.map((b) => b.schluessel)).toEqual(['dienstplan', 'chat']);
     expect(ohne.meine).toEqual([]);
+  });
+
+  it('haelt das eigene Konto aus dem Startbildschirm heraus', () => {
+    // Es steht in der Seitenleiste und am Handy in der Reiterleiste. Eine
+    // Kachel waere der dritte Weg zur selben Tuer.
+    const ohne = bereicheFuer([], false);
+    expect(ohne.konto.map((b) => b.schluessel)).toEqual(['profil']);
+    expect(ohne.alle.map((b) => b.schluessel)).not.toContain('profil');
   });
 
   it('ordnet nach Gebrauch: der Plan vor dem Fragen', () => {

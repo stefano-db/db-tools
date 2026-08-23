@@ -6,6 +6,7 @@ import {
   type MaintenanceSettings,
 } from '../../core';
 import type {
+  Department,
   CompleteMaintenanceInput,
   IssueRow,
   LaneRow,
@@ -107,6 +108,14 @@ export class DemoRepository implements Repository {
         canWrite: true,
       },
     ];
+  }
+
+  async modulZuordnung() {
+    return {
+      maintenance: ['mechanik'] as Department[],
+      urkunden: ['counter'] as Department[],
+      dokumente: ['mechanik', 'counter', 'service', 'kueche'] as Department[],
+    };
   }
 
   onAuthChange(): () => void {

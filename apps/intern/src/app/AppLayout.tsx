@@ -55,12 +55,11 @@ export function AppLayout() {
   const { module } = useModule();
   const gruppen = bereicheFuer(module ?? [], mayLead);
 
-  // Das eigene Konto steht unten bei „Konto", nicht zwischen den Werkzeugen.
-  const fuerAlle = gruppen.alle.filter((b) => b.schluessel !== 'profil').map(alsEintrag);
+  const fuerAlle = gruppen.alle.map(alsEintrag);
   const meine = gruppen.meine.map(alsEintrag);
   const leitung = gruppen.leitung.map(alsEintrag);
   const bereichName = session?.isAdmin
-    ? 'Alle Bereiche'
+    ? 'Werkzeuge'
     : session?.department
       ? DEPARTMENT_LABEL[session.department]
       : 'Mein Bereich';

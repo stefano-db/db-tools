@@ -64,6 +64,19 @@
   --color-lw-bad: #b03028;
 
   /* Status — dieselben Bedeutungen wie in der Wartung */
+  /* ------------------------------------------------------------------------
+     Bereichsfarben
+
+     Dieselben Toene wie auf der Wandtafel im Center, nur fuer dunklen Grund
+     aufgehellt: dort tragen sie dunkel auf Weiss, hier hell auf Braun. Wer den
+     Plan an der Wand kennt, erkennt die Mechanik hier an derselben Farbe —
+     zwei Farbwelten fuer dieselben vier Bereiche waeren eine Zumutung.
+  ------------------------------------------------------------------------ */
+  --color-bereich-mechanik: #57aed6;
+  --color-bereich-counter: #46bd84;
+  --color-bereich-service: #e8845a;
+  --color-bereich-kueche: #dda948;
+
   --color-db-ok: #3fb27a;
   --color-db-warn: #e0a038;
   --color-db-bad: #e2706a;
@@ -107,11 +120,23 @@ body.db {
 --------------------------------------------------------------------------- */
 @layer components {
   .db-kachel {
+    /* Gold, solange nichts anderes gesetzt ist — die Kacheln, die allen
+       gehoeren, tragen die Hausfarbe. */
+    --akzent: var(--color-db-gold);
+
+    position: relative;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     border-radius: 18px;
     border: 1px solid var(--color-db-line);
-    background: var(--color-db-card);
+    background:
+      radial-gradient(
+        120% 100% at 0% 0%,
+        color-mix(in srgb, var(--akzent) 9%, transparent) 0%,
+        transparent 60%
+      ),
+      var(--color-db-card);
     padding: 0.75rem;
     transition:
       border-color 0.15s ease,
@@ -119,8 +144,22 @@ body.db {
   }
 }
 
+/* Ein Streifen in der Farbe des Bereichs. Er sitzt oben und ist schmal: die
+   Kachel soll die Zugehoerigkeit zeigen, nicht damit schreien. */
+.db-kachel::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--akzent),
+    color-mix(in srgb, var(--akzent) 25%, transparent)
+  );
+}
+
 .db-kachel:hover {
-  border-color: var(--color-db-gold-dim);
+  border-color: color-mix(in srgb, var(--akzent) 45%, var(--color-db-line));
   transform: translateY(-2px);
 }
 
@@ -154,8 +193,19 @@ body.db {
 
 .db-einstieg:hover {
   background: var(--color-db-card2);
-  border-color: var(--color-db-line);
-  color: var(--color-db-gold);
+  border-color: color-mix(in srgb, var(--akzent) 30%, transparent);
+  color: var(--akzent);
+}
+
+/* Ein Punkt in der Bereichsfarbe — fuer die Zeile, die sagt, wem ein Werkzeug
+   gehoert. */
+.db-punkt {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--punkt, var(--color-db-gold));
 }
 
 .db-kachel-symbol {
@@ -165,8 +215,9 @@ body.db {
   height: 2.5rem;
   flex: none;
   border-radius: 14px;
-  background: var(--color-db-card2);
-  border: 1px solid var(--color-db-line);
+  background: color-mix(in srgb, var(--akzent) 14%, var(--color-db-card2));
+  border: 1px solid color-mix(in srgb, var(--akzent) 30%, transparent);
+  color: var(--akzent);
   font-size: 1.25rem;
   line-height: 1;
 }

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
 import { useModule } from '../../app/ModuleContext';
-import { bereicheFuer, type Bereich } from '../../app/bereiche';
-import { DEPARTMENT_LABEL, repository, type MyWeek, type ShiftDay } from '../../data';
+import { BEREICH_FARBE, akzentFarbe, bereicheFuer, type Bereich } from '../../app/bereiche';
+import { DEPARTMENT_LABEL, repository, type Department, type MyWeek, type ShiftDay } from '../../data';
 import { Mascot } from '../../ui/Mascot';
 import { Icon } from '../../ui/Icon';
 
@@ -20,7 +20,7 @@ import { Icon } from '../../ui/Icon';
  */
 export function OverviewPage() {
   const { session } = useAuth();
-  const { module, fehler } = useModule();
+  const { module, zuordnung, fehler } = useModule();
   const [week, setWeek] = useState<MyWeek | null>(null);
   // Welcher Tag in der Schnellansicht steht. Heute ist der Anfang: danach wird
   // am oeftesten gefragt, und von dort blaettert man weiter.
@@ -38,7 +38,7 @@ export function OverviewPage() {
   }, []);
 
   const darfLeiten = session?.isLead === true || session?.isAdmin === true;
-  const gruppen = bereicheFuer(module ?? [], darfLeiten);
+  const gruppen = bereicheFuer(module ?? [], darfLeiten, zuordnung);
   const bereichName = session?.department ? DEPARTMENT_LABEL[session.department] : null;
 
   return (
@@ -57,13 +57,14 @@ export function OverviewPage() {
           sieht nach Fehler aus. */}
       {gruppen.meine.length > 0 && (
         <Abschnitt
-          titel={session?.isAdmin ? 'Alle Bereiche' : (bereichName ?? 'Deine Werkzeuge')}
+          titel={session?.isAdmin ? 'Werkzeuge der Bereiche' : (bereichName ?? 'Deine Werkzeuge')}
           hinweis={
             session?.isAdmin
-              ? 'Als Administrator siehst du die Werkzeuge aller Bereiche.'
+              ? 'Als Administrator siehst du alle. Die Farbe sagt, wem eines gehört.'
               : 'Was zu deinem Bereich gehört.'
           }
           bereiche={gruppen.meine}
+          zeigeZugehoerigkeit={session?.isAdmin === true}
         />
       )}
 
@@ -91,21 +92,29 @@ function Abschnitt({
   titel,
   hinweis,
   bereiche,
+  zeigeZugehoerigkeit = false,
 }: {
   titel: string;
   hinweis: string;
   bereiche: Bereich[];
+  zeigeZugehoerigkeit?: boolean;
 }) {
   return (
     <section>
-      <h2 className="text-lg font-bold">{titel}</h2>
-      <p className="mt-0.5 text-sm text-db-text3">{hinweis}</p>
+      {/* Der goldene Strich ist kein Zierrat: drei Abschnitte untereinander,
+          jeder mit Ueberschrift und Erklaerung, verschwimmen sonst zu einer
+          Textwand. Er gibt dem Auge den Anfang. */}
+      <div className="flex items-center gap-2.5">
+        <span className="h-5 w-1 rounded-full bg-db-gold" aria-hidden="true" />
+        <h2 className="text-lg font-bold">{titel}</h2>
+      </div>
+      <p className="mt-0.5 pl-3.5 text-sm text-db-text3">{hinweis}</p>
       {/* Kategorien nebeneinander, sobald Platz ist. Ein Block mit vier
           Einstiegen braucht Breite; zwei davon nebeneinander sparen auf einem
           Rechner eine halbe Bildschirmhoehe. */}
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {bereiche.map((b) => (
-          <Kachel key={b.schluessel} bereich={b} />
+          <Kachel key={b.schluessel} bereich={b} zeigeZugehoerigkeit={zeigeZugehoerigkeit} />
         ))}
       </div>
     </section>
@@ -124,10 +133,36 @@ function Abschnitt({
  * will, soll nicht erst die Bahnwartung öffnen und dort den richtigen Reiter
  * suchen müssen.
  */
-function Kachel({ bereich: b }: { bereich: Bereich }) {
+function Kachel({
+  bereich: b,
+  zeigeZugehoerigkeit,
+}: {
+  bereich: Bereich;
+  zeigeZugehoerigkeit: boolean;
+}) {
   return (
-    <article className="db-kachel">
+    <article
+      className="db-kachel"
+      style={{ '--akzent': akzentFarbe(b) } as React.CSSProperties}
+    >
       <Kopf bereich={b} />
+
+      {/* Wem das Werkzeug gehoert — nur fuer die Geschaeftsfuehrung. Wer selbst
+          in einem Bereich arbeitet, sieht ohnehin nur seinen eigenen; die Zeile
+          waere dann bei jeder Kachel dieselbe und damit blosses Rauschen. */}
+      {zeigeZugehoerigkeit && b.abteilungen && b.abteilungen.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-db-text3">
+          {b.abteilungen.map((a) => (
+            <span key={a} className="inline-flex items-center gap-1.5">
+              <span
+                className="db-punkt"
+                style={{ '--punkt': BEREICH_FARBE[a as Department] } as React.CSSProperties}
+              />
+              {DEPARTMENT_LABEL[a as Department]}
+            </span>
+          ))}
+        </div>
+      )}
       {b.unterpunkte && b.unterpunkte.length > 0 && (
         <div className="mt-3 grid grid-cols-4 gap-1.5 border-t border-db-line pt-3">
           {b.unterpunkte.map((u) => (
