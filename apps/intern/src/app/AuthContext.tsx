@@ -19,7 +19,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      setSession(await repository.getSession());
+      setSession(await mitFrist(repository.getSession(), 8000));
     } catch {
       setSession(null);
     } finally {
@@ -55,6 +55,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
+}
+
+/**
+ * Ein Versprechen mit Frist.
+ *
+ * Die Anmeldepruefung ist der einzige Schritt, hinter dem die ganze Plattform
+ * wartet — scheitert sie, sieht man eine Anmeldemaske und kann handeln. Bleibt
+ * sie dagegen haengen, sieht man „Anmeldung wird geprueft" und kann gar nichts;
+ * genau das ist passiert, als sich zwei Wartende gegenseitig blockierten.
+ *
+ * Acht Sekunden sind lang genug fuer ein schlechtes Netz und kurz genug, dass
+ * niemand glaubt, das Programm sei tot. Danach gilt: keine Sitzung. Das ist
+ * hart, aber ehrlich — und eine Anmeldemaske ist bedienbar.
+ */
+function mitFrist<T>(versprechen: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    versprechen,
+    new Promise<T>((_, ablehnen) =>
+      setTimeout(() => ablehnen(new Error('Anmeldung dauert zu lange.')), ms),
+    ),
+  ]);
 }
 
 export function useAuth(): AuthContextValue {

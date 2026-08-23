@@ -107,8 +107,8 @@ export class SupabaseRepository implements Repository {
    * RLS-Policies — es kann nicht auseinanderlaufen.
    */
   async getSession(): Promise<SessionInfo | null> {
-    const { data: userData } = await this.client.auth.getUser();
-    const user = userData.user;
+    const { data: sitzung } = await this.client.auth.getSession();
+    const user = sitzung.session?.user;
     if (!user) return null;
 
     const [{ data: profile }, canRead, canWrite] = await Promise.all([
@@ -855,14 +855,38 @@ export class SupabaseRepository implements Repository {
     if (error) throw new Error(error.message);
   }
 
+  /**
+   * Aenderungen an der Anmeldung melden — aber erst, nachdem die Sperre faellt.
+   *
+   * supabase-js ruft diese Rueckmeldung auf, waehrend es seine eigene Sperre
+   * haelt. Wer darin auf die Anmeldung wartet - und das tut jeder, der
+   * anschliessend die Sitzung liest -, wartet auf eine Sperre, die erst frei
+   * wird, wenn er selbst zurueckkehrt. Das loest sich nie auf: die Seite bleibt
+   * bei „Anmeldung wird geprueft" stehen, und zwar erst dann, wenn der Token
+   * nach etwa einer Stunde erneuert wird. Vorher faellt es niemandem auf.
+   *
+   * Das setTimeout ist die uebliche Abhilfe und sieht harmloser aus, als es
+   * ist: es schiebt die Arbeit aus der Sperre heraus.
+   */
   onAuthChange(callback: () => void): () => void {
-    const { data } = this.client.auth.onAuthStateChange(() => callback());
+    const { data } = this.client.auth.onAuthStateChange(() => {
+      setTimeout(callback, 0);
+    });
     return () => data.subscription.unsubscribe();
   }
 
+  /**
+   * Wer gerade angemeldet ist.
+   *
+   * getSession statt getUser: getUser fragt bei jedem Aufruf den Server, ob der
+   * Ausweis noch gilt. Fuer die Anzeige ist das unnoetig — was jemand sehen und
+   * aendern darf, entscheidet ohnehin die Datenbank anhand desselben Ausweises,
+   * nicht das Programm hier. Gespart ist ein Netzweg bei jedem Start, und die
+   * Sperre von oben wird gar nicht erst beruehrt.
+   */
   private async userId(): Promise<string | null> {
-    const { data } = await this.client.auth.getUser();
-    return data.user?.id ?? null;
+    const { data } = await this.client.auth.getSession();
+    return data.session?.user.id ?? null;
   }
 
   private async userName(): Promise<string> {
