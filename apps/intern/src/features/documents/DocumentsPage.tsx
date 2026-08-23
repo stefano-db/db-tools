@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../app/AuthContext';
 import { formatDateDe } from '../../core';
-import { repository, type DocumentRow } from '../../data';
+import { useModule } from '../../app/ModuleContext';
+import { DEPARTMENT_LABEL, repository, type Department, type DocumentRow } from '../../data';
 
 /**
- * Druckvorlagen für den Counter.
+ * Unterlagen zum Ausdrucken — je Bereich getrennt.
  *
  * Der Zweck ist nicht das Ablegen von Dateien, sondern das wiederholte
  * Ausdrucken derselben Unterlagen. Deshalb steht „Drucken" an erster Stelle,
  * und die Liste merkt sich, was zuletzt gebraucht wurde.
+ *
+ * Jeder Bereich hat seinen eigenen Ablageort. Getrennt heisst dabei wirklich
+ * getrennt: Was hier nicht steht, ist nicht bloss ausgeblendet — die Datenbank
+ * gibt es gar nicht erst heraus. Diese Seite ordnet nur, was ohnehin ankommt.
  */
 export function DocumentsPage() {
   const { session } = useAuth();
@@ -17,7 +22,12 @@ export function DocumentsPage() {
   const [search, setSearch] = useState('');
   const [showUpload, setShowUpload] = useState(false);
 
-  const canWrite = session?.isAdmin === true || session?.department !== 'mechanik';
+  // Was jemand darf, steht in der Modulliste und nicht in einer Regel, die hier
+  // den Bereich errät. Vorher hiess es „alle ausser der Mechanik" — das stimmte
+  // genau so lange, bis die Mechanik ihren eigenen Ablageort bekam.
+  const { module } = useModule();
+  const canWrite = module?.find((m) => m.key === 'dokumente')?.canWrite === true;
+  const eigener = session?.department ?? null;
 
   const reload = useCallback(async () => {
     try {
@@ -32,22 +42,56 @@ export function DocumentsPage() {
     void reload();
   }, [reload]);
 
-  const groups = useMemo(() => {
+  /**
+   * Erst nach Bereich, darin nach Kategorie.
+   *
+   * Die Reihenfolge ist nicht alphabetisch, sondern nach Naehe: der eigene
+   * Bereich zuerst, dann was alle angeht, dann der Rest — den sieht ohnehin nur
+   * die Geschaeftsfuehrung.
+   */
+  const bereiche = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const filtered = (docs ?? []).filter(
+    const passend = (docs ?? []).filter(
       (d) =>
         !term ||
         d.title.toLowerCase().includes(term) ||
         (d.description ?? '').toLowerCase().includes(term) ||
         (d.category ?? '').toLowerCase().includes(term),
     );
-    const map = new Map<string, DocumentRow[]>();
-    for (const d of filtered) {
-      const key = d.category?.trim() || 'Ohne Kategorie';
-      (map.get(key) ?? map.set(key, []).get(key)!).push(d);
+
+    const nachBereich = new Map<string, DocumentRow[]>();
+    for (const d of passend) {
+      const schluessel = d.bereich ?? 'alle';
+      (nachBereich.get(schluessel) ?? nachBereich.set(schluessel, []).get(schluessel)!).push(d);
     }
-    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, 'de'));
-  }, [docs, search]);
+
+    const rang = (schluessel: string) =>
+      schluessel === eigener ? 0 : schluessel === 'alle' ? 1 : 2;
+
+    return [...nachBereich.entries()]
+      .sort(([a], [b]) => rang(a) - rang(b) || a.localeCompare(b, 'de'))
+      .map(([schluessel, liste]) => {
+        const kategorien = new Map<string, DocumentRow[]>();
+        for (const d of liste) {
+          const key = d.category?.trim() || 'Ohne Kategorie';
+          (kategorien.get(key) ?? kategorien.set(key, []).get(key)!).push(d);
+        }
+        return {
+          schluessel,
+          titel:
+            schluessel === 'alle'
+              ? 'Geht alle an'
+              : DEPARTMENT_LABEL[schluessel as Department] ?? schluessel,
+          hinweis:
+            schluessel === 'alle'
+              ? 'Aushänge und Unterlagen des ganzen Hauses.'
+              : schluessel === eigener
+                ? 'Dein Bereich.'
+                : 'Anderer Bereich — sichtbar, weil du Administrator bist.',
+          kategorien: [...kategorien.entries()].sort(([a], [b]) => a.localeCompare(b, 'de')),
+        };
+      });
+  }, [docs, search, eigener]);
 
   const recent = useMemo(
     () =>
@@ -65,7 +109,12 @@ export function DocumentsPage() {
           <div>
             <h1 className="text-2xl font-extrabold">Dokumente</h1>
             <p className="text-sm text-db-text2">
-              Unterlagen zum Ausdrucken — Formulare, Preislisten, Aushänge.
+              Unterlagen zum Ausdrucken — Formulare, Preislisten, Aushänge.{' '}
+              {session?.isAdmin
+                ? 'Als Administrator siehst du alle Bereiche.'
+                : eigener
+                  ? `Dein Bereich: ${DEPARTMENT_LABEL[eigener]}.`
+                  : 'Dir ist noch kein Bereich zugeordnet.'}
             </p>
           </div>
           {canWrite && (
@@ -111,26 +160,36 @@ export function DocumentsPage() {
           </p>
         )}
 
-        {groups.map(([category, list]) => (
-          <section key={category} className="mt-6">
-            <h2 className="mb-2 text-sm font-semibold tracking-wide text-db-text3 uppercase">
-              {category}
-            </h2>
-            {/* Dicht genug, dass man eine Liste sieht und nicht einen Stapel.
-                Am schmalsten Handy zwei nebeneinander — bei drei bliebe je
-                Kachel gut ein Daumen Breite, und Titel wie Knoepfe waeren nicht
-                mehr zu treffen. Ab Tablet drei, am Rechner vier bis fuenf. */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-              {list.map((d) => (
-                <DocumentCard
-                  key={d.id}
-                  doc={d}
-                  canWrite={canWrite}
-                  onChanged={reload}
-                  onError={setError}
-                />
-              ))}
+        {bereiche.map((b) => (
+          <section key={b.schluessel} className="mt-8">
+            <div className="mb-3 border-b border-db-line pb-2">
+              <h2 className="text-lg font-bold">{b.titel}</h2>
+              <p className="text-xs text-db-text3">{b.hinweis}</p>
             </div>
+
+            {b.kategorien.map(([category, list]) => (
+              <div key={category} className="mt-4">
+                <h3 className="mb-2 text-sm font-semibold tracking-wide text-db-text3 uppercase">
+                  {category}
+                </h3>
+                {/* Dicht genug, dass man eine Liste sieht und nicht einen Stapel.
+                    Am schmalsten Handy zwei nebeneinander — bei drei bliebe je
+                    Kachel gut ein Daumen Breite, und Titel wie Knoepfe waeren
+                    nicht mehr zu treffen. Ab Tablet drei, am Rechner vier bis
+                    fuenf. */}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {list.map((d) => (
+                    <DocumentCard
+                      key={d.id}
+                      doc={d}
+                      canWrite={canWrite && (session?.isAdmin === true || d.bereich === eigener)}
+                      onChanged={reload}
+                      onError={setError}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         ))}
 
@@ -144,6 +203,8 @@ export function DocumentsPage() {
       {showUpload && (
         <UploadDialog
           knownCategories={[...new Set((docs ?? []).map((d) => d.category).filter(Boolean) as string[])]}
+          eigener={eigener}
+          istAdmin={session?.isAdmin === true}
           onClose={() => setShowUpload(false)}
           onDone={async () => {
             setShowUpload(false);
@@ -335,10 +396,14 @@ function DocumentCard({
 
 function UploadDialog({
   knownCategories,
+  eigener,
+  istAdmin,
   onClose,
   onDone,
 }: {
   knownCategories: string[];
+  eigener: Department | null;
+  istAdmin: boolean;
   onClose: () => void;
   onDone: () => Promise<void>;
 }) {
@@ -346,6 +411,9 @@ function UploadDialog({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
+  // Vorbelegt mit dem eigenen Bereich: das ist in neun von zehn Faellen richtig,
+  // und wer es anders will, sieht die Wahl unmittelbar daneben.
+  const [bereich, setBereich] = useState<Department | 'alle'>(eigener ?? 'alle');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -362,7 +430,13 @@ function UploadDialog({
     setBusy(true);
     setError(null);
     try {
-      await repository.uploadDocument({ file, title, description, category });
+      await repository.uploadDocument({
+        file,
+        title,
+        description,
+        category,
+        bereich: bereich === 'alle' ? null : bereich,
+      });
       await onDone();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -422,6 +496,33 @@ function UploadDialog({
             placeholder="z. B. Preisliste Bahnen"
             className="db-input mt-1"
           />
+        </label>
+
+        {/* Wohin die Unterlage gehoert. Wer keinen zweiten Bereich waehlen darf,
+            bekommt keine Auswahl vorgesetzt, sondern die Auskunft, wo sie
+            landet — eine Liste mit einem einzigen Eintrag ist eine Zumutung. */}
+        <label className="mt-4 block text-sm font-medium">
+          Bereich
+          {istAdmin ? (
+            <select
+              value={bereich}
+              onChange={(e) => setBereich(e.target.value as Department | 'alle')}
+              className="db-input mt-1"
+            >
+              {(Object.keys(DEPARTMENT_LABEL) as Department[]).map((d) => (
+                <option key={d} value={d}>
+                  {DEPARTMENT_LABEL[d]}
+                </option>
+              ))}
+              <option value="alle">Geht alle an</option>
+            </select>
+          ) : (
+            <p className="mt-1 text-sm font-normal text-db-text2">
+              {eigener
+                ? `${DEPARTMENT_LABEL[eigener]} — nur dein Bereich sieht diese Unterlage.`
+                : 'Dir ist kein Bereich zugeordnet; die Datei lässt sich nicht ablegen.'}
+            </p>
+          )}
         </label>
 
         <label className="mt-4 block text-sm font-medium">

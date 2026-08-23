@@ -14,6 +14,7 @@ import type {
   UserRow,
   CreateUserInput,
   DocumentRow,
+  Department,
   RosterEmployeeRow,
   MyWeek,
 } from '../types';
@@ -349,7 +350,7 @@ export class SupabaseRepository implements Repository {
   async listDocuments(): Promise<DocumentRow[]> {
     const { data, error } = await this.client
       .from('documents')
-      .select('*, storage_path')
+      .select('*, storage_path, bereich')
       .is('archived_at', null)
       .order('category', { nullsFirst: true })
       .order('title');
@@ -383,6 +384,7 @@ export class SupabaseRepository implements Repository {
       printCount: d.print_count ?? 0,
       lastPrintedAt: d.last_printed_at,
       createdAt: d.created_at,
+      bereich: d.bereich ?? null,
       previewUrl: urls.get(d.storage_path) ?? null,
     }));
   }
@@ -392,9 +394,14 @@ export class SupabaseRepository implements Repository {
     title: string;
     description?: string;
     category?: string;
+    bereich: Department | null;
   }): Promise<void> {
     const safe = input.file.name.replace(/[^\w.\-]+/g, '_');
-    const path = `${crypto.randomUUID()}-${safe}`;
+    // Der Bereich steht im Pfad, nicht nur in der Zeile daneben. Damit traegt
+    // schon der Speicher die Trennung: eine unterschriebene Adresse laesst sich
+    // nicht auf einen fremden Bereich umbiegen, und ein Fehler in der Zeile
+    // macht die Datei nicht sichtbar.
+    const path = `${input.bereich ?? 'alle'}/${crypto.randomUUID()}-${safe}`;
 
     const { error: uploadError } = await this.client.storage
       .from('dokumente')
@@ -409,6 +416,7 @@ export class SupabaseRepository implements Repository {
       file_name: input.file.name,
       mime_type: input.file.type || 'application/octet-stream',
       size_bytes: input.file.size,
+      bereich: input.bereich,
       uploaded_by: await this.userId(),
     });
     if (error) {

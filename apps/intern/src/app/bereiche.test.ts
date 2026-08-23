@@ -23,10 +23,10 @@ describe('bereicheFuer', () => {
 
   it('trennt den eigenen Bereich von dem, was alle angeht', () => {
     const mechanik = bereicheFuer([modul('maintenance'), modul('dokumente')], false);
-    expect(mechanik.meine.map((b) => b.schluessel)).toEqual(['maintenance']);
-    // Die Dokumente gehoeren keinem Bereich — eine Preisliste ist kein
-    // Werkzeug der Mechanik.
-    expect(mechanik.alle.map((b) => b.schluessel)).toContain('dokumente');
+    // Die Dokumente gehoeren seit dem eigenen Ablageort zum Bereich: der
+    // Counter legt dort Preislisten ab, die Mechanik Wartungsanleitungen.
+    expect(mechanik.meine.map((b) => b.schluessel).sort()).toEqual(['dokumente', 'maintenance']);
+    expect(mechanik.alle.map((b) => b.schluessel)).not.toContain('dokumente');
   });
 
   it('gibt jedem den Dienstplan, das Fragen und das eigene Konto', () => {
@@ -35,10 +35,9 @@ describe('bereicheFuer', () => {
     expect(ohne.meine).toEqual([]);
   });
 
-  it('ordnet nach Gebrauch: der Plan vor den Dokumenten', () => {
-    const mit = bereicheFuer([modul('dokumente')], false);
-    const reihe = mit.alle.map((b) => b.schluessel);
-    expect(reihe.indexOf('dienstplan')).toBeLessThan(reihe.indexOf('dokumente'));
+  it('ordnet nach Gebrauch: der Plan vor dem Fragen', () => {
+    const reihe = bereicheFuer([], false).alle.map((b) => b.schluessel);
+    expect(reihe.indexOf('dienstplan')).toBeLessThan(reihe.indexOf('chat'));
   });
 
   it('zeigt die Verwaltung nur, wer leitet', () => {

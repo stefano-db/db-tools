@@ -207,6 +207,8 @@ export interface DocumentRow {
   printCount: number;
   lastPrintedAt: string | null;
   createdAt: string;
+  /** Bereich, dem die Unterlage gehört. Null heisst: geht alle an. */
+  bereich: Department | null;
   /** Zeitlich begrenzte Adresse für die Vorschau. Null bei Office-Dateien. */
   previewUrl: string | null;
 }
@@ -330,6 +332,8 @@ export interface Repository {
     title: string;
     description?: string;
     category?: string;
+    /** Bereich, dem die Unterlage gehört. Null heisst: geht alle an. */
+    bereich: Department | null;
   }): Promise<void>;
   /** Zeitlich begrenzte Adresse zum Ansehen, Drucken oder Herunterladen. */
   documentUrl(id: string, forDownload?: boolean): Promise<string>;

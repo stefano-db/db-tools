@@ -117,11 +117,15 @@ const ZU_MODUL: Record<
 /**
  * Werkzeuge, die keinem Bereich gehören.
  *
- * Die Dokumente stehen allen offen — eine Preisliste ist kein Werkzeug der
- * Mechanik. Sie unter „Mein Bereich" zu führen, würde behaupten, sie gehöre
- * dorthin.
+ * Heute keines. Die Dokumente standen hier, solange alle Bereiche in denselben
+ * Ordner sahen; seit jeder seinen eigenen Ablageort hat, sind sie ein Werkzeug
+ * des Bereichs wie jedes andere — der Counter legt dort seine Preislisten ab,
+ * die Mechanik ihre Wartungsanleitungen, und keiner scrollt am anderen vorbei.
+ *
+ * Die Menge bleibt stehen, weil das nächste Werkzeug wieder eines für alle sein
+ * kann.
  */
-const FUER_ALLE = new Set(['dokumente']);
+const FUER_ALLE = new Set<string>();
 
 /** Die freigeschalteten Werkzeuge als Bereiche. */
 export function alsBereiche(module: ModuleInfo[]): Bereich[] {
