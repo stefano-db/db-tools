@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../app/AuthContext';
 import { repository, type ShareLink } from '../../data';
 import { teileBild, zeichnePlan } from './planAlsBild';
+import { BAHNPFLEGE_WORT, BAHNPFLEGE_ZEICHEN, PFLEGE_FARBE, PFLEGE_SCHRIFT } from './pflege';
 import { merkeEigeneSchreibung } from '../plan/eigeneSchreibung';
 import {
   DAY_NAMES,
@@ -126,7 +127,28 @@ const tint = (color: string, percent: number) => `color-mix(in srgb, ${color} ${
  * sich trotzdem auf einen Blick von einem Dienst am Gast unterscheidet, traegt
  * sie ein Zeichen und ihren Namen dort, wo sonst die Dauer steht.
  */
-const BAHNPFLEGE_ZEICHEN = '🧽';
+
+
+/**
+ * Das Wort auf der Karte.
+ *
+ * Ein Zeichen allein ist eine Andeutung; wer den Plan zum ersten Mal sieht,
+ * haelt es fuer einen Fleck. Deshalb steht die Bahnpflege ausgeschrieben da,
+ * auf eigener Flaeche und fett — leise genug, dass die Uhrzeit die Hauptsache
+ * bleibt, laut genug, um aus zwei Metern gelesen zu werden.
+ */
+function PflegeSchild({ klein }: { klein?: boolean }) {
+  return (
+    <span
+      className={`inline-block rounded font-bold whitespace-nowrap ${
+        klein ? 'px-1 py-px text-[11px]' : 'px-1.5 py-0.5 text-xs'
+      }`}
+      style={{ background: tint(PFLEGE_FARBE, 18), color: PFLEGE_SCHRIFT }}
+    >
+      {BAHNPFLEGE_ZEICHEN} {BAHNPFLEGE_WORT}
+    </span>
+  );
+}
 
 const STATUS_PILL: Record<ShiftStatus, { label: string; cls: string }> = {
   dienst: { label: 'Dienst', cls: '' },
@@ -974,26 +996,32 @@ function DayCell({
          einen Bildschirm — und auf ein Blatt. */
       <div
         className="schicht-karte rounded-lg bg-white px-2 py-1.5"
-        style={{ boxShadow: `inset 0 0 0 ${fremd ? 2 : 1}px ${tint(color, fremd ? 70 : 30)}` }}
+        style={{
+          boxShadow: `inset 0 0 0 ${pflege || fremd ? 2 : 1}px ${
+            pflege ? tint(PFLEGE_FARBE, 65) : tint(color, fremd ? 70 : 30)
+          }`,
+        }}
       >
         <div className="tabular text-sm leading-tight font-bold whitespace-nowrap">
-          {pflege ? (
-            <span className="mr-1" title="Bahnpflege" aria-label="Bahnpflege">
-              {BAHNPFLEGE_ZEICHEN}
+          {!pflege && fremd && (
+            <span className="mr-1" title={bereich.name} aria-label={bereich.name}>
+              {bereich.symbol}
             </span>
-          ) : (
-            fremd && (
-              <span className="mr-1" title={bereich.name} aria-label={bereich.name}>
-                {bereich.symbol}
-              </span>
-            )
           )}
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
         <div className="dauer text-[11px] leading-tight text-lw-text3">
-          {pflege ? 'Bahnpflege' : fremd ? bereich.name : minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
+          {pflege ? (
+            <PflegeSchild klein />
+          ) : fremd ? (
+            bereich.name
+          ) : minutes > 0 ? (
+            `${formatMinutes(minutes)} h`
+          ) : (
+            ' '
+          )}
         </div>
       </div>
     ) : (
@@ -1435,11 +1463,6 @@ export function TvMosaik({
                       >
                         {arbeit ? (
                           <span className="tabular text-xl leading-tight whitespace-nowrap">
-                            {day.status === 'bahnpflege' && (
-                              <span className="mr-1" title="Bahnpflege">
-                                {BAHNPFLEGE_ZEICHEN}
-                              </span>
-                            )}
                             {fremd && (
                               <span className="mr-1" style={{ color: b.color }}>
                                 {b.symbol}
@@ -1448,6 +1471,15 @@ export function TvMosaik({
                             <span className="font-bold text-lw-text">{day.b}</span>
                             <span className="mx-1 font-normal text-lw-text3">→</span>
                             <span className="font-medium text-lw-text2">{day.e}</span>
+                            {/* An der Wand haengt der Plan vier Meter weit weg.
+                                Das Wort steht deshalb unter der Zeit statt
+                                daneben — daneben schoebe es die Uhrzeit aus der
+                                Spalte, und die ist das, was gesucht wird. */}
+                            {day.status === 'bahnpflege' && (
+                              <span className="mt-0.5 block leading-none">
+                                <PflegeSchild />
+                              </span>
+                            )}
                           </span>
                         ) : (
                           <span
@@ -1589,10 +1621,13 @@ export function TvMatrix({
                                 // die Zeit ein und bindet sie an ihren Bereich.
                                 // Die fremde Schicht bekommt ihn kraeftiger —
                                 // sie soll auffallen, nicht nur dazugehoeren.
-                                boxShadow: `inset 0 0 0 ${fremd ? 2 : 1}px ${tint(
-                                  b.color,
-                                  fremd ? 70 : 32,
-                                )}`,
+                                boxShadow: `inset 0 0 0 ${
+                                  day.status === 'bahnpflege' || fremd ? 2 : 1
+                                }px ${
+                                  day.status === 'bahnpflege'
+                                    ? tint(PFLEGE_FARBE, 65)
+                                    : tint(b.color, fremd ? 70 : 32)
+                                }`,
                               }}
                               title={fremd ? b.name : undefined}
                             >
@@ -1604,11 +1639,6 @@ export function TvMatrix({
                                   Zahl sagen ohne Worte, was Beginn und was Ende
                                   ist. */}
                               <span className="tabular text-[19px] leading-tight whitespace-nowrap">
-                                {day.status === 'bahnpflege' && (
-                                  <span className="mr-1" title="Bahnpflege">
-                                    {BAHNPFLEGE_ZEICHEN}
-                                  </span>
-                                )}
                                 {fremd && (
                                   <span className="mr-1" style={{ color: b.color }}>
                                     {b.symbol}
@@ -1617,6 +1647,11 @@ export function TvMatrix({
                                 <span className="font-bold text-lw-text">{day.b}</span>
                                 <span className="mx-1 font-normal text-lw-text3">→</span>
                                 <span className="font-medium text-lw-text2">{day.e}</span>
+                                {day.status === 'bahnpflege' && (
+                                  <span className="mt-1 block leading-none">
+                                    <PflegeSchild />
+                                  </span>
+                                )}
                               </span>
                             </div>
                           );
@@ -1963,7 +1998,7 @@ function CellEditor({
               : 'lw-btn-ghost'
           }`}
         >
-          {BAHNPFLEGE_ZEICHEN} Bahnpflege
+          {BAHNPFLEGE_ZEICHEN} {BAHNPFLEGE_WORT}
         </button>
 
         {/* Aushelfen in einem anderen Bereich ist der Grund, warum der Bereich
@@ -2018,7 +2053,10 @@ function Legend() {
   return (
     <div className="nicht-drucken flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-lw-line pt-3 text-xs text-lw-text3">
       <span>Klick auf einen Tag ändert ihn.</span>
-      <span className="ml-auto flex flex-wrap gap-x-3">
+      <span className="ml-auto flex flex-wrap items-center gap-x-3">
+        {/* Die Bahnpflege steht mit in der Legende, weil sie das einzige
+            Zeichen im Plan ist, das man nicht aus sich heraus versteht. */}
+        <PflegeSchild />
         {(['urlaub', 'krank'] as ShiftStatus[]).map((s) => (
           <span key={s} className={`rounded px-1.5 py-0.5 ${STATUS_PILL[s].cls}`}>
             {STATUS_PILL[s].label}

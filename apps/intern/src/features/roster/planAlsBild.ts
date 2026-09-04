@@ -4,6 +4,7 @@ import {
   isoWeekNumber,
   type ShiftDay,
 } from './rosterModel';
+import { BAHNPFLEGE_WORT, PFLEGE_FARBE, PFLEGE_SCHRIFT } from './pflege';
 
 /**
  * Den Wochenplan als Bild zeichnen.
@@ -175,14 +176,23 @@ export function zeichnePlan(opts: {
           ctx.fillStyle = b.color;
           ctx.font = schrift(21, true);
           ctx.textAlign = 'center';
-          // Auf dem Bild gibt es keine Erklaerung daneben — das Zeichen allein
-          // saehe aus wie ein Fleck. Deshalb steht die Bahnpflege ausgeschrieben
-          // unter der Zeit, so klein, dass die Zeile nicht hoeher wird.
+          // Auf dem Bild gibt es keine Legende daneben, auf die man schauen
+          // koennte — das Zeichen allein saehe aus wie ein Fleck. Deshalb steht
+          // die Bahnpflege ausgeschrieben unter der Zeit, auf eigener Flaeche
+          // und fett, so wie im Plan am Bildschirm auch.
           const text = `${fremd ? b.symbol + ' ' : ''}${tag.b}–${tag.e}`;
-          ctx.fillText(text, x + w / 2, y + (pflege ? 26 : 31));
+          ctx.fillText(text, x + w / 2, y + (pflege ? 25 : 31));
           if (pflege) {
-            ctx.font = schrift(13, false);
-            ctx.fillText('Bahnpflege', x + w / 2, y + 41);
+            ctx.font = schrift(13, true);
+            const wort = BAHNPFLEGE_WORT;
+            const breite = ctx.measureText(wort).width + 12;
+            ctx.fillStyle = tint(PFLEGE_FARBE, 18);
+            abgerundet(ctx, x + w / 2 - breite / 2, y + 30, breite, 17, 4);
+            ctx.fill();
+            ctx.fillStyle = PFLEGE_SCHRIFT;
+            ctx.textBaseline = 'middle';
+            ctx.fillText(wort, x + w / 2, y + 39);
+            ctx.textBaseline = 'alphabetic';
           }
           ctx.textAlign = 'left';
         } else if (tag.status === 'urlaub' || tag.status === 'krank') {
