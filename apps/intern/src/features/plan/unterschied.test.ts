@@ -62,4 +62,17 @@ describe('tagInWorten', () => {
   it('nennt eine Schicht ohne Zeit nicht eine Schicht', () => {
     expect(tagInWorten({ status: 'dienst', b: '', e: '', std: '' })).toBe('frei');
   });
+
+  it('benennt die Bahnpflege, statt sie wie eine Schicht aussehen zu lassen', () => {
+    expect(tagInWorten({ status: 'bahnpflege', b: '08:00', e: '12:00', std: '' })).toBe(
+      'Bahnpflege 08:00–12:00',
+    );
+    // Der Wechsel von Dienst zu Bahnpflege bei gleicher Zeit ist eine Aenderung,
+    // die gemeldet werden muss - sonst steht jemand mit dem falschen Werkzeug da.
+    const a = woche({ status: 'dienst', b: '08:00', e: '12:00', std: '' });
+    const b = woche({ status: 'bahnpflege', b: '08:00', e: '12:00', std: '' });
+    expect(unterschied(a, b)).toEqual([
+      'Montag: Bahnpflege 08:00–12:00 (vorher 08:00–12:00)',
+    ]);
+  });
 });

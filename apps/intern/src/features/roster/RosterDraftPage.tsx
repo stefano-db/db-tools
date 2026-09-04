@@ -13,6 +13,7 @@ import {
   formatMinutes,
   isoDate,
   isoWeekNumber,
+  istArbeit,
   mondayOf,
   parseTime,
   shiftMinutes,
@@ -118,13 +119,45 @@ const PRESETS: Record<number, [string, string][]> = {
  */
 const tint = (color: string, percent: number) => `color-mix(in srgb, ${color} ${percent}%, #ffffff)`;
 
+/**
+ * Zeichen der Bahnpflege.
+ *
+ * Sie steht auf weisser Karte wie jede Schicht — sie ist ja Arbeit. Damit sie
+ * sich trotzdem auf einen Blick von einem Dienst am Gast unterscheidet, traegt
+ * sie ein Zeichen und ihren Namen dort, wo sonst die Dauer steht.
+ */
+const BAHNPFLEGE_ZEICHEN = '🧽';
+
 const STATUS_PILL: Record<ShiftStatus, { label: string; cls: string }> = {
   dienst: { label: 'Dienst', cls: '' },
+  bahnpflege: { label: 'Bahnpflege', cls: '' },
   frei: { label: 'frei', cls: 'text-lw-text3' },
   urlaub: { label: 'Urlaub', cls: 'bg-lw-ok/12 text-lw-ok' },
   krank: { label: 'Krank', cls: 'bg-lw-bad/12 text-lw-bad' },
   nein: { label: '·', cls: 'text-lw-line2' },
 };
+
+/**
+ * Vorlagen, die eine ganze Woche auf einmal anfassen.
+ *
+ * Der Montag ist im Haus Ruhetag, und ihn siebzehnmal von Hand auf „frei" zu
+ * klicken ist die Sorte Arbeit, bei der man beim vierzehnten Namen aufhoert.
+ * Eine Vorlage setzt nur den einen Tag und laesst den Rest der Woche stehen —
+ * ein Werkzeug, kein Neuanfang. Rueckgaengig macht sie ein Schritt.
+ *
+ * Als Liste, damit die naechste Vorlage eine Zeile ist und kein neuer Knopf.
+ */
+const WOCHEN_VORLAGEN: {
+  name: string;
+  hinweis: string;
+  anwenden: (woche: ShiftDay[]) => ShiftDay[];
+}[] = [
+  {
+    name: 'Montag alle frei',
+    hinweis: 'Setzt bei allen den Montag auf „frei". Die übrige Woche bleibt stehen.',
+    anwenden: (woche) => woche.map((tag, i) => (i === 0 ? { status: 'frei', b: '', e: '' } : tag)),
+  },
+];
 
 interface Employee {
   id: string;
@@ -430,6 +463,24 @@ export function RosterPage() {
     });
   }
 
+  /**
+   * Eine Wochenvorlage auf alle Mitarbeiter anwenden.
+   *
+   * In einem Schritt und mit einem einzigen Eintrag im Verlauf: wer merkt, dass
+   * er die falsche Woche erwischt hat, will einmal auf „Rueckgaengig" druecken
+   * und nicht siebzehnmal.
+   */
+  function vorlageAnwenden(vorlage: (typeof WOCHEN_VORLAGEN)[number]) {
+    setUndoStack((st) => [...st.slice(-19), plan]);
+    setPlan((p) => {
+      const neu: WeekPlan = { ...p };
+      for (const emp of employees) neu[emp.id] = vorlage.anwenden(p[emp.id] ?? emptyWeek());
+      spaeterSpeichern(neu);
+      return neu;
+    });
+    flash(`${vorlage.name} — angewendet auf ${employees.length} Namen.`);
+  }
+
   function undo() {
     setUndoStack((s) => {
       if (s.length === 0) return s;
@@ -484,6 +535,7 @@ export function RosterPage() {
               canUndo={undoStack.length > 0}
               onWeek={setOffset}
               onUndo={undo}
+              onVorlage={vorlageAnwenden}
               onAction={flash}
               onTv={() => setTab('tafel')}
               stand={speicherstand}
@@ -596,7 +648,7 @@ export function RosterPage() {
  * Alles Unbekannte wird zu „nicht eingeteilt", nichts wird geraten.
  */
 export function normalizeWeek(list: readonly unknown[]): ShiftDay[] {
-  const gueltig: ShiftStatus[] = ['dienst', 'frei', 'urlaub', 'krank', 'nein'];
+  const gueltig: ShiftStatus[] = ['dienst', 'bahnpflege', 'frei', 'urlaub', 'krank', 'nein'];
   const week = emptyWeek();
   for (let i = 0; i < 7; i++) {
     const roh = list[i];
@@ -622,6 +674,7 @@ function Toolbar({
   canUndo,
   onWeek,
   onUndo,
+  onVorlage,
   onAction,
   onTv,
   stand,
@@ -633,6 +686,7 @@ function Toolbar({
   canUndo: boolean;
   onWeek: (o: number) => void;
   onUndo: () => void;
+  onVorlage: (vorlage: (typeof WOCHEN_VORLAGEN)[number]) => void;
   onAction: (text: string) => void;
   onTv: () => void;
   stand: 'ruhig' | 'wartet' | 'laeuft' | 'gespeichert' | 'fehler' | 'fremd';
@@ -708,6 +762,17 @@ function Toolbar({
             ↩ Rückgängig
           </button>
         )}
+        {canEdit &&
+          WOCHEN_VORLAGEN.map((vorlage) => (
+            <button
+              key={vorlage.name}
+              onClick={() => onVorlage(vorlage)}
+              title={vorlage.hinweis}
+              className="lw-btn-ghost px-3 py-1.5 text-sm"
+            >
+              {vorlage.name}
+            </button>
+          ))}
         {canEdit && (
           <button
             onClick={() => onAction('Woche kopiert (im Entwurf ohne Wirkung).')}
@@ -849,7 +914,7 @@ function WeekGrid({
               Im Dienst
             </th>
             {days.map((_, i) => {
-              const list = employees.filter((e) => weekOf(e.id)[i].status === 'dienst');
+              const list = employees.filter((e) => istArbeit(weekOf(e.id)[i].status));
               const minutes = list.reduce((sum, e) => sum + shiftMinutes(weekOf(e.id)[i]), 0);
               return (
                 <td key={i} className="px-1 pt-2 text-center">
@@ -898,8 +963,10 @@ function DayCell({
 
   const base = 'block w-full rounded-lg text-center transition';
 
+  const pflege = day.status === 'bahnpflege';
+
   const body =
-    day.status === 'dienst' ? (
+    istArbeit(day.status) ? (
       // Weiss auf der eingefaerbten Zeile: die Schicht tritt hervor, der Rand
       // in der Bereichsfarbe haelt sie sichtbar bei ihrem Bereich.
       /* Eine Zeile statt drei: die Dauer steht in der Wochensumme rechts und
@@ -910,17 +977,23 @@ function DayCell({
         style={{ boxShadow: `inset 0 0 0 ${fremd ? 2 : 1}px ${tint(color, fremd ? 70 : 30)}` }}
       >
         <div className="tabular text-sm leading-tight font-bold whitespace-nowrap">
-          {fremd && (
-            <span className="mr-1" title={bereich.name} aria-label={bereich.name}>
-              {bereich.symbol}
+          {pflege ? (
+            <span className="mr-1" title="Bahnpflege" aria-label="Bahnpflege">
+              {BAHNPFLEGE_ZEICHEN}
             </span>
+          ) : (
+            fremd && (
+              <span className="mr-1" title={bereich.name} aria-label={bereich.name}>
+                {bereich.symbol}
+              </span>
+            )
           )}
           {day.b || '—'}
           <span className="mx-px font-normal text-lw-text3">–</span>
           {day.e || '—'}
         </div>
         <div className="dauer text-[11px] leading-tight text-lw-text3">
-          {fremd ? bereich.name : minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
+          {pflege ? 'Bahnpflege' : fremd ? bereich.name : minutes > 0 ? `${formatMinutes(minutes)} h` : ' '}
         </div>
       </div>
     ) : (
@@ -1342,9 +1415,9 @@ export function TvMosaik({
 
                   {week.map((day, i) => {
                     const b = gruppe(bereichDerSchicht(day, emp.groupNo));
+                    const arbeit = istArbeit(day.status);
                     const fremd = day.status === 'dienst' && b.no !== emp.groupNo;
-                    const flaeche =
-                      day.status === 'dienst' ? { background: '#ffffff' } : ABWESEND[day.status];
+                    const flaeche = arbeit ? { background: '#ffffff' } : ABWESEND[day.status];
 
                     return (
                       <td
@@ -1360,8 +1433,13 @@ export function TvMosaik({
                         }}
                         title={fremd ? b.name : undefined}
                       >
-                        {day.status === 'dienst' ? (
+                        {arbeit ? (
                           <span className="tabular text-xl leading-tight whitespace-nowrap">
+                            {day.status === 'bahnpflege' && (
+                              <span className="mr-1" title="Bahnpflege">
+                                {BAHNPFLEGE_ZEICHEN}
+                              </span>
+                            )}
                             {fremd && (
                               <span className="mr-1" style={{ color: b.color }}>
                                 {b.symbol}
@@ -1394,7 +1472,7 @@ export function TvMosaik({
             Im Dienst
           </th>
           {days.map((_, i) => {
-            const anzahl = employees.filter((e) => weekOf(e.id)[i].status === 'dienst').length;
+            const anzahl = employees.filter((e) => istArbeit(weekOf(e.id)[i].status)).length;
             return (
               <td key={i} className="pt-2 text-center">
                 <span className="text-xl font-extrabold text-lw-text2">{anzahl}</span>
@@ -1444,7 +1522,7 @@ export function TvMatrix({
             <span className="text-2xl font-extrabold text-lw-text3">{woche}</span>
           </th>
           {days.map((d, i) => {
-            const anzahl = employees.filter((e) => weekOf(e.id)[i].status === 'dienst').length;
+            const anzahl = employees.filter((e) => istArbeit(weekOf(e.id)[i].status)).length;
             const heute = i === todayIndex;
             return (
               <th key={i} className="pb-2 text-center">
@@ -1499,10 +1577,10 @@ export function TvMatrix({
                       className="px-1 py-1"
                       style={{ background: rowBg, borderTop: fuge }}
                     >
-                      {day.status === 'dienst' ? (
+                      {istArbeit(day.status) ? (
                         (() => {
                           const b = gruppe(bereichDerSchicht(day, emp.groupNo));
-                          const fremd = b.no !== emp.groupNo;
+                          const fremd = day.status === 'dienst' && b.no !== emp.groupNo;
                           return (
                             <div
                               className="rounded-lg bg-white px-3 py-2 text-center"
@@ -1526,6 +1604,11 @@ export function TvMatrix({
                                   Zahl sagen ohne Worte, was Beginn und was Ende
                                   ist. */}
                               <span className="tabular text-[19px] leading-tight whitespace-nowrap">
+                                {day.status === 'bahnpflege' && (
+                                  <span className="mr-1" title="Bahnpflege">
+                                    {BAHNPFLEGE_ZEICHEN}
+                                  </span>
+                                )}
                                 {fremd && (
                                   <span className="mr-1" style={{ color: b.color }}>
                                     {b.symbol}
@@ -1588,7 +1671,7 @@ function DayView({
 
   const onDuty = employees
     .map((e) => ({ emp: e, day: weekOf(e.id)[sel] }))
-    .filter((x) => x.day.status === 'dienst' || x.day.status === 'urlaub' || x.day.status === 'krank');
+    .filter((x) => istArbeit(x.day.status) || x.day.status === 'urlaub' || x.day.status === 'krank');
 
   return (
     <div className="space-y-4">
@@ -1720,25 +1803,85 @@ function CellEditor({
       return;
     }
     setError(null);
-    onChange({ ...value, status: 'dienst', b: pb, e: pe });
+    // Die Art bleibt: wer eine Bahnpflege eingetragen hat und danach die Zeit
+    // korrigiert, will keine gewoehnliche Schicht daraus machen.
+    onChange({ ...value, status: istArbeit(value.status) ? value.status : 'dienst', b: pb, e: pe });
+  }
+
+  /**
+   * Zwischen gewoehnlicher Schicht und Bahnpflege wechseln.
+   *
+   * Die Zeiten bleiben stehen: es ist derselbe Arbeitstag, nur eine andere
+   * Arbeit. Und das Fenster bleibt offen, anders als bei frei oder Urlaub —
+   * dort ist nach der Wahl nichts mehr einzustellen, hier schon.
+   */
+  function setArt(status: 'dienst' | 'bahnpflege') {
+    onChange({ ...value, status, b: parseTime(b) ?? value.b, e: parseTime(e) ?? value.e });
   }
 
   function setStatus(status: ShiftStatus) {
     onChange({
       ...value,
       status,
-      b: status === 'dienst' ? value.b : '',
-      e: status === 'dienst' ? value.e : '',
+      b: istArbeit(status) ? value.b : '',
+      e: istArbeit(status) ? value.e : '',
     });
-    if (status !== 'dienst') onClose();
+    if (!istArbeit(status)) onClose();
   }
 
-  // Unter der Zelle, aber niemals aus dem Bild heraus.
+  /**
+   * Wohin das Fenster gehoert.
+   *
+   * Vorher stand hier ein fester Schaetzwert von 260 Pixeln fuer die Hoehe.
+   * Das Fenster ist laengst hoeher — Vorlagen, Zeit, Bereich, Status —, also
+   * klappte es nach unten auf und stand unten aus dem Bild heraus; man musste
+   * scrollen, um an den Status zu kommen. Deshalb wird jetzt gemessen statt
+   * geschaetzt: die Seite mit mehr Platz gewinnt, und passt es nirgends ganz,
+   * scrollt das Fenster in sich selbst statt die Seite unter ihm wegzuziehen.
+   */
+  const [hoehe, setHoehe] = useState(0);
+  useLayoutEffect(() => {
+    const kasten = boxRef.current;
+    if (!kasten) return;
+    const messen = () => setHoehe(kasten.offsetHeight);
+    messen();
+    // Der Inhalt aendert sich, waehrend das Fenster offen ist: eine Fehlerzeile
+    // kommt dazu, die Vorlagenreihe bricht um. Eine einmalige Messung waere
+    // beim naechsten Umbruch wieder falsch.
+    const beobachter = new ResizeObserver(messen);
+    beobachter.observe(kasten);
+    return () => beobachter.disconnect();
+  }, []);
+
+  const RAND = 8;
   const width = 264;
-  const left = Math.min(Math.max(8, anchor.left + anchor.width / 2 - width / 2), window.innerWidth - width - 8);
-  const openUp = anchor.bottom + 260 > window.innerHeight;
-  const top = openUp ? undefined : anchor.bottom + 6;
-  const bottom = openUp ? window.innerHeight - anchor.top + 6 : undefined;
+  const left = Math.min(Math.max(RAND, anchor.left + anchor.width / 2 - width / 2), window.innerWidth - width - RAND);
+  const platzUnten = window.innerHeight - anchor.bottom - 6 - RAND;
+  const platzOben = anchor.top - 6 - RAND;
+
+  // Drei Faelle, in dieser Reihenfolge. Unter der Zelle ist die Leserichtung
+  // und deshalb der Normalfall; darueber ist die zweite Wahl. Passt es in
+  // keine der beiden Luecken — eine Zelle in der Bildmitte laesst oben wie
+  // unten zu wenig —, dann loest sich das Fenster von der Zelle und stellt
+  // sich frei ins Bild, so nah wie moeglich, aber ganz sichtbar. Es an der
+  // Zelle festzuhalten und in sich scrollen zu lassen waere derselbe Fehler
+  // noch einmal, nur kleiner.
+  const passtUnten = hoehe <= platzUnten;
+  const passtOben = !passtUnten && hoehe <= platzOben;
+  const frei = !passtUnten && !passtOben;
+
+  const top = passtOben
+    ? undefined
+    : frei
+      ? Math.min(
+          Math.max(RAND, anchor.top + anchor.height / 2 - hoehe / 2),
+          Math.max(RAND, window.innerHeight - hoehe - RAND),
+        )
+      : anchor.bottom + 6;
+  const bottom = passtOben ? window.innerHeight - anchor.top + 6 : undefined;
+  // Letzte Grenze: hoeher als das Bild kann kein Fenster werden. Nur dann
+  // scrollt es in sich selbst.
+  const maxHoehe = window.innerHeight - 2 * RAND;
 
   return (
     <>
@@ -1746,7 +1889,7 @@ function CellEditor({
       <div
         ref={boxRef}
         className="lw-card fixed z-50 p-3 shadow-2xl"
-        style={{ left, top, bottom, width }}
+        style={{ left, top, bottom, width, maxHeight: maxHoehe, overflowY: 'auto' }}
       >
         <div className="mb-2 text-xs text-lw-text3">
           <span className="font-semibold text-lw-text2">{employee.name}</span> · {dayName}{' '}
@@ -1799,13 +1942,29 @@ function CellEditor({
             className="lw-input tabular w-full px-2 py-1.5 text-center"
           />
         </div>
-        <div className="mb-3 h-4 text-center text-xs">
+        <div className="mb-2 h-4 text-center text-xs">
           {error ? (
             <span className="text-lw-bad">{error}</span>
           ) : preview > 0 ? (
             <span className="text-lw-text3">{formatMinutes(preview)} Stunden</span>
           ) : null}
         </div>
+
+        {/* Bahnpflege steht bei der Zeit und nicht beim Status: sie ist eine
+            Schicht mit Uhrzeit, kein Fehltag. Als Schalter statt als eigener
+            Knopf, weil sie sich zur gewoehnlichen Schicht verhaelt wie eine
+            Eigenschaft — dieselbe Zeit, andere Arbeit. */}
+        <button
+          onClick={() => setArt(value.status === 'bahnpflege' ? 'dienst' : 'bahnpflege')}
+          aria-pressed={value.status === 'bahnpflege'}
+          className={`mb-3 w-full rounded-md px-2 py-1.5 text-xs font-semibold ${
+            value.status === 'bahnpflege'
+              ? 'bg-lw-text text-lw-card'
+              : 'lw-btn-ghost'
+          }`}
+        >
+          {BAHNPFLEGE_ZEICHEN} Bahnpflege
+        </button>
 
         {/* Aushelfen in einem anderen Bereich ist der Grund, warum der Bereich
             an der Schicht haengt. Der Stammbereich steht vorn und ist der
@@ -1821,7 +1980,10 @@ function CellEditor({
                 onClick={() =>
                   onChange({
                     ...value,
-                    status: 'dienst',
+                    // Die Art bleibt stehen: wer bei einer Bahnpflege den
+                    // Bereich anfasst, wollte den Bereich aendern und nicht
+                    // stillschweigend eine gewoehnliche Schicht daraus machen.
+                    status: istArbeit(value.status) ? value.status : 'dienst',
                     ...(g.no === employee.groupNo ? { bereich: undefined } : { bereich: g.no }),
                   })
                 }

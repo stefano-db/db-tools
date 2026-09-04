@@ -159,9 +159,10 @@ export function zeichnePlan(opts: {
       weekOf(person.id).forEach((tag, i) => {
         const x = spaltenX(i) + 5;
         const w = spalte - 10;
-        if (tag.status === 'dienst') {
+        if (tag.status === 'dienst' || tag.status === 'bahnpflege') {
+          const pflege = tag.status === 'bahnpflege';
           const b = bereiche.find((g) => g.no === (tag.bereich ?? person.groupNo)) ?? bereich;
-          const fremd = b.no !== person.groupNo;
+          const fremd = !pflege && b.no !== person.groupNo;
           ctx.fillStyle = '#ffffff';
           abgerundet(ctx, x, y + 6, w, ZEILE - 18, 8);
           ctx.fill();
@@ -174,8 +175,15 @@ export function zeichnePlan(opts: {
           ctx.fillStyle = b.color;
           ctx.font = schrift(21, true);
           ctx.textAlign = 'center';
+          // Auf dem Bild gibt es keine Erklaerung daneben — das Zeichen allein
+          // saehe aus wie ein Fleck. Deshalb steht die Bahnpflege ausgeschrieben
+          // unter der Zeit, so klein, dass die Zeile nicht hoeher wird.
           const text = `${fremd ? b.symbol + ' ' : ''}${tag.b}–${tag.e}`;
-          ctx.fillText(text, x + w / 2, y + 31);
+          ctx.fillText(text, x + w / 2, y + (pflege ? 26 : 31));
+          if (pflege) {
+            ctx.font = schrift(13, false);
+            ctx.fillText('Bahnpflege', x + w / 2, y + 41);
+          }
           ctx.textAlign = 'left';
         } else if (tag.status === 'urlaub' || tag.status === 'krank') {
           ctx.fillStyle = '#ffffff';

@@ -44,6 +44,12 @@ describe('shiftMinutes', () => {
     expect(shiftMinutes({ status: 'frei', b: '', e: '' })).toBe(0);
   });
 
+  it('zählt Bahnpflege wie eine Schicht — sie ist Arbeit, kein Fehltag', () => {
+    expect(shiftMinutes({ status: 'bahnpflege', b: '08:00', e: '12:00' })).toBe(240);
+    // Auch die Bahnpflege kann über Mitternacht laufen: nach der letzten Bahn.
+    expect(shiftMinutes({ status: 'bahnpflege', b: '23:00', e: '01:30' })).toBe(150);
+  });
+
   it('bleibt bei unvollständiger Zeit bei 0, statt zu raten', () => {
     expect(shiftMinutes(dienst('14:30', ''))).toBe(0);
   });

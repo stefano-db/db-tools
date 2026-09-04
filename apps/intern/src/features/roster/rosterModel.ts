@@ -6,7 +6,21 @@
  * starten, und die Anzeige bleibt frei von Rechnerei.
  */
 
-export type ShiftStatus = 'dienst' | 'frei' | 'urlaub' | 'krank' | 'nein';
+export type ShiftStatus = 'dienst' | 'bahnpflege' | 'frei' | 'urlaub' | 'krank' | 'nein';
+
+/**
+ * Zustaende, an denen tatsaechlich gearbeitet wird.
+ *
+ * Bahnpflege ist Arbeit mit Uhrzeit, kein Fehltag: die Mechanik oelt die
+ * Bahnen ausserhalb der Oeffnungszeit, und diese Stunden gehoeren in die
+ * Wochensumme wie jede andere Schicht. Sie steht nur getrennt da, damit man am
+ * Plan sieht, wer an dem Abend am Haus arbeitet und wer am Gast.
+ */
+export const ARBEIT_STATUS: readonly ShiftStatus[] = ['dienst', 'bahnpflege'];
+
+export function istArbeit(status: ShiftStatus): boolean {
+  return ARBEIT_STATUS.includes(status);
+}
 
 export interface ShiftDay {
   status: ShiftStatus;
@@ -28,6 +42,7 @@ export const EMPTY_DAY: ShiftDay = { status: 'nein', b: '', e: '' };
 
 export const STATUS_LABEL: Record<ShiftStatus, string> = {
   dienst: 'Dienst',
+  bahnpflege: 'Bahnpflege',
   frei: 'Frei',
   urlaub: 'Urlaub',
   krank: 'Krank',
@@ -84,7 +99,7 @@ function toMinutes(t: string): number | null {
  * der Normalfall, keine Ausnahme — die Spätschicht endet um 1:00.
  */
 export function shiftMinutes(day: ShiftDay): number {
-  if (day.status !== 'dienst') return 0;
+  if (!istArbeit(day.status)) return 0;
   const b = toMinutes(day.b);
   const e = toMinutes(day.e);
   if (b === null || e === null) return 0;

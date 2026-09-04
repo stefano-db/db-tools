@@ -25,6 +25,9 @@ const TAGE = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samsta
 export function tagInWorten(tag?: ShiftDay): string {
   if (!tag) return 'frei';
   if (tag.status === 'dienst' && tag.b) return `${tag.b}–${tag.e}`;
+  // Die Bahnpflege wird benannt: fuer den, der die Meldung liest, ist der
+  // Unterschied zu einer gewoehnlichen Schicht der ganze Inhalt der Nachricht.
+  if (tag.status === 'bahnpflege' && tag.b) return `Bahnpflege ${tag.b}–${tag.e}`;
   if (tag.status === 'urlaub') return 'Urlaub';
   if (tag.status === 'krank') return 'krank';
   return 'frei';

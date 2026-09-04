@@ -269,7 +269,7 @@ export interface RosterEmployeeRow {
 
 /** Ein Tag im Dienstplan, wie ihn der Editor speichert. */
 export interface ShiftDay {
-  /** 'dienst' | 'frei' | 'urlaub' | 'krank' | 'nein' */
+  /** 'dienst' | 'bahnpflege' | 'frei' | 'urlaub' | 'krank' | 'nein' */
   status: string;
   /** Beginn, z. B. "15:00". Leer, wenn kein Dienst. */
   b: string;
