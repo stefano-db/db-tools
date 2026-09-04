@@ -59,7 +59,7 @@ export interface DemoIssue {
  * sonst behaelt ein Browser, der schon einmal demonstriert hat, fuer immer
  * den alten Aufgabenkatalog.
  */
-export const DEMO_DB_VERSION = 2;
+export const DEMO_DB_VERSION = 3;
 
 export interface DemoDb {
   version: number;
@@ -93,6 +93,7 @@ export const TASKS: MaintenanceTask[] = [
   { id: 'k14', maintenanceTypeId: 't25', code: 'ball_elevator_belt', titleDe: 'Ballheber: Riemen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 2 },
   { id: 'k15', maintenanceTypeId: 't25', code: 'ball_elevator_v_wheel', titleDe: 'Ballheber: V-Wheel auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 3 },
   { id: 'k16', maintenanceTypeId: 't25', code: 'ball_elevator_shafts', titleDe: 'Ballheber: Wellen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 4 },
+  { id: 'k17', maintenanceTypeId: 't25', code: 'kids_bumper', titleDe: 'Kinderbumper auf Funktion prüfen (Aus- und Einfahren)', scope: 'lane', sortOrder: 5 },
 
   { id: 'k2', maintenanceTypeId: 't50', code: 'string_tension', titleDe: 'Spannung der Pin-Schnüre prüfen und bei Bedarf einstellen', scope: 'lane', sortOrder: 1 },
   { id: 'k3', maintenanceTypeId: 't50', code: 'elevator_belt', titleDe: 'Antriebsriemen des Ball Elevators prüfen', scope: 'lane_pair', sortOrder: 2 },
