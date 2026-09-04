@@ -29,9 +29,11 @@ describe('bereicheFuer', () => {
     expect(mechanik.alle.map((b) => b.schluessel)).not.toContain('dokumente');
   });
 
-  it('gibt jedem den Dienstplan und das Fragen', () => {
+  it('gibt jedem den Dienstplan, das Fragen und die Wuensche', () => {
     const ohne = bereicheFuer([], false);
-    expect(ohne.alle.map((b) => b.schluessel)).toEqual(['dienstplan', 'chat']);
+    // Die Reihenfolge ist die des Gebrauchs, nicht die der Datenbank: in den
+    // Plan schaut jemand zehnmal am Tag, Wuensche schreibt man selten.
+    expect(ohne.alle.map((b) => b.schluessel)).toEqual(['dienstplan', 'chat', 'wuensche']);
     expect(ohne.meine).toEqual([]);
   });
 

@@ -12,6 +12,7 @@ import { ProfilePage } from './features/portal/ProfilePage';
 import { UsersPage } from './features/admin/UsersPage';
 import { DocumentsPage } from './features/documents/DocumentsPage';
 import { RosterPage } from './features/roster/RosterDraftPage';
+import { WuenschePage } from './features/wuensche/WuenschePage';
 import { PublicPlanPage } from './features/roster/PublicPlanPage';
 import { ChatPage } from './features/chat/ChatPage';
 import { SchliessfachPage } from './features/schliessfaecher/SchliessfachPage';
@@ -52,6 +53,8 @@ const router = createBrowserRouter([
           { path: 'profil', element: <ProfilePage /> },
           // Der Chat steht allen offen — er haengt nicht an einem Bereich.
           { path: 'chat', element: <ChatPage /> },
+          // Wuensche stehen allen offen — sie haengen an keinem Bereich.
+          { path: 'wuensche', element: <WuenschePage /> },
           { path: 'verwaltung', element: <UsersPage /> },
           { path: 'dokumente', element: <DocumentsPage /> },
           { path: 'schliessfaecher', element: <SchliessfachPage /> },

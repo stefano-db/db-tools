@@ -5,6 +5,8 @@ import type {
   CompleteMaintenanceInput,
   IssuePhoto,
   IssueRow,
+  Wunsch,
+  WunschStatus,
   LaneRow,
   Repository,
   ResetCounterInput,
@@ -1421,6 +1423,90 @@ export class SupabaseRepository implements Repository {
       .update({ superseded_by_id: created.id })
       .eq('id', old.id);
     if (markError) throw new Error(markError.message);
+  }
+
+  // --- Wünsche --------------------------------------------------------------
+
+  async wuensche(): Promise<Wunsch[]> {
+    const ich = await this.userId();
+    const [wunschRes, stimmRes] = await Promise.all([
+      this.client.from('v_feature_wuensche').select('*').order('eingereicht_am', { ascending: false }),
+      // Nur die eigenen Stimmen: wer sonst noch zugestimmt hat, geht niemanden
+      // etwas an, und die Zahl steht ohnehin in der View.
+      this.client.from('feature_stimmen').select('wunsch_id').eq('profil_id', ich),
+    ]);
+    if (wunschRes.error) throw new Error(wunschRes.error.message);
+    if (stimmRes.error) throw new Error(stimmRes.error.message);
+
+    const meine = new Set((stimmRes.data ?? []).map((z: any) => z.wunsch_id));
+    return (wunschRes.data ?? []).map((w: any) => ({
+      id: w.id,
+      titel: w.titel,
+      beschreibung: w.beschreibung,
+      bereich: w.bereich,
+      status: w.status,
+      eingereichtVon: w.eingereicht_von,
+      eingereichtVonName: w.eingereicht_von_name ?? 'Unbekannt',
+      eingereichtAm: w.eingereicht_am,
+      antwort: w.antwort,
+      beantwortetVonName: w.beantwortet_von_name ?? null,
+      beantwortetAm: w.beantwortet_am,
+      stimmen: w.stimmen ?? 0,
+      ichHabeGestimmt: meine.has(w.id),
+      meiner: w.eingereicht_von === ich && w.status === 'offen' && !w.antwort,
+    }));
+  }
+
+  async wunschEinreichen(titel: string, beschreibung?: string): Promise<void> {
+    const session = await this.getSession();
+    const { error } = await this.client.from('feature_wuensche').insert({
+      titel: titel.trim(),
+      beschreibung: beschreibung?.trim() || null,
+      // Der Bereich kommt aus dem Profil und wird nicht abgefragt: er steht
+      // dort schon, und eine Frage mehr ist eine Hürde mehr.
+      bereich: session?.department ?? null,
+      eingereicht_von: await this.userId(),
+    });
+    if (error) throw new Error(error.message);
+  }
+
+  async wunschAendern(id: string, titel: string, beschreibung?: string): Promise<void> {
+    const { error } = await this.client
+      .from('feature_wuensche')
+      .update({
+        titel: titel.trim(),
+        beschreibung: beschreibung?.trim() || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  async wunschStimmen(id: string, dafuer: boolean): Promise<void> {
+    const ich = await this.userId();
+    const { error } = dafuer
+      ? await this.client.from('feature_stimmen').upsert(
+          { wunsch_id: id, profil_id: ich },
+          { onConflict: 'wunsch_id,profil_id', ignoreDuplicates: true },
+        )
+      : await this.client.from('feature_stimmen').delete().eq('wunsch_id', id).eq('profil_id', ich);
+    if (error) throw new Error(error.message);
+  }
+
+  async wunschBeantworten(id: string, status: WunschStatus, antwort?: string): Promise<void> {
+    const text = antwort?.trim() || null;
+    const { error } = await this.client
+      .from('feature_wuensche')
+      .update({
+        status,
+        antwort: text,
+        // Beides zusammen oder gar nicht — die Datenbank besteht darauf.
+        beantwortet_von: text ? await this.userId() : null,
+        beantwortet_am: text ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw new Error(error.message);
   }
 
   async updateSettings(settings: Partial<MaintenanceSettings>): Promise<void> {

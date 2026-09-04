@@ -90,6 +90,14 @@ export const FESTE_BEREICHE: Bereich[] = [
     gruppe: 'alle',
   },
   {
+    schluessel: 'wuensche',
+    titel: 'Wünsche',
+    text: 'Was dir an der App fehlt. Was viele wollen, kommt zuerst.',
+    ziel: '/wuensche',
+    symbol: 'gluehbirne',
+    gruppe: 'alle',
+  },
+  {
     schluessel: 'profil',
     titel: 'Profil',
     text: 'Dein Name, Benachrichtigungen aufs Handy, Abmelden.',
@@ -224,7 +232,7 @@ export function bereicheFuer(
  * Dienstplan, obwohl in den Plan zehnmal am Tag jemand schaut und in die
  * Dokumente einmal im Monat.
  */
-const REIHENFOLGE = ['dienstplan', 'dokumente', 'chat', 'profil'];
+const REIHENFOLGE = ['dienstplan', 'dokumente', 'chat', 'wuensche', 'profil'];
 
 function nachWichtigkeit(a: Bereich, b: Bereich): number {
   const rang = (x: Bereich) => {

@@ -101,6 +101,33 @@ export interface IssuePhoto {
   uploadedAt: string;
 }
 
+/**
+ * Ein Wunsch der Mannschaft an die Plattform.
+ *
+ * `stimmen` wird beim Lesen gezählt und nicht mitgeführt; `ichHabeGestimmt`
+ * beantwortet die Frage, die die Oberfläche stellen muss — ohne sie wüsste ein
+ * Knopf nicht, ob er „zustimmen" oder „Zustimmung zurücknehmen" heißt.
+ */
+export type WunschStatus = 'offen' | 'geplant' | 'umgesetzt' | 'abgelehnt';
+
+export interface Wunsch {
+  id: string;
+  titel: string;
+  beschreibung: string | null;
+  bereich: Department | null;
+  status: WunschStatus;
+  eingereichtVon: string | null;
+  eingereichtVonName: string;
+  eingereichtAm: string;
+  antwort: string | null;
+  beantwortetVonName: string | null;
+  beantwortetAm: string | null;
+  stimmen: number;
+  ichHabeGestimmt: boolean;
+  /** Ob dieses Konto den Wunsch noch nachbessern darf. */
+  meiner: boolean;
+}
+
 export interface Snapshot {
   settings: MaintenanceSettings;
   types: MaintenanceType[];
@@ -567,6 +594,17 @@ export interface Repository {
     reason: string;
   }): Promise<void>;
   updateSettings(settings: Partial<MaintenanceSettings>): Promise<void>;
+
+  // --- Wünsche --------------------------------------------------------------
+  /** Alle Wünsche, neueste zuerst. */
+  wuensche(): Promise<Wunsch[]>;
+  wunschEinreichen(titel: string, beschreibung?: string): Promise<void>;
+  /** Den eigenen Wunsch nachbessern, solange er unbearbeitet ist. */
+  wunschAendern(id: string, titel: string, beschreibung?: string): Promise<void>;
+  /** Zustimmen oder die Zustimmung zurücknehmen. */
+  wunschStimmen(id: string, dafuer: boolean): Promise<void>;
+  /** Stand und Antwort setzen — nur Leitung und Administration. */
+  wunschBeantworten(id: string, status: WunschStatus, antwort?: string): Promise<void>;
 }
 
 export type { MaintenanceSettings, MaintenanceTask, MaintenanceType };

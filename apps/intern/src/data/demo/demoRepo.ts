@@ -11,6 +11,8 @@ import type {
   CompleteMaintenanceInput,
   IssuePhoto,
   IssueRow,
+  Wunsch,
+  WunschStatus,
   LaneRow,
   RecordRow,
   Repository,
@@ -616,6 +618,92 @@ export class DemoRepository implements Repository {
 
   async issuePhotos(issueId: string): Promise<IssuePhoto[]> {
     return this.fotos.get(issueId) ?? [];
+  }
+
+  // --- Wünsche --------------------------------------------------------------
+  // Im Demo-Betrieb im Arbeitsspeicher, wie die Fotos: der Bestand ist zum
+  // Vorführen da, nicht zum Sammeln. Zwei Beispiele stehen von Anfang an drin,
+  // damit die Liste nicht leer erklärt werden muss.
+  private wunschListe: Wunsch[] = [
+    {
+      id: 'w1',
+      titel: 'Urlaubsantrag direkt in der App',
+      beschreibung: 'Statt Zettel am Schwarzen Brett — mit Übersicht, wer wann schon Urlaub hat.',
+      bereich: 'service',
+      status: 'geplant',
+      eingereichtVon: 'demo-2',
+      eingereichtVonName: 'Kira',
+      eingereichtAm: new Date(Date.now() - 9 * 864e5).toISOString(),
+      antwort: 'Guter Einfall. Kommt, sobald der Dienstplan steht.',
+      beantwortetVonName: 'Leitung',
+      beantwortetAm: new Date(Date.now() - 6 * 864e5).toISOString(),
+      stimmen: 7,
+      ichHabeGestimmt: false,
+      meiner: false,
+    },
+    {
+      id: 'w2',
+      titel: 'Ersatzteile: Bestand und Nachbestellung',
+      beschreibung: 'Wenn ein Teil verbaut wird, soll es abgezogen werden. Unter einer Grenze eine Meldung.',
+      bereich: 'mechanik',
+      status: 'offen',
+      eingereichtVon: 'demo',
+      eingereichtVonName: 'Marco',
+      eingereichtAm: new Date(Date.now() - 2 * 864e5).toISOString(),
+      antwort: null,
+      beantwortetVonName: null,
+      beantwortetAm: null,
+      stimmen: 2,
+      ichHabeGestimmt: true,
+      meiner: true,
+    },
+  ];
+
+  async wuensche(): Promise<Wunsch[]> {
+    return [...this.wunschListe];
+  }
+
+  async wunschEinreichen(titel: string, beschreibung?: string): Promise<void> {
+    this.wunschListe.unshift({
+      id: `w-${Date.now()}`,
+      titel: titel.trim(),
+      beschreibung: beschreibung?.trim() || null,
+      bereich: 'mechanik',
+      status: 'offen',
+      eingereichtVon: 'demo',
+      eingereichtVonName: 'Marco',
+      eingereichtAm: new Date().toISOString(),
+      antwort: null,
+      beantwortetVonName: null,
+      beantwortetAm: null,
+      stimmen: 0,
+      ichHabeGestimmt: false,
+      meiner: true,
+    });
+  }
+
+  async wunschAendern(id: string, titel: string, beschreibung?: string): Promise<void> {
+    const w = this.wunschListe.find((x) => x.id === id);
+    if (!w) return;
+    w.titel = titel.trim();
+    w.beschreibung = beschreibung?.trim() || null;
+  }
+
+  async wunschStimmen(id: string, dafuer: boolean): Promise<void> {
+    const w = this.wunschListe.find((x) => x.id === id);
+    if (!w || w.ichHabeGestimmt === dafuer) return;
+    w.ichHabeGestimmt = dafuer;
+    w.stimmen += dafuer ? 1 : -1;
+  }
+
+  async wunschBeantworten(id: string, status: WunschStatus, antwort?: string): Promise<void> {
+    const w = this.wunschListe.find((x) => x.id === id);
+    if (!w) return;
+    w.status = status;
+    w.antwort = antwort?.trim() || null;
+    w.beantwortetVonName = w.antwort ? 'Marco' : null;
+    w.beantwortetAm = w.antwort ? new Date().toISOString() : null;
+    w.meiner = false;
   }
 
   async updateIssueStatus(id: string, status: IssueRow['status'], resolutionNote?: string): Promise<void> {

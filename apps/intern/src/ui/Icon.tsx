@@ -35,6 +35,7 @@ export type SymbolName =
   | 'liste'
   | 'schloss'
   | 'geld'
+  | 'gluehbirne'
   | 'pfeil';
 
 /** Nur der Pfadinhalt — Rahmen, Farbe und Strichstärke stehen unten. */
@@ -52,6 +53,8 @@ const PFADE: Record<SymbolName, string> = {
   pokal: 'M7 4h10v5a5 5 0 0 1-10 0zM7 5.5H4.2V7a3.3 3.3 0 0 0 3 3.3M17 5.5h2.8V7a3.3 3.3 0 0 1-3 3.3M9.5 20h5M12 14v6',
   ordner: 'M3.5 6.5h6l2 2.5h9V19a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z',
   sprechblase: 'M4 5.5h16v11H9l-5 4V5.5zM8.5 11h.01M12 11h.01M15.5 11h.01',
+  gluehbirne:
+    'M12 3.2a5.8 5.8 0 0 0-3.5 10.4c.7.6 1.1 1.4 1.1 2.3v.6h4.8v-.6c0-.9.4-1.7 1.1-2.3A5.8 5.8 0 0 0 12 3.2zM9.6 19h4.8M10.4 21.2h3.2',
   leute:
     'M9 11.5a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zM2.8 20c0-3.2 2.8-5.3 6.2-5.3s6.2 2.1 6.2 5.3M16.5 5.6a3 3 0 0 1 0 5.8M18 14.9c2 .6 3.3 2.2 3.3 4.3',
   person: 'M12 11.8a3.6 3.6 0 1 0 0-7.2 3.6 3.6 0 0 0 0 7.2zM5 20.2c0-3.4 3.1-5.6 7-5.6s7 2.2 7 5.6',
