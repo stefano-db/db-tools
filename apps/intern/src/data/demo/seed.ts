@@ -54,6 +54,13 @@ export interface DemoIssue {
   resolutionNote: string | null;
 }
 
+/**
+ * Fassung des Demo-Bestands. Hochzaehlen, sobald sich Stammdaten aendern —
+ * sonst behaelt ein Browser, der schon einmal demonstriert hat, fuer immer
+ * den alten Aufgabenkatalog.
+ */
+export const DEMO_DB_VERSION = 2;
+
 export interface DemoDb {
   version: number;
   pairs: { id: string; label: string; sortOrder: number }[];
@@ -83,6 +90,9 @@ export const TYPES: MaintenanceType[] = [
 
 export const TASKS: MaintenanceTask[] = [
   { id: 'k1', maintenanceTypeId: 't25', code: 'pins_strings', titleDe: 'Pins und Pin-Schnüre auf Verschleiß oder Beschädigungen prüfen', scope: 'lane', sortOrder: 1 },
+  { id: 'k14', maintenanceTypeId: 't25', code: 'ball_elevator_belt', titleDe: 'Ballheber: Riemen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 2 },
+  { id: 'k15', maintenanceTypeId: 't25', code: 'ball_elevator_v_wheel', titleDe: 'Ballheber: V-Wheel auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 3 },
+  { id: 'k16', maintenanceTypeId: 't25', code: 'ball_elevator_shafts', titleDe: 'Ballheber: Wellen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 4 },
 
   { id: 'k2', maintenanceTypeId: 't50', code: 'string_tension', titleDe: 'Spannung der Pin-Schnüre prüfen und bei Bedarf einstellen', scope: 'lane', sortOrder: 1 },
   { id: 'k3', maintenanceTypeId: 't50', code: 'elevator_belt', titleDe: 'Antriebsriemen des Ball Elevators prüfen', scope: 'lane_pair', sortOrder: 2 },
@@ -251,7 +261,7 @@ export function buildDemoDb(today = new Date()): DemoDb {
   ];
 
   return {
-    version: 1,
+    version: DEMO_DB_VERSION,
     pairs,
     lanes,
     types: TYPES,

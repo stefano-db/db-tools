@@ -9,6 +9,7 @@ import type {
   Schliessfach,
   Department,
   CompleteMaintenanceInput,
+  IssuePhoto,
   IssueRow,
   LaneRow,
   RecordRow,
@@ -22,7 +23,7 @@ import type {
   UserRow,
   CreateUserInput,
 } from '../types';
-import { buildDemoDb, type DemoDb } from './seed';
+import { buildDemoDb, DEMO_DB_VERSION, type DemoDb } from './seed';
 
 const STORAGE_KEY = 'bowling-wartung.demo.v1';
 
@@ -38,6 +39,17 @@ export class DemoRepository implements Repository {
   readonly kind = 'demo' as const;
   readonly requiresLogin = false;
   private db: DemoDb;
+
+  /**
+   * Fotos der Demo — nur im Arbeitsspeicher, nicht im lokalen Speicher.
+   *
+   * Ein Handyfoto als Text kodiert sprengt die fuenf Megabyte, die ein Browser
+   * je Adresse hergibt, und riss den ganzen Demo-Bestand mit. Nach einem
+   * Neuladen der Seite sind die Bilder deshalb weg und die Zaehlung steht
+   * wieder bei null — sichtbar und ehrlich, statt einer Meldung, die Fotos
+   * verspricht, die niemand mehr anzeigen kann.
+   */
+  private fotos = new Map<string, IssuePhoto[]>();
 
   constructor() {
     this.db = this.read();
@@ -365,7 +377,9 @@ export class DemoRepository implements Repository {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as DemoDb;
-        if (parsed.version === 1) return parsed;
+        // Aeltere Staende werden nicht migriert, sondern neu aufgebaut: der
+        // Demo-Bestand ist erfunden, ein Umbau waere Aufwand ohne Gegenwert.
+        if (parsed.version === DEMO_DB_VERSION) return parsed;
       }
     } catch {
       // beschädigter Speicher -> neu aufbauen
@@ -446,6 +460,7 @@ export class DemoRepository implements Repository {
     const issues: IssueRow[] = this.db.issues.map((i) => ({
       ...i,
       laneNumber: i.laneId ? (laneNumberOf.get(i.laneId) ?? null) : null,
+      photoCount: this.fotos.get(i.id)?.length ?? 0,
     }));
 
     return {
@@ -568,9 +583,11 @@ export class DemoRepository implements Repository {
     description?: string;
     severity: IssueRow['severity'];
     reportedBy: string;
+    photos?: File[];
   }): Promise<void> {
+    const id = `i-${Date.now()}`;
     this.db.issues.unshift({
-      id: `i-${Date.now()}`,
+      id,
       laneId: input.laneId,
       title: input.title,
       description: input.description ?? null,
@@ -580,7 +597,25 @@ export class DemoRepository implements Repository {
       reportedAt: new Date().toISOString(),
       resolutionNote: null,
     });
+    if (input.photos?.length) await this.addIssuePhotos(id, input.photos);
     this.write();
+  }
+
+  async addIssuePhotos(issueId: string, photos: File[]): Promise<void> {
+    const bisher = this.fotos.get(issueId) ?? [];
+    this.fotos.set(issueId, [
+      ...bisher,
+      ...photos.map((foto, i) => ({
+        id: `f-${issueId}-${bisher.length + i}`,
+        url: URL.createObjectURL(foto),
+        mimeType: foto.type || null,
+        uploadedAt: new Date().toISOString(),
+      })),
+    ]);
+  }
+
+  async issuePhotos(issueId: string): Promise<IssuePhoto[]> {
+    return this.fotos.get(issueId) ?? [];
   }
 
   async updateIssueStatus(id: string, status: IssueRow['status'], resolutionNote?: string): Promise<void> {

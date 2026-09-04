@@ -1,7 +1,9 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { CounterEpoch, MaintenanceAnchor, MaintenanceSettings } from '../../core';
+import { fotoName } from '../../features/issues/bildVerkleinern';
 import type {
   CompleteMaintenanceInput,
+  IssuePhoto,
   IssueRow,
   LaneRow,
   Repository,
@@ -1024,7 +1026,7 @@ export class SupabaseRepository implements Repository {
     const [
       settingsRes, typesRes, tasksRes, pairsRes,
       stateRes, rateRes, anchorRes, epochRes,
-      recordsRes, recordTasksRes, readingsRes, issuesRes,
+      recordsRes, recordTasksRes, readingsRes, issuesRes, attachmentsRes,
     ] = await Promise.all([
       this.client.from('maintenance_settings').select('*').single(),
       this.client.from('maintenance_types').select('*').eq('active', true).order('sort_order'),
@@ -1045,11 +1047,15 @@ export class SupabaseRepository implements Repository {
         .order('reading_date', { ascending: false })
         .order('recorded_at', { ascending: false }),
       this.client.from('lane_issues').select('*, lanes(lane_number)').order('reported_at', { ascending: false }),
+      // Nur die Zuordnung, nicht die Bilder: gezaehlt wird hier, geholt wird
+      // erst, wenn jemand die Fotos einer Meldung wirklich aufklappt.
+      this.client.from('lane_issue_attachments').select('issue_id'),
     ]);
 
     const firstError = [
       settingsRes, typesRes, tasksRes, pairsRes, stateRes, rateRes,
       anchorRes, epochRes, recordsRes, recordTasksRes, readingsRes, issuesRes,
+      attachmentsRes,
     ].find((r) => r.error);
     if (firstError?.error) throw new Error(firstError.error.message);
 
@@ -1096,6 +1102,11 @@ export class SupabaseRepository implements Repository {
         cumulativeOffset: e.cumulative_offset,
         reason: e.reason,
       };
+    }
+
+    const fotosJeMeldung = new Map<string, number>();
+    for (const a of attachmentsRes.data ?? ([] as any[])) {
+      fotosJeMeldung.set(a.issue_id, (fotosJeMeldung.get(a.issue_id) ?? 0) + 1);
     }
 
     return {
@@ -1158,6 +1169,7 @@ export class SupabaseRepository implements Repository {
         recordedByName: null,
       })),
       issues: (issuesRes.data ?? []).map((i: any) => ({
+        photoCount: fotosJeMeldung.get(i.id) ?? 0,
         id: i.id,
         laneId: i.lane_id,
         laneNumber: i.lanes?.lane_number ?? null,
@@ -1276,16 +1288,85 @@ export class SupabaseRepository implements Repository {
     title: string;
     description?: string;
     severity: IssueRow['severity'];
+    photos?: File[];
   }): Promise<void> {
-    const { error } = await this.client.from('lane_issues').insert({
-      lane_id: input.laneId,
-      title: input.title,
-      description: input.description ?? null,
-      severity: input.severity,
-      reported_by: await this.userId(),
-      client_request_id: crypto.randomUUID(),
-    });
+    const { data, error } = await this.client
+      .from('lane_issues')
+      .insert({
+        lane_id: input.laneId,
+        title: input.title,
+        description: input.description ?? null,
+        severity: input.severity,
+        reported_by: await this.userId(),
+        client_request_id: crypto.randomUUID(),
+      })
+      .select('id')
+      .single();
     if (error) throw new Error(error.message);
+
+    // Erst die Meldung, dann die Bilder. Scheitert der Upload — schlechtes WLAN
+    // hinter den Bahnen ist der Normalfall —, steht die Meldung trotzdem. Sie
+    // ist das Wichtige; das Foto laesst sich nachreichen.
+    if (input.photos?.length) await this.addIssuePhotos(data.id, input.photos);
+  }
+
+  async addIssuePhotos(issueId: string, photos: File[]): Promise<void> {
+    if (photos.length === 0) return;
+    const uploader = await this.userId();
+    const stempel = new Date().toISOString().slice(0, 10);
+
+    for (const [index, foto] of photos.entries()) {
+      // Die Meldung im Pfad: so liegt beisammen, was zusammengehoert, und ein
+      // spaeteres Aufraeumen findet die Dateien einer Meldung ohne Umweg ueber
+      // die Tabelle.
+      const pfad = `${issueId}/${crypto.randomUUID()}-${fotoName(foto.name, index, stempel)}`;
+
+      const { error: uploadFehler } = await this.client.storage
+        .from('issue-photos')
+        .upload(pfad, foto, { contentType: foto.type || 'image/jpeg', upsert: false });
+      if (uploadFehler) throw new Error(uploadFehler.message);
+
+      const { error } = await this.client.from('lane_issue_attachments').insert({
+        issue_id: issueId,
+        storage_path: pfad,
+        mime_type: foto.type || 'image/jpeg',
+        uploaded_by: uploader,
+      });
+      if (error) {
+        // Eintrag fehlgeschlagen: die Datei nicht verwaist liegen lassen.
+        await this.client.storage.from('issue-photos').remove([pfad]);
+        throw new Error(error.message);
+      }
+    }
+  }
+
+  async issuePhotos(issueId: string): Promise<IssuePhoto[]> {
+    const { data, error } = await this.client
+      .from('lane_issue_attachments')
+      .select('id, storage_path, mime_type, uploaded_at')
+      .eq('issue_id', issueId)
+      .order('uploaded_at');
+    if (error) throw new Error(error.message);
+    if (!data?.length) return [];
+
+    const { data: adressen, error: adressFehler } = await this.client.storage
+      .from('issue-photos')
+      .createSignedUrls(data.map((a: any) => a.storage_path), 60 * 60);
+    if (adressFehler) throw new Error(adressFehler.message);
+
+    const proPfad = new Map(
+      (adressen ?? []).map((a: any) => [a.path as string, a.signedUrl as string]),
+    );
+    return data
+      .map((a: any) => ({
+        id: a.id,
+        url: proPfad.get(a.storage_path) ?? '',
+        mimeType: a.mime_type,
+        uploadedAt: a.uploaded_at,
+      }))
+      // Eine Datei ohne Adresse fehlt im Speicher. Ein kaputtes Bild anzuzeigen
+      // waere schlechter als keines.
+      .filter((f: IssuePhoto) => f.url !== '');
   }
 
   async updateIssueStatus(id: string, status: IssueRow['status'], resolutionNote?: string): Promise<void> {

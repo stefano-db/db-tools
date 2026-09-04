@@ -13,6 +13,7 @@ import {
 import { useData } from '../../app/DataContext';
 import { StatusChip, StatusDot, STATUS_STYLE } from '../../ui/status';
 import { IssueDialog } from '../issues/IssueDialog';
+import { IssueFotos } from '../issues/IssueFotos';
 
 export function LanePage() {
   const { laneNumber } = useParams();
@@ -159,20 +160,24 @@ export function LanePage() {
           <p className="px-4 py-3 text-sm text-lw-text3">Keine offenen Meldungen.</p>
         ) : (
           issues.map((i) => (
-            <div key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <span className="font-medium">🔧 {i.title}</span>
-              <span className="text-sm text-lw-text3">
-                gemeldet {formatDateDe(i.reportedAt.slice(0, 10))} von {i.reportedBy}
-              </span>
-              <button
-                onClick={async () => {
-                  await repo.updateIssueStatus(i.id, 'resolved');
-                  await reload();
-                }}
-                className="ml-auto rounded border border-lw-line px-3 py-1 text-sm font-medium hover:bg-lw-card2"
-              >
-                Erledigt
-              </button>
+            <div key={i.id} className="space-y-2 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-medium">🔧 {i.title}</span>
+                <span className="text-sm text-lw-text3">
+                  gemeldet {formatDateDe(i.reportedAt.slice(0, 10))} von {i.reportedBy}
+                </span>
+                <button
+                  onClick={async () => {
+                    await repo.updateIssueStatus(i.id, 'resolved');
+                    await reload();
+                  }}
+                  className="ml-auto rounded border border-lw-line px-3 py-1 text-sm font-medium hover:bg-lw-card2"
+                >
+                  Erledigt
+                </button>
+              </div>
+              {i.description && <p className="text-sm text-lw-text2">{i.description}</p>}
+              <IssueFotos issue={i} />
             </div>
           ))
         )}

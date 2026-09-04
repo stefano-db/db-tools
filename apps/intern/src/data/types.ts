@@ -81,6 +81,24 @@ export interface IssueRow {
   reportedBy: string;
   reportedAt: string;
   resolutionNote: string | null;
+  /**
+   * Wie viele Fotos an der Meldung haengen.
+   *
+   * Nur die Anzahl, nicht die Bilder: eine Adresse auf eine Datei im Speicher
+   * ist zeitlich begrenzt und muss unterschrieben werden. Beim Laden der
+   * Uebersicht fuer jede Meldung Adressen zu ziehen, waere Arbeit fuer Bilder,
+   * die niemand ansieht. Geholt werden sie erst beim Aufklappen.
+   */
+  photoCount: number;
+}
+
+/** Ein Foto an einer Defektmeldung, fertig zum Anzeigen. */
+export interface IssuePhoto {
+  id: string;
+  /** Zeitlich begrenzte Adresse. Nach etwa einer Stunde ist sie wertlos. */
+  url: string;
+  mimeType: string | null;
+  uploadedAt: string;
 }
 
 export interface Snapshot {
@@ -529,7 +547,18 @@ export interface Repository {
     description?: string;
     severity: IssueRow['severity'];
     reportedBy: string;
+    /** Bereits verkleinerte Fotos. Leer oder fehlend ist der Normalfall. */
+    photos?: File[];
   }): Promise<void>;
+  /**
+   * Fotos an eine bestehende Meldung haengen.
+   *
+   * Getrennt vom Anlegen, weil der Fall haeufig ist: gemeldet wird an der
+   * Maschine mit oelverschmierten Haenden, fotografiert wird danach.
+   */
+  addIssuePhotos(issueId: string, photos: File[]): Promise<void>;
+  /** Fotos einer Meldung samt Adressen zum Ansehen. */
+  issuePhotos(issueId: string): Promise<IssuePhoto[]>;
   updateIssueStatus(id: string, status: IssueRow['status'], resolutionNote?: string): Promise<void>;
   correctReading(input: {
     laneId: string;

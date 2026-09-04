@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useData } from '../../app/DataContext';
+import { Fotoauswahl } from './Fotoauswahl';
 
 export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => void; laneId?: string }) {
   const { repo, snapshot, reload, employee } = useData();
@@ -7,20 +8,31 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState<'low' | 'medium' | 'high'>('medium');
+  const [fotos, setFotos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
 
   async function save() {
     if (!title.trim()) return;
     setSaving(true);
-    await repo.createIssue({
-      laneId: laneId || null,
-      title: title.trim(),
-      description: description.trim() || undefined,
-      severity,
-      reportedBy: employee,
-    });
-    await reload();
-    onClose();
+    setFehler(null);
+    try {
+      await repo.createIssue({
+        laneId: laneId || null,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        severity,
+        reportedBy: employee,
+        photos: fotos,
+      });
+      await reload();
+      onClose();
+    } catch (e) {
+      // Der Dialog bleibt offen und der Text stehen. Ein weggeworfener Entwurf
+      // ist schlimmer als ein zweiter Versuch — im Keller reisst die Verbindung.
+      setFehler(e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
+      setSaving(false);
+    }
   }
 
   return (
@@ -88,7 +100,15 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
               ))}
             </div>
           </fieldset>
+
+          <Fotoauswahl fotos={fotos} onChange={setFotos} disabled={saving} />
         </div>
+
+        {fehler && (
+          <p className="mt-3 rounded border border-lw-bad bg-lw-bad/10 px-3 py-2 text-sm text-lw-bad">
+            {fehler}
+          </p>
+        )}
 
         <div className="mt-5 flex justify-end gap-2">
           <button onClick={onClose} className="rounded px-4 py-2 text-sm font-medium hover:bg-lw-card2">
@@ -99,7 +119,7 @@ export function IssueDialog({ onClose, laneId: initialLane }: { onClose: () => v
             disabled={!title.trim() || saving}
             className="lw-btn-primary px-4 py-2 text-sm disabled:opacity-40"
           >
-            Melden
+            {saving ? 'Wird gespeichert…' : 'Melden'}
           </button>
         </div>
       </div>
