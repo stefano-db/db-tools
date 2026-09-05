@@ -469,7 +469,17 @@ export interface Repository {
    */
   watchRosterWeek(
     weekStart: ISODate,
-    beiAenderung: (data: RosterWeekData) => void,
+    /**
+     * Die geaenderte Zeile. `entwurf` ist null, wenn nichts Unveroeffentlichtes
+     * vorliegt; `von` sagt, wer geschrieben hat — die eigene Schreibung soll
+     * nicht als fremde Aenderung gemeldet werden.
+     */
+    beiAenderung: (zeile: {
+      data: RosterWeekData;
+      entwurf: RosterWeekData | null;
+      version: number;
+      von: string | null;
+    }) => void,
     /**
      * Meldet, ob die Verbindung steht.
      *
@@ -484,8 +494,17 @@ export interface Repository {
    *
    * Ohne die Fassung liesse sich nicht speichern, ohne fremde Arbeit zu
    * ueberschreiben: sie sagt, auf welchem Stand man aufgesetzt hat.
+   *
+   * `data` ist der Arbeitsstand: der Entwurf, falls einer vorliegt, sonst der
+   * veroeffentlichte Plan. `veroeffentlicht` ist immer der Stand, den die
+   * Mannschaft sieht — Wandtafel, Bild und Freigabe-Link lesen ihn.
    */
-  rosterWeek(weekStart: ISODate): Promise<{ data: RosterWeekData; version: number }>;
+  rosterWeek(weekStart: ISODate): Promise<{
+    data: RosterWeekData;
+    veroeffentlicht: RosterWeekData;
+    hatEntwurf: boolean;
+    version: number;
+  }>;
   /**
    * Eine Woche speichern.
    *
@@ -501,6 +520,25 @@ export interface Repository {
     | { ok: false; grund: 'veraltet'; version: number; data: RosterWeekData }
     | { ok: false; grund: 'keine_berechtigung' }
   >;
+  /**
+   * Den Entwurf zum veroeffentlichten Plan machen.
+   *
+   * Erst hier gehen die Meldungen an die Betroffenen hinaus — einmal, mit
+   * allen Aenderungen zusammen. Bis dahin sieht die Mannschaft den alten Stand.
+   */
+  rosterWeekVeroeffentlichen(
+    weekStart: ISODate,
+    version: number,
+  ): Promise<
+    | { ok: true; version: number }
+    | { ok: false; grund: 'veraltet'; version: number; data: RosterWeekData }
+    | { ok: false; grund: 'keine_berechtigung' | 'unbekannt' }
+  >;
+  /** Den Entwurf wegwerfen und zum veroeffentlichten Stand zurueck. */
+  rosterWeekEntwurfVerwerfen(
+    weekStart: ISODate,
+    version: number,
+  ): Promise<{ ok: boolean; version: number }>;
   /**
    * Antwort auf eine Frage im Chat.
    *

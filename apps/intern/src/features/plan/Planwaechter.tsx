@@ -50,6 +50,15 @@ export function useVerbindung(): Verbindung {
 export function Planwaechter() {
   const [meldung, setMeldung] = useState<{ betrifftMich: boolean; text: string } | null>(null);
   const woche = useRef<MyWeek | null>(null);
+  /**
+   * Der zuletzt gesehene veroeffentlichte Stand.
+   *
+   * Die Datenbank meldet jede Zeilenaenderung, auch die am Entwurf. Ohne
+   * diesen Vergleich meldete die App „Der Dienstplan wurde geaendert",
+   * waehrend die Leitung noch tippt — und nach dem dritten Mal schaltet man
+   * die Meldungen ab.
+   */
+  const letzterStand = useRef<string | null>(null);
 
   useEffect(() => {
     let aktiv = true;
@@ -70,7 +79,17 @@ export function Planwaechter() {
 
         abmelden = repository.watchRosterWeek(
           w.weekStart,
-          (data) => {
+          (zeile) => {
+            const data = zeile.data;
+
+            // Nur der veroeffentlichte Plan zaehlt. Solange die Leitung am
+            // Entwurf arbeitet, aendert sich `data` nicht — und dann gibt es
+            // hier nichts zu melden. Ohne diese Pruefung bekaeme die Mannschaft
+            // bei jedem Tastendruck der Planung eine Nachricht.
+            const jetzt = JSON.stringify(data ?? {});
+            if (jetzt === letzterStand.current) return;
+            letzterStand.current = jetzt;
+
             // Wer gerade selbst gespeichert hat, weiss Bescheid.
             if (warEigeneSchreibung()) {
               woche.current = { ...w, days: (data?.[w.employeeId]?.d ?? []) as ShiftDay[] };

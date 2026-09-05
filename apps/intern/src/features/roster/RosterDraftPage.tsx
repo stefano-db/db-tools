@@ -5,6 +5,7 @@ import { repository, type ShareLink } from '../../data';
 import { teileBild, zeichnePlan } from './planAlsBild';
 import { BAHNPFLEGE_WORT, BAHNPFLEGE_ZEICHEN, PFLEGE_FARBE, PFLEGE_SCHRIFT } from './pflege';
 import { merkeEigeneSchreibung } from '../plan/eigeneSchreibung';
+import { entwurfStand, standInWorten } from './entwurf';
 import {
   DAY_NAMES,
   DAY_SHORT,
@@ -229,6 +230,16 @@ export function RosterPage() {
   const [offset, setOffset] = useState(0);
   const [employees, setEmployees] = useState<Employee[]>(DEMO_EMPLOYEES);
   const [plan, setPlan] = useState<WeekPlan>({});
+  /**
+   * Der Stand, den die Mannschaft sieht.
+   *
+   * Getrennt vom Arbeitsstand, weil beide gleichzeitig gebraucht werden: der
+   * Editor zeigt den Entwurf, die Wandtafel im Center den veroeffentlichten
+   * Plan. Eine halbfertige Woche an der Wand stiftet mehr Verwirrung als sie
+   * nuetzt — und niemand soll sie fuer beschlossen halten.
+   */
+  const [veroeffentlicht, setVeroeffentlicht] = useState<WeekPlan>({});
+  const [hatEntwurf, setHatEntwurf] = useState(false);
   const [undoStack, setUndoStack] = useState<WeekPlan[]>([]);
   const [editing, setEditing] = useState<{ empId: string; day: number; rect: DOMRect } | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -291,21 +302,19 @@ export function RosterPage() {
     let active = true;
     repository
       .rosterWeek(isoDate(monday))
-      .then(({ data, version }) => {
+      .then(({ data, veroeffentlicht: live, hatEntwurf: entwurfDa, version }) => {
         if (!active) return;
-        const next: WeekPlan = {};
-        for (const [empId, entry] of Object.entries(data)) {
-          const list = (entry as { d?: ShiftDay[] })?.d;
-          if (Array.isArray(list)) next[empId] = normalizeWeek(list);
-        }
         fassung.current = version;
         geschrieben.current = JSON.stringify(data ?? {});
-        setPlan(next);
+        setPlan(alsPlan(data));
+        setVeroeffentlicht(alsPlan(live));
+        setHatEntwurf(entwurfDa);
         setUndoStack([]);
         setSpeicherstand('ruhig');
       })
       .catch((e) => {
         setPlan({});
+        setVeroeffentlicht({});
         setSpeicherstand('fehler');
         setSpeicherText(e instanceof Error ? e.message : String(e));
       });
@@ -314,7 +323,32 @@ export function RosterPage() {
     };
   }, [monday]);
 
+  /**
+   * Was aus der Datenbank kommt, in die Form der Oberflaeche bringen.
+   *
+   * Jeder Tag wird geprueft statt geglaubt: die Daten koennen aus dem
+   * bisherigen Editor stammen, und Unbekanntes wird zu „nicht eingeteilt".
+   */
+  function alsPlan(roh: unknown): WeekPlan {
+    const fertig: WeekPlan = {};
+    for (const [empId, eintrag] of Object.entries((roh ?? {}) as Record<string, unknown>)) {
+      const liste = (eintrag as { d?: ShiftDay[] })?.d;
+      if (Array.isArray(liste)) fertig[empId] = normalizeWeek(liste);
+    }
+    return fertig;
+  }
+
   const weekOf = (empId: string): ShiftDay[] => plan[empId] ?? emptyWeek();
+  /** Der veroeffentlichte Stand — fuer Wandtafel, Bild, Blatt und Freigabe. */
+  const weekOfLive = (empId: string): ShiftDay[] => veroeffentlicht[empId] ?? emptyWeek();
+
+  const stand = useMemo(
+    () => entwurfStand(alsDaten(veroeffentlicht), hatEntwurf ? alsDaten(plan) : null),
+    // alsDaten liest `employees`; ohne die Abhaengigkeit bliebe die Zahl
+    // stehen, wenn jemand einen Namen hinzufuegt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [veroeffentlicht, plan, hatEntwurf, employees],
+  );
 
   /**
    * Die Woche in der Form, wie sie gespeichert wird.
@@ -440,9 +474,18 @@ export function RosterPage() {
    * wegziehen.
    */
   useEffect(() => {
-    const abmelden = repository.watchRosterWeek(isoDate(monday), (data) => {
-      const json = JSON.stringify(data ?? {});
-      if (json === geschrieben.current) return; // die eigene Schreibung
+    const abmelden = repository.watchRosterWeek(isoDate(monday), (zeile) => {
+      // Die eigene Schreibung: der Arbeitsstand, den wir zuletzt abgeschickt
+      // haben, kommt als Entwurf zurueck.
+      const arbeitsstand = JSON.stringify(zeile.entwurf ?? zeile.data ?? {});
+      if (arbeitsstand === geschrieben.current) {
+        fassung.current = zeile.version;
+        // Hat jemand veroeffentlicht, ist der Entwurf weg und `data` gleich
+        // unserem Stand — dann ist auch die Leiste oben zu Recht verschwunden.
+        setHatEntwurf(zeile.entwurf != null);
+        if (zeile.entwurf == null) setVeroeffentlicht(alsPlan(zeile.data));
+        return;
+      }
 
       if (speicherUhr.current) {
         setSpeicherstand('fremd');
@@ -452,22 +495,17 @@ export function RosterPage() {
         return;
       }
 
-      const fremd: WeekPlan = {};
-      for (const [empId, eintrag] of Object.entries(data ?? {})) {
-        const liste = (eintrag as { d?: unknown[] })?.d;
-        if (Array.isArray(liste)) fremd[empId] = normalizeWeek(liste);
-      }
-      geschrieben.current = json;
-      setPlan(fremd);
-      setUndoStack([]);
-      setSpeicherstand('fremd');
-      setSpeicherText('Der Plan wurde von jemand anderem geändert. Die Ansicht ist aktualisiert.');
-      // Die Fassung stimmt jetzt nicht mehr — beim naechsten Speichern wuerde
-      // sonst abgelehnt. Frisch holen, dann passt sie wieder.
-      void repository
-        .rosterWeek(isoDate(monday))
-        .then(({ version }) => {
-          fassung.current = version;
+      // Frisch holen statt aus der Meldung zusammenbauen: nur so sind Entwurf,
+      // veroeffentlichter Stand und Fassung sicher zueinander passend.
+      geschrieben.current = arbeitsstand;
+      void neuLaden()
+        .then(() => {
+          setSpeicherstand('fremd');
+          setSpeicherText(
+            zeile.entwurf == null
+              ? 'Der Plan wurde von jemand anderem veröffentlicht. Die Ansicht ist aktualisiert.'
+              : 'Der Entwurf wurde von jemand anderem geändert. Die Ansicht ist aktualisiert.',
+          );
         })
         .catch(() => {});
     });
@@ -475,6 +513,7 @@ export function RosterPage() {
   }, [monday]);
 
   function change(empId: string, day: number, value: ShiftDay) {
+    setHatEntwurf(true);
     setUndoStack((s) => [...s.slice(-19), plan]);
     setPlan((p) => {
       const week = [...(p[empId] ?? emptyWeek())];
@@ -493,6 +532,7 @@ export function RosterPage() {
    * und nicht siebzehnmal.
    */
   function vorlageAnwenden(vorlage: (typeof WOCHEN_VORLAGEN)[number]) {
+    setHatEntwurf(true);
     setUndoStack((st) => [...st.slice(-19), plan]);
     setPlan((p) => {
       const neu: WeekPlan = { ...p };
@@ -501,6 +541,66 @@ export function RosterPage() {
       return neu;
     });
     flash(`${vorlage.name} — angewendet auf ${employees.length} Namen.`);
+  }
+
+  /**
+   * Den Entwurf zum Plan machen.
+   *
+   * Vorher wird gewartet, bis das gesammelte Speichern durch ist — sonst
+   * veroeffentlichte man den vorletzten Stand und die letzte Eingabe bliebe
+   * als Entwurf zurueck, ohne dass es jemand merkt.
+   */
+  async function veroeffentlichen() {
+    if (speicherUhr.current !== null) {
+      window.clearTimeout(speicherUhr.current);
+      speicherUhr.current = null;
+      await speichern(plan);
+    }
+    const antwort = await repository.rosterWeekVeroeffentlichen(isoDate(monday), fassung.current);
+    if (!antwort.ok) {
+      if (antwort.grund === 'veraltet') {
+        setSpeicherstand('fremd');
+        setSpeicherText('Jemand anderes hat inzwischen gespeichert. Die Woche wird neu geladen.');
+        await neuLaden();
+        return;
+      }
+      setSpeicherstand('fehler');
+      setSpeicherText('Veröffentlichen nicht möglich — fehlt die Berechtigung?');
+      return;
+    }
+    fassung.current = antwort.version;
+    setVeroeffentlicht(plan);
+    setHatEntwurf(false);
+    setSpeicherstand('gespeichert');
+    flash('Veröffentlicht. Wer betroffen ist, bekommt eine Meldung.');
+  }
+
+  async function entwurfVerwerfen() {
+    const antwort = await repository.rosterWeekEntwurfVerwerfen(isoDate(monday), fassung.current);
+    if (!antwort.ok) {
+      await neuLaden();
+      return;
+    }
+    fassung.current = antwort.version;
+    setPlan(veroeffentlicht);
+    setHatEntwurf(false);
+    setUndoStack([]);
+    geschrieben.current = JSON.stringify(alsDaten(veroeffentlicht));
+    setSpeicherstand('ruhig');
+    flash('Entwurf verworfen.');
+  }
+
+  /** Die Woche frisch holen — nach einer fremden Aenderung der einzig sichere Weg. */
+  async function neuLaden() {
+    const { data, veroeffentlicht: live, hatEntwurf: da, version } = await repository.rosterWeek(
+      isoDate(monday),
+    );
+    fassung.current = version;
+    geschrieben.current = JSON.stringify(data ?? {});
+    setPlan(alsPlan(data));
+    setVeroeffentlicht(alsPlan(live));
+    setHatEntwurf(da);
+    setUndoStack([]);
   }
 
   function undo() {
@@ -570,6 +670,34 @@ export function RosterPage() {
               </p>
             )}
 
+            {/* Solange etwas Unveroeffentlichtes liegt, muss man es sehen —
+                sonst baut jemand eine Woche und wundert sich, warum niemand
+                davon weiss. Die Zahl sagt, was das Veroeffentlichen ausloest. */}
+            {canEdit && hatEntwurf && stand.tage > 0 && (
+              <div className="nicht-drucken flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-lw-warn bg-lw-warn/10 px-4 py-2.5">
+                <span className="text-sm font-semibold text-lw-warn">
+                  ▲ Nicht veröffentlicht
+                </span>
+                <span className="text-sm text-lw-text2">
+                  {standInWorten(stand)}. Die Mannschaft sieht noch den alten Plan.
+                </span>
+                <div className="ml-auto flex gap-2">
+                  <button
+                    onClick={() => void entwurfVerwerfen()}
+                    className="lw-btn-ghost px-3 py-1.5 text-sm"
+                  >
+                    Verwerfen
+                  </button>
+                  <button
+                    onClick={() => void veroeffentlichen()}
+                    className="lw-btn-primary px-4 py-1.5 text-sm"
+                  >
+                    Veröffentlichen
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Woche: ab Tablet als Raster, am Handy nach Tagen. */}
             <div className="bildschirm-plan hidden md:block">
               <WeekGrid
@@ -611,7 +739,7 @@ export function RosterPage() {
                 employees={employees}
                 days={days}
                 todayIndex={todayIndex}
-                weekOf={weekOf}
+                weekOf={weekOfLive}
                 woche=""
               />
             </div>
@@ -624,7 +752,7 @@ export function RosterPage() {
             monday={monday}
             days={days}
             employees={employees}
-            weekOf={weekOf}
+            weekOf={weekOfLive}
             onAction={flash}
           />
         )}
@@ -648,7 +776,7 @@ export function RosterPage() {
           days={days}
           monday={monday}
           todayIndex={todayIndex}
-          weekOf={weekOf}
+          weekOf={weekOfLive}
           onClose={() => setTab('plan')}
         />
       )}

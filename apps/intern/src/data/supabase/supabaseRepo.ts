@@ -732,7 +732,16 @@ export class SupabaseRepository implements Repository {
           // ein Filter, der nicht greift, liefert stillschweigend nichts, und
           // das sieht genauso aus wie „es hat sich nichts geaendert".
           if (nutzlast.new?.week_start !== weekStart) return;
-          beiAenderung(nutzlast.new?.data ?? {});
+          // Die ganze Zeile statt nur `data`: seit es einen Entwurf gibt,
+          // muss die Oberflaeche unterscheiden koennen, ob jemand am Entwurf
+          // gearbeitet oder veroeffentlicht hat. Mit `data` allein saehe ein
+          // fremder Entwurf aus wie ein Zurueckdrehen des Plans.
+          beiAenderung({
+            data: nutzlast.new?.data ?? {},
+            entwurf: nutzlast.new?.entwurf ?? null,
+            version: nutzlast.new?.version ?? 0,
+            von: nutzlast.new?.updated_by ?? null,
+          });
         },
       )
       .subscribe((zustand: string, fehler?: Error) => {
@@ -744,16 +753,45 @@ export class SupabaseRepository implements Repository {
     };
   }
 
-  async rosterWeek(weekStart: string): Promise<{ data: any; version: number }> {
+  async rosterWeek(weekStart: string): Promise<any> {
     const { data, error } = await this.client
       .from('roster_weeks')
-      .select('data, version')
+      .select('data, entwurf, version')
       .eq('week_start', weekStart)
       .maybeSingle();
     if (error) throw new Error(error.message);
     // Fassung 0 heisst: die Woche gibt es noch nicht. Beim Speichern wird sie
     // dann angelegt statt geaendert.
-    return { data: data?.data ?? {}, version: data?.version ?? 0 };
+    const veroeffentlicht = data?.data ?? {};
+    return {
+      data: data?.entwurf ?? veroeffentlicht,
+      veroeffentlicht,
+      hatEntwurf: data?.entwurf != null,
+      version: data?.version ?? 0,
+    };
+  }
+
+  async rosterWeekVeroeffentlichen(weekStart: string, version: number): Promise<any> {
+    const { data: antwort, error } = await this.client.rpc('roster_week_veroeffentlichen', {
+      p_week_start: weekStart,
+      p_version: version,
+    });
+    if (error) throw new Error(error.message);
+    if (!antwort) throw new Error('Keine Antwort vom Server.');
+    if (antwort.ok) return { ok: true, version: antwort.version };
+    if (antwort.grund === 'veraltet') {
+      return { ok: false, grund: 'veraltet', version: antwort.version, data: antwort.data ?? {} };
+    }
+    return { ok: false, grund: antwort.grund ?? 'keine_berechtigung' };
+  }
+
+  async rosterWeekEntwurfVerwerfen(weekStart: string, version: number): Promise<any> {
+    const { data: antwort, error } = await this.client.rpc('roster_week_entwurf_verwerfen', {
+      p_week_start: weekStart,
+      p_version: version,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: Boolean(antwort?.ok), version: antwort?.version ?? version };
   }
 
   async rosterWeekSpeichern(weekStart: string, data: any, version: number): Promise<any> {

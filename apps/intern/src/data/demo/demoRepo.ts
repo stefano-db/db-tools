@@ -11,6 +11,7 @@ import type {
   CompleteMaintenanceInput,
   IssuePhoto,
   IssueRow,
+  RosterWeekData,
   Wunsch,
   WunschStatus,
   LaneRow,
@@ -322,12 +323,45 @@ export class DemoRepository implements Repository {
     return () => {};
   }
 
+  /**
+   * Die Demo-Woche lebt nur im Arbeitsspeicher der Seite.
+   *
+   * Entwurf und veroeffentlichter Stand werden trotzdem getrennt gefuehrt —
+   * sonst liesse sich das Veroeffentlichen im Demo-Betrieb nicht vorfuehren,
+   * und genau das ist der Sinn dieser Umsetzung.
+   */
+  private wocheEntwurf: RosterWeekData | null = null;
+  private wocheVeroeffentlicht: RosterWeekData = {};
+  private wocheFassung = 0;
+
   async rosterWeek() {
-    return { data: {}, version: 0 };
+    return {
+      data: this.wocheEntwurf ?? this.wocheVeroeffentlicht,
+      veroeffentlicht: this.wocheVeroeffentlicht,
+      hatEntwurf: this.wocheEntwurf !== null,
+      version: this.wocheFassung,
+    };
   }
 
-  async rosterWeekSpeichern() {
-    return { ok: true as const, version: 1 };
+  async rosterWeekSpeichern(_weekStart: string, data: RosterWeekData) {
+    this.wocheEntwurf = data;
+    this.wocheFassung += 1;
+    return { ok: true as const, version: this.wocheFassung };
+  }
+
+  async rosterWeekVeroeffentlichen() {
+    if (this.wocheEntwurf !== null) {
+      this.wocheVeroeffentlicht = this.wocheEntwurf;
+      this.wocheEntwurf = null;
+    }
+    this.wocheFassung += 1;
+    return { ok: true as const, version: this.wocheFassung };
+  }
+
+  async rosterWeekEntwurfVerwerfen() {
+    this.wocheEntwurf = null;
+    this.wocheFassung += 1;
+    return { ok: true, version: this.wocheFassung };
   }
 
   async myWeek() {
