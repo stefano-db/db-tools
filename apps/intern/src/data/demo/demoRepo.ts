@@ -11,7 +11,9 @@ import type {
   CompleteMaintenanceInput,
   IssuePhoto,
   IssueRow,
+  MyWeek,
   RosterWeekData,
+  ShiftDay,
   Wunsch,
   WunschStatus,
   LaneRow,
@@ -27,6 +29,13 @@ import type {
   CreateUserInput,
 } from '../types';
 import { buildDemoDb, DEMO_DB_VERSION, type DemoDb } from './seed';
+
+/** Montag der laufenden Woche als ISO-Datum — nur fuer den Demo-Bestand. */
+function mondayOfDemo(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 const STORAGE_KEY = 'bowling-wartung.demo.v1';
 
@@ -364,8 +373,42 @@ export class DemoRepository implements Repository {
     return { ok: true, version: this.wocheFassung };
   }
 
-  async myWeek() {
-    return null;
+  /**
+   * Die eigene Woche im Demo-Betrieb.
+   *
+   * Sie stand bisher auf null, und damit zeigte die Startseite den Hinweis
+   * „Dein Konto ist noch keinem Namen zugeordnet" — ausgerechnet dort, wo am
+   * Handy das Wichtigste steht: wann man das naechste Mal arbeitet. Zum
+   * Vorfuehren ist das die schlechteste Stelle fuer eine Luecke.
+   *
+   * Gezeigt wird, was im Demo-Plan veroeffentlicht ist. Solange dort nichts
+   * steht, eine Beispielwoche — sonst waere die Ansicht wieder leer.
+   */
+  async myWeek(): Promise<MyWeek> {
+    const id = 'd7';
+    const montag = mondayOfDemo();
+    const gespeichert = (this.wocheVeroeffentlicht as Record<string, { d?: ShiftDay[] }>)[id]?.d;
+    const dienst = (b: string, e: string): ShiftDay => ({ status: 'dienst', b, e, std: '' });
+    const frei: ShiftDay = { status: 'frei', b: '', e: '', std: '' };
+
+    return {
+      employeeId: id,
+      employeeName: 'Marco',
+      weekStart: montag,
+      days:
+        Array.isArray(gespeichert) && gespeichert.length === 7
+          ? gespeichert
+          : [
+              dienst('09:00', '17:00'),
+              frei,
+              dienst('09:00', '17:00'),
+              dienst('14:00', '22:00'),
+              frei,
+              dienst('09:00', '17:00'),
+              { status: 'nein', b: '', e: '', std: '' },
+            ],
+      updatedAt: null,
+    };
   }
 
   async archiveDocument(): Promise<void> {
