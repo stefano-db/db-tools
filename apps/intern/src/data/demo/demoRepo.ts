@@ -626,15 +626,18 @@ export class DemoRepository implements Repository {
   // damit die Liste nicht leer erklärt werden muss.
   private wunschListe: Wunsch[] = [
     {
+      // Ein erledigtes Beispiel, und zwar ein wahres: die Fotos gibt es
+      // wirklich. Ein erfundenes „geplant" läse sich sonst wie eine Zusage,
+      // und wer die Demo sieht, wartete auf etwas, das nie kam.
       id: 'w1',
-      titel: 'Urlaubsantrag direkt in der App',
-      beschreibung: 'Statt Zettel am Schwarzen Brett — mit Übersicht, wer wann schon Urlaub hat.',
-      bereich: 'service',
-      status: 'geplant',
+      titel: 'Fotos an eine Defektmeldung hängen',
+      beschreibung: 'Ein Bild vom Schaden sagt mehr als drei Sätze. Auch nachträglich, wenn man erst später zum Fotografieren kommt.',
+      bereich: 'mechanik',
+      status: 'umgesetzt',
       eingereichtVon: 'demo-2',
       eingereichtVonName: 'Kira',
       eingereichtAm: new Date(Date.now() - 9 * 864e5).toISOString(),
-      antwort: 'Guter Einfall. Kommt, sobald der Dienstplan steht.',
+      antwort: 'Ist drin. Bis zu fünf Fotos je Meldung.',
       beantwortetVonName: 'Leitung',
       beantwortetAm: new Date(Date.now() - 6 * 864e5).toISOString(),
       stimmen: 7,
