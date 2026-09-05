@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   formatDateDe,
@@ -19,6 +19,29 @@ import { useData } from '../../app/DataContext';
 export function FrameEntryPage() {
   const { snapshot, repo, reload, today } = useData();
   const navigate = useNavigate();
+  /**
+   * Alle Ablesungen, nicht nur das Fenster aus dem Bestand.
+   *
+   * Die Plausibilitaetspruefung braucht die letzte Ablesung vor dem gewaehlten
+   * Datum. Traegt jemand rueckwirkend nach, liegt die weiter zurueck als das
+   * Fenster — und ohne sie fiele die Pruefung „unter dem Vorwert" stillschweigend
+   * aus. Bis sie da sind, wird mit dem Fenster gerechnet; das deckt den
+   * Normalfall und wird gleich darauf ersetzt.
+   */
+  const [alleReadings, setAlleReadings] = useState(snapshot?.readings ?? []);
+  useEffect(() => {
+    let aktiv = true;
+    repo
+      .alleAblesungen()
+      .then((r) => {
+        if (aktiv) setAlleReadings(r);
+      })
+      .catch(() => {});
+    return () => {
+      aktiv = false;
+    };
+  }, [repo]);
+
   const [readingDate, setReadingDate] = useState(today);
   const [values, setValues] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -43,7 +66,7 @@ export function FrameEntryPage() {
     const rawValue = Number(raw.replace(/[^\d]/g, ''));
     const baseline = readingBaseline({
       selectedDate: readingDate,
-      readings: snapshot.readings.filter((r) => r.laneId === lane.laneId),
+      readings: alleReadings.filter((r) => r.laneId === lane.laneId),
     });
     const corrects = baseline.isCorrection;
     // Bei der Ersteinrichtung existiert noch keine Epoche; sie wird beim

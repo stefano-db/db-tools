@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { formatDateDe, formatFrames } from '../../core';
 import { useData } from '../../app/DataContext';
@@ -14,6 +14,26 @@ export function HistoryPage() {
   const [params, setParams] = useSearchParams();
   const [expanded, setExpanded] = useState<string | null>(null);
   const tab = params.get('art') === 'ablesungen' ? 'ablesungen' : 'wartungen';
+
+  /**
+   * Die Historie zeigt alle Ablesungen, der Bestand traegt nur die letzten
+   * Monate. Geholt wird erst beim Oeffnen des Reiters — wer nur Wartungen
+   * durchsieht, laedt sie gar nicht.
+   */
+  const [alleReadings, setAlleReadings] = useState(snapshot?.readings ?? []);
+  useEffect(() => {
+    if (tab !== 'ablesungen') return;
+    let aktiv = true;
+    repo
+      .alleAblesungen()
+      .then((r) => {
+        if (aktiv) setAlleReadings(r);
+      })
+      .catch(() => {});
+    return () => {
+      aktiv = false;
+    };
+  }, [repo, tab]);
 
   const lane = params.get('bahn') ?? '';
   const type = params.get('intervall') ?? '';
@@ -42,7 +62,7 @@ export function HistoryPage() {
 
   if (!snapshot) return <p className="text-lw-text3">Wird geladen…</p>;
 
-  const readingRows = snapshot.readings.filter((r) => {
+  const readingRows = alleReadings.filter((r) => {
     if (lane && String(r.laneNumber) !== lane) return false;
     if (from && r.readingDate < from) return false;
     if (to && r.readingDate > to) return false;

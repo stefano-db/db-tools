@@ -656,6 +656,11 @@ export class DemoRepository implements Repository {
     this.write();
   }
 
+  /** Im Demo-Betrieb liegt ohnehin alles im Speicher — es gibt kein Fenster. */
+  async alleAblesungen() {
+    return (await this.load()).readings;
+  }
+
   async createIssue(input: {
     laneId: string | null;
     title: string;

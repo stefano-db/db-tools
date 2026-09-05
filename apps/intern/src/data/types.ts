@@ -603,6 +603,14 @@ export interface Repository {
   onAuthChange(callback: () => void): () => void;
 
   load(): Promise<Snapshot>;
+  /**
+   * Alle Ablesungen, ohne Zeitfenster.
+   *
+   * Der Bestand aus load() reicht nur wenige Monate zurueck — das genuegt fuer
+   * die Uebersicht und spart den Verbrauch, der sonst mit jedem Jahr waechst.
+   * Die Eingabe und die Historie brauchen mehr und holen es hier.
+   */
+  alleAblesungen(): Promise<ReadingRow[]>;
   saveReadings(input: SaveReadingsInput): Promise<void>;
   resetCounter(input: ResetCounterInput): Promise<void>;
   completeMaintenance(input: CompleteMaintenanceInput): Promise<void>;

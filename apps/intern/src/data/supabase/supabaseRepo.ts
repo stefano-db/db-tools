@@ -5,6 +5,7 @@ import type {
   CompleteMaintenanceInput,
   IssuePhoto,
   IssueRow,
+  ReadingRow,
   Wunsch,
   WunschStatus,
   LaneRow,
@@ -23,6 +24,21 @@ import type {
   RosterEmployeeRow,
   MyWeek,
 } from '../types';
+
+/**
+ * Wie weit die Ablesungen im Bestand zurueckreichen, den jede Seite bekommt.
+ *
+ * Vier Monate: genug fuer die Wochenrate (sie mittelt ueber wenige Wochen),
+ * genug fuer die zehn Zeilen auf der Bahnseite, und kurz genug, dass der
+ * Verbrauch nicht mit den Jahren waechst.
+ */
+const ABLESUNGS_FENSTER_TAGE = 120;
+
+function vorTagen(tage: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - tage);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 /**
  * Fehlermeldungen der Datenbank in Sätze übersetzen.
@@ -1081,9 +1097,15 @@ export class SupabaseRepository implements Repository {
         .select('*, lanes(lane_number), maintenance_types(code)')
         .order('performed_on', { ascending: false }),
       this.client.from('maintenance_record_tasks').select('*'),
+      // Nur das jüngste Fenster. Die Übersicht rechnet ohnehin aus den Views,
+      // und die Bahnseite zeigt zehn Zeilen — alles seit Anbeginn zu laden
+      // liesse den Verbrauch mit jeder Woche wachsen, fuer Daten, die niemand
+      // ansieht. Wer sie braucht (Eingabe, Historie), holt sie mit
+      // alleAblesungen() vollstaendig nach.
       this.client
         .from('frame_readings')
         .select('*, lanes(lane_number)')
+        .gte('reading_date', vorTagen(ABLESUNGS_FENSTER_TAGE))
         .order('reading_date', { ascending: false })
         .order('recorded_at', { ascending: false }),
       this.client.from('lane_issues').select('*, lanes(lane_number)').order('reported_at', { ascending: false }),
@@ -1222,6 +1244,37 @@ export class SupabaseRepository implements Repository {
         resolutionNote: i.resolution_note,
       })),
     };
+  }
+
+  /**
+   * Alle Ablesungen — ohne Fenster.
+   *
+   * Fuer die Eingabe und die Historie: die eine braucht die letzte Ablesung
+   * vor dem gewaehlten Datum, auch wenn sie ein Jahr zurueckliegt, sonst faellt
+   * die Plausibilitaetspruefung aus. Die andere zeigt sie alle. Beide oeffnet
+   * man selten, die Uebersicht dagegen zehnmal am Tag.
+   */
+  async alleAblesungen(): Promise<ReadingRow[]> {
+    const { data, error } = await this.client
+      .from('frame_readings')
+      .select('*, lanes(lane_number)')
+      .order('reading_date', { ascending: false })
+      .order('recorded_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data ?? []).map((r: any) => ({
+      id: r.id,
+      laneId: r.lane_id,
+      laneNumber: r.lanes?.lane_number ?? 0,
+      readingDate: r.reading_date,
+      rawValue: r.raw_value,
+      cumulativeFrames: r.cumulative_frames,
+      source: r.source,
+      supersededById: r.superseded_by_id,
+      correctsReadingId: r.corrects_reading_id,
+      correctionReason: r.correction_reason,
+      recordedAt: r.recorded_at,
+      recordedByName: null,
+    }));
   }
 
   /**
