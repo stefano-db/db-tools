@@ -236,9 +236,14 @@ td{padding:10px 14px;color:var(--t);vertical-align:middle}
   @page{size:A4 portrait;margin:0}
   html,body{background:transparent!important}
   body>*:not(#pr){display:none!important}
-  #pr{display:block!important;position:fixed;inset:0;background:transparent!important}
-  .pp2{width:210mm;height:297mm;page-break-after:always;position:relative;overflow:hidden;background:transparent!important}
-  .pp2:last-child{page-break-after:avoid}
+  /* Nicht fixed: ein fixiertes Element steht ausserhalb des Textflusses, und
+     der Druck kann es nicht ueber Seiten umbrechen — es kam genau eine Seite
+     heraus, egal wie viele Urkunden darin lagen. Nachgemessen mit drei Seiten:
+     fixed ergibt 1, static ergibt 3. */
+  #pr{display:block!important;position:static;background:transparent!important}
+  html,body{height:auto!important;margin:0!important}
+  .pp2{width:210mm;height:297mm;page-break-after:always;break-after:page;position:relative;overflow:hidden;background:transparent!important}
+  .pp2:last-child{page-break-after:avoid;break-after:avoid}
   .pf{position:absolute;background:transparent!important}
 }
 #pr{display:none}
@@ -444,17 +449,60 @@ function go(v){
 /* ── Excel ── */
 function parseRows(rows){
   const pl=[],warn=[];
-  if(!rows||rows.length<2){warn.push('Tabelle leer.');return{pl,warn};}
-  let hi=0;
-  for(let i=0;i<Math.min(6,rows.length);i++){
-    if(rows[i].map(c=>String(c).toLowerCase()).some(c=>['name','spieler','player','teilnehmer'].includes(c))){hi=i;break;}
+  const diag={zeilen:rows?rows.length:0,kopf:null,namensspalte:null,punktespalten:0};
+  if(!rows||rows.length<2){warn.push('Die Tabelle hat keine Datenzeilen.');return{pl,warn,diag};}
+
+  /* Kopfzeile suchen. Vorher wurde nur auf genaue Treffer geprueft ('name',
+     'spieler', …) und nur in den ersten sechs Zeilen — eine Spalte namens
+     „Spielername" oder eine Datei mit laengerem Vorspann fiel damit durch, und
+     dann galt Zeile 0 als Kopf. Jetzt zaehlt auch ein Wortteil. */
+  const NAMENSWORT=['name','spieler','player','teilnehmer','gast','person'];
+  const istNamensZelle=c=>NAMENSWORT.some(w=>c.includes(w));
+  let hi=-1;
+  for(let i=0;i<Math.min(15,rows.length);i++){
+    const zeile=(rows[i]||[]).map(c=>String(c).toLowerCase().trim());
+    if(zeile.some(istNamensZelle)){hi=i;break;}
   }
-  const hdr=rows[hi].map(c=>String(c).toLowerCase().trim());
-  let nc=hdr.findIndex(h=>['name','spieler','player','vorname','teilnehmer'].includes(h));if(nc<0)nc=0;
+
+  /* Keine Kopfzeile mit Namensspalte gefunden: die erste Zeile nehmen, die wie
+     eine Datenzeile aussieht — ein Text und mindestens eine Zahl im Bereich
+     eines Bowling-Ergebnisses. Es gibt Listen ohne jede Ueberschrift. */
+  let ohneKopf=false;
+  if(hi<0){
+    for(let i=0;i<Math.min(15,rows.length);i++){
+      const zeile=rows[i]||[];
+      const text=zeile.some(c=>String(c).trim().length>2&&isNaN(+String(c)));
+      const zahlen=zeile.filter(c=>{const n=parseFloat(String(c).replace(',','.'));return !isNaN(n)&&n>=0&&n<=300;}).length;
+      if(text&&zahlen>0){hi=i;ohneKopf=true;break;}
+    }
+  }
+  if(hi<0){warn.push('Weder eine Überschrift „Name" noch eine erkennbare Datenzeile gefunden.');return{pl,warn,diag};}
+
+  const hdr=(rows[hi]||[]).map(c=>String(c).toLowerCase().trim());
+  diag.kopf=ohneKopf?'(keine Überschrift, ab Zeile '+(hi+1)+')':(rows[hi]||[]).join(' | ').slice(0,90);
+
+  let nc=hdr.findIndex(istNamensZelle);
+  if(nc<0){
+    /* Ohne Ueberschrift: die Spalte nehmen, in der Text steht statt Zahlen. */
+    nc=0;
+    for(let c=0;c<(rows[hi]||[]).length;c++){
+      const wert=String((rows[hi]||[])[c]||'').trim();
+      if(wert.length>2&&isNaN(+wert)){nc=c;break;}
+    }
+  }
+  diag.namensspalte=nc;
+
   const sc=[];
-  for(let c=0;c<hdr.length;c++){if(c===nc)continue;if(/spiel|game|score|punkte|g\d|s\d|ergebnis|\d+/.test(hdr[c])||hdr[c]==='')sc.push(c);}
+  for(let c=0;c<Math.max(hdr.length,...rows.slice(hi+1,hi+6).map(r=>(r||[]).length),0);c++){
+    if(c===nc)continue;
+    const h=hdr[c]||'';
+    if(ohneKopf||/spiel|game|score|punkte|g\d|s\d|ergebnis|durchgang|runde|wurf|\d+/.test(h)||h==='')sc.push(c);
+  }
   if(!sc.length){for(let c=0;c<hdr.length;c++){if(c!==nc)sc.push(c);}}
-  for(let r=hi+1;r<rows.length;r++){
+  diag.punktespalten=sc.length;
+
+  const abZeile=ohneKopf?hi:hi+1;
+  for(let r=abZeile;r<rows.length;r++){
     const row=rows[r];
     if(!row||row.every(c=>!String(c).trim()))continue;
     const nm=String(row[nc]||'').trim().replace(/^[\d.\)\-\s]+/,'').trim();
@@ -463,37 +511,82 @@ function parseRows(rows){
     if(!scores.length)continue;
     pl.push({id:`p_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,name:nm,scores,uncertain:false});
   }
+
+  if(!pl.length)warn.push('Überschrift erkannt, aber keine Zeile mit Name und Punkten (0–300).');
   const gc=[...new Set(pl.map(p=>p.scores.length))];
   if(gc.length>1)warn.push(`Unterschiedliche Spielanzahl (${gc.join('–')})`);
-  return{pl,warn};
+  return{pl,warn,diag};
 }
 
 async function fileToPlayers(file){
-  return new Promise((res,rej)=>{
+  const roh=await new Promise((res,rej)=>{
     const r=new FileReader();
-    r.onload=ev=>{
-      try{const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];res(parseRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:''})));}
-      catch(err){rej(err);}
-    };
-    r.onerror=()=>rej(new Error('Datei nicht lesbar'));
+    r.onload=ev=>res(new Uint8Array(ev.target.result));
+    r.onerror=()=>rej(new Error('Die Datei konnte nicht gelesen werden.'));
     r.readAsArrayBuffer(file);
   });
+
+  let wb;
+  try{
+    /* codepage 1252 fuer CSV aus deutschen Programmen: ohne sie werden Umlaute
+       zu Fragezeichen. Auf .xlsx hat die Angabe keine Wirkung — dort steht die
+       Kodierung in der Datei. */
+    wb=XLSX.read(roh,{type:'array',codepage:1252,cellDates:true});
+  }catch(err){
+    throw new Error('Die Datei ist keine lesbare Excel- oder CSV-Datei ('+err.message+').');
+  }
+  if(!wb.SheetNames||!wb.SheetNames.length)throw new Error('Die Datei enthält kein Tabellenblatt.');
+
+  /* Alle Blaetter durchsehen, nicht nur das erste. Ein Deckblatt oder eine
+     Auswertung vor der Namensliste hat den Import sonst leer ausgehen lassen. */
+  let bestes=null;
+  for(const blatt of wb.SheetNames){
+    const ws=wb.Sheets[blatt];
+    if(!ws)continue;
+    const erg=parseRows(XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false}));
+    erg.blatt=blatt;
+    if(!bestes||erg.pl.length>bestes.pl.length)bestes=erg;
+    if(erg.pl.length)break;
+  }
+  bestes.blaetter=wb.SheetNames;
+  return bestes;
 }
 
 async function importFile(evId,file){
   const ext=file.name.split('.').pop().toLowerCase();
-  if(!['xlsx','xls','csv'].includes(ext)){toast(`„${file.name}": nur Excel/CSV.`,'warning');return;}
+  if(!['xlsx','xls','xlsm','csv','txt'].includes(ext)){toast(`„${file.name}": nur Excel oder CSV.`,'warning');return;}
   const ev=S.evs.find(x=>x.id===evId);if(!ev)return;
   try{
-    const{pl,warn}=await fileToPlayers(file);
+    const{pl,warn,diag,blatt,blaetter}=await fileToPlayers(file);
+
+    /* Nichts gefunden ist ein Fehlschlag und wird auch so gemeldet. Vorher kam
+       „0 Spieler aus datei.xlsx" in Gruen — es sah aus, als haette es geklappt,
+       und man suchte den Fehler anderswo. */
+    if(!pl.length){
+      const grund=warn[0]||'Keine Spieler erkannt.';
+      const wo=blaetter&&blaetter.length>1?` (Blätter: ${blaetter.join(', ')})`:'';
+      const gelesen=diag&&diag.kopf?` Gelesen wurde: ${diag.kopf}`:'';
+      toast(`„${file.name}": ${grund}${wo}${gelesen}`,'error');
+      return;
+    }
+
     const docId=`d_${Date.now()}_${Math.random().toString(36).slice(2,5)}`;
     const keys=new Set(ev.pl.map(p=>p.name.toLowerCase().replace(/\s+/g,'')));
     const added=pl.filter(p=>!keys.has(p.name.toLowerCase().replace(/\s+/g,''))).map(p=>({...p,src:docId}));
+    const doppelt=pl.length-added.length;
+
+    if(!added.length){
+      toast(`„${file.name}": alle ${pl.length} Namen stehen schon in diesem Event.`,'warning');
+      return;
+    }
+
     ev.pl=[...ev.pl,...added];
     ev.docs=ev.docs||[];ev.docs.push({id:docId,name:file.name,cnt:added.length});ev.st='imported';
     save();renderEG();
-    if(warn.length)toast(warn[0],'warning');else toast(`${added.length} Spieler aus „${file.name}".`,'success');
-  }catch(err){toast('Fehler: '+err.message,'error');}
+    const zusatz=[doppelt?`${doppelt} schon vorhanden`:'',blatt&&blaetter&&blaetter.length>1?`Blatt „${blatt}"`:''].filter(Boolean);
+    if(warn.length)toast(`${added.length} Spieler aus „${file.name}" — ${warn[0]}`,'warning');
+    else toast(`${added.length} Spieler aus „${file.name}"${zusatz.length?' ('+zusatz.join(', ')+')':''}.`,'success');
+  }catch(err){toast(`„${file.name}": ${err.message}`,'error');}
 }
 
 /* ── Ranking ── */

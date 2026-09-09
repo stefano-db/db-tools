@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "prebuild": "node scripts/urkunden-config.mjs",
-    "predev": "node scripts/urkunden-config.mjs"
+    "predev": "node scripts/urkunden-config.mjs",
+    "pruefe:urkunden": "node scripts/urkunden-import-pruefen.mjs"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
