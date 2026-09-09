@@ -356,12 +356,23 @@ function ChecklistForm({
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
+  /**
+   * Womit eine Aufgabe startet.
+   *
+   * Wer eine Wartung durchfuehrt, macht sie in aller Regel ganz — die Ausnahme
+   * ist, dass ein Punkt nicht ging. Vorher war es umgekehrt vorbelegt, und
+   * damit war der Normalfall zwoelf Klicks lang. Jetzt haakt man nur ab, was
+   * man NICHT gemacht hat; und weil das eine Abweichung ist, verlangt die
+   * Notiz darunter weiterhin eine Begruendung.
+   */
+  const ergebnis = (taskId: string): TaskResult => results[taskId] ?? 'done';
+
   const tasksOf = (typeId: string) =>
     tasks.filter((t) => t.maintenanceTypeId === typeId).sort((a, b) => a.sortOrder - b.sortOrder);
 
   const activeTypes = [type, ...(cascadeOn ? cascade.filter((c) => enabledTypes.has(c.id)) : [])];
   const activeTasks = activeTypes.flatMap((t) => tasksOf(t.id));
-  const openTasks = activeTasks.filter((t) => (results[t.id] ?? 'open') === 'open');
+  const openTasks = activeTasks.filter((t) => ergebnis(t.id) === 'open');
   const hasDeviation = openTasks.length > 0;
   const canSubmit = !hasDeviation || notes.trim().length > 0;
 
@@ -374,7 +385,7 @@ function ChecklistForm({
     try {
       const blocks: Block[] = activeTypes.map((t) => ({
         maintenanceTypeId: t.id,
-        tasks: tasksOf(t.id).map((task) => ({ taskId: task.id, result: results[task.id] ?? 'open' })),
+        tasks: tasksOf(t.id).map((task) => ({ taskId: task.id, result: ergebnis(task.id) })),
       }));
       await onSubmit(blocks, notes.trim() || undefined);
     } finally {
@@ -405,7 +416,7 @@ function ChecklistForm({
       <TaskList
         title="Aufgaben dieses Intervalls"
         tasks={tasksOf(type.id)}
-        results={results}
+        ergebnis={ergebnis}
         setResult={setResult}
         pairLabel={pairLabel}
       />
@@ -449,7 +460,7 @@ function ChecklistForm({
                 {enabledTypes.has(c.id) && (
                   <TaskList
                     tasks={tasksOf(c.id)}
-                    results={results}
+                    ergebnis={ergebnis}
                     setResult={setResult}
                     pairLabel={pairLabel}
                     compact
@@ -493,14 +504,14 @@ function ChecklistForm({
 function TaskList({
   title,
   tasks,
-  results,
+  ergebnis,
   setResult,
   pairLabel,
   compact = false,
 }: {
   title?: string;
   tasks: MaintenanceTask[];
-  results: Record<string, TaskResult>;
+  ergebnis: (taskId: string) => TaskResult;
   setResult: (taskId: string, result: TaskResult) => void;
   pairLabel: string | null;
   compact?: boolean;
@@ -510,7 +521,7 @@ function TaskList({
       {title && <h3 className="mb-1 text-sm font-semibold text-lw-text2">{title}</h3>}
       <ul className="divide-y divide-lw-line rounded border border-lw-line">
         {tasks.map((task) => {
-          const result = results[task.id] ?? 'open';
+          const result = ergebnis(task.id);
           return (
             <li key={task.id} className="flex items-center gap-3 bg-lw-card px-3 py-2.5">
               <input

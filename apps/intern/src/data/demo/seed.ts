@@ -59,7 +59,7 @@ export interface DemoIssue {
  * sonst behaelt ein Browser, der schon einmal demonstriert hat, fuer immer
  * den alten Aufgabenkatalog.
  */
-export const DEMO_DB_VERSION = 3;
+export const DEMO_DB_VERSION = 4;
 
 export interface DemoDb {
   version: number;
@@ -83,17 +83,18 @@ export interface DemoDb {
 
 export const TYPES: MaintenanceType[] = [
   { id: 't25', code: '25k', nameDe: 'Wartung alle 25.000 Frames', intervalFrames: 25_000, maxIntervalDays: 180, cascadesToSmaller: false, sortOrder: 1 },
-  { id: 't50', code: '50k', nameDe: 'Wartung alle 50.000 Frames', intervalFrames: 50_000, maxIntervalDays: 365, cascadesToSmaller: true, sortOrder: 2 },
-  { id: 't100', code: '100k', nameDe: 'Wartung alle 100.000 Frames', intervalFrames: 100_000, maxIntervalDays: 730, cascadesToSmaller: true, sortOrder: 3 },
-  { id: 't500', code: '500k', nameDe: 'Wartung alle 500.000 Frames', intervalFrames: 500_000, maxIntervalDays: null, cascadesToSmaller: true, sortOrder: 4 },
+  { id: 't30', code: '30k', nameDe: 'Ballheber alle 30.000 Frames', intervalFrames: 30_000, maxIntervalDays: 180, cascadesToSmaller: false, sortOrder: 2 },
+  { id: 't50', code: '50k', nameDe: 'Wartung alle 50.000 Frames', intervalFrames: 50_000, maxIntervalDays: 365, cascadesToSmaller: true, sortOrder: 3 },
+  { id: 't100', code: '100k', nameDe: 'Wartung alle 100.000 Frames', intervalFrames: 100_000, maxIntervalDays: 730, cascadesToSmaller: true, sortOrder: 4 },
+  { id: 't500', code: '500k', nameDe: 'Wartung alle 500.000 Frames', intervalFrames: 500_000, maxIntervalDays: null, cascadesToSmaller: true, sortOrder: 5 },
 ];
 
 export const TASKS: MaintenanceTask[] = [
   { id: 'k1', maintenanceTypeId: 't25', code: 'pins_strings', titleDe: 'Pins und Pin-Schnüre auf Verschleiß oder Beschädigungen prüfen', scope: 'lane', sortOrder: 1 },
-  { id: 'k14', maintenanceTypeId: 't25', code: 'ball_elevator_belt', titleDe: 'Ballheber: Riemen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 2 },
-  { id: 'k15', maintenanceTypeId: 't25', code: 'ball_elevator_v_wheel', titleDe: 'Ballheber: V-Wheel auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 3 },
-  { id: 'k16', maintenanceTypeId: 't25', code: 'ball_elevator_shafts', titleDe: 'Ballheber: Wellen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 4 },
-  { id: 'k17', maintenanceTypeId: 't25', code: 'kids_bumper', titleDe: 'Kinderbumper auf Funktion prüfen (Aus- und Einfahren)', scope: 'lane', sortOrder: 5 },
+  { id: 'k17', maintenanceTypeId: 't25', code: 'kids_bumper', titleDe: 'Kinderbumper auf Funktion prüfen (Aus- und Einfahren)', scope: 'lane', sortOrder: 2 },
+
+  { id: 'k14', maintenanceTypeId: 't30', code: 'ball_elevator_belt', titleDe: 'Ballheber: Riemen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 1 },
+  { id: 'k16', maintenanceTypeId: 't30', code: 'ball_elevator_shafts', titleDe: 'Ballheber: Wellen auf Verschleiß prüfen', scope: 'lane_pair', sortOrder: 2 },
 
   { id: 'k2', maintenanceTypeId: 't50', code: 'string_tension', titleDe: 'Spannung der Pin-Schnüre prüfen und bei Bedarf einstellen', scope: 'lane', sortOrder: 1 },
   { id: 'k3', maintenanceTypeId: 't50', code: 'elevator_belt', titleDe: 'Antriebsriemen des Ball Elevators prüfen', scope: 'lane_pair', sortOrder: 2 },
@@ -116,6 +117,15 @@ interface LaneSpec {
   n: number;
   start: number;
   rate: number;
+  /**
+   * Frames seit der letzten Wartung je Typ. null heisst unbekannt.
+   *
+   * t30 (Ballheber) steht nicht in den Vorgaben: es kam spaeter dazu, und
+   * achtzehn Zeilen von Hand nachzutragen brachte nichts Zusaetzliches. Der
+   * Stand wird unten aus t25 abgeleitet — erfunden wie alles hier, aber
+   * plausibel gestaffelt, damit die Demo nicht achtzehn ungeklaerte Bahnen
+   * zeigt.
+   */
   since: { t25: number | null; t50: number | null; t100: number | null; t500: number | null };
   status?: DemoLane['status'];
   resetAfterWeek?: number;
@@ -215,8 +225,13 @@ export function buildDemoDb(today = new Date()): DemoDb {
     // bewusst kein Eintrag, damit die Bahn als ungeklärt gemeldet wird.
     const current = spec.start + spec.rate * (WEEKS - 1);
     for (const type of TYPES) {
-      const since = spec.since[type.id as keyof LaneSpec['since']];
-      if (since === null) continue;
+      const since =
+        type.id === 't30'
+          ? spec.since.t25 === null
+            ? null
+            : Math.round(spec.since.t25 * 1.35)
+          : spec.since[type.id as keyof LaneSpec['since']];
+      if (since === null || since === undefined) continue;
       const anchorFrames = Math.max(0, current - since);
       const weeksAgo = spec.rate > 0 ? Math.min(200, Math.round(since / spec.rate)) : 20;
       records.push({
