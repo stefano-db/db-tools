@@ -402,6 +402,26 @@ export class SupabaseRepository implements Repository {
       })
       .eq('id', data.user.id);
     if (profileError) throw new Error(profileError.message);
+
+    /**
+     * Ohne echte Adresse gäbe es niemanden, der die Bestätigungsmail anklicken
+     * könnte — das Konto bliebe gesperrt, und der Mitarbeiter stünde am ersten
+     * Tag vor einer Anmeldung, die ihn nicht einlässt. Bestätigt wird deshalb
+     * hier; die Datenbank prüft dabei selbst, dass es eine technische Kennung
+     * ist und keine echte Adresse.
+     */
+    if (!realEmail) {
+      const { error: bestaetigen } = await this.client.rpc('admin_kennung_bestaetigen', {
+        p_user_id: data.user.id,
+      });
+      if (bestaetigen) {
+        throw new Error(
+          'Das Konto wurde angelegt, konnte aber nicht freigeschaltet werden: ' +
+            bestaetigen.message +
+            ' Eine Anmeldung ist erst möglich, wenn das behoben ist.',
+        );
+      }
+    }
   }
 
   async updateUser(
