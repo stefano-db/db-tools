@@ -41,6 +41,28 @@ function vorTagen(tage: number): string {
 }
 
 /**
+ * Endung der technischen Anmeldeadressen.
+ *
+ * Mitarbeiter melden sich mit einem Namen an, Supabase braucht dafür eine
+ * E-Mail. Früher stand hier `dreambowl.intern` — die gibt es im Internet aber
+ * nicht: kein Eintrag, kein Mailserver. Supabase prüft das inzwischen und
+ * lehnte das Anlegen ab.
+ *
+ * Die Adresse des Hauses auf Cloudflare existiert dagegen. Hingeschickt wird
+ * nie etwas; sie ist nur eine Kennung, die einer Adresse ähnlich sehen muss.
+ */
+const LOGIN_DOMAIN = 'dreambowl-intern.pages.dev';
+
+/**
+ * Auch die alte Endung bleibt erkannt: die bestehenden Konten tragen sie, und
+ * sie sollen weiterhin ohne sichtbare Adresse in der Liste stehen.
+ */
+const TECHNISCHE_DOMAINS = [LOGIN_DOMAIN, 'dreambowl.intern'];
+
+const istTechnisch = (email: string | null | undefined): boolean =>
+  !!email && TECHNISCHE_DOMAINS.some((d) => email.endsWith('@' + d));
+
+/**
  * Fehlermeldungen der Datenbank in Sätze übersetzen.
  *
  * „duplicate key value violates unique constraint" sagt einem Menschen am
@@ -139,7 +161,7 @@ export class SupabaseRepository implements Repository {
     const { data } = await this.client.rpc('login_email_for_username', {
       p_username: value.toLowerCase(),
     });
-    return (data as string | null) ?? `${value.toLowerCase()}@dreambowl.intern`;
+    return (data as string | null) ?? `${value.toLowerCase()}@${LOGIN_DOMAIN}`;
   }
 
   // --- Anmeldung -----------------------------------------------------------
@@ -168,7 +190,7 @@ export class SupabaseRepository implements Repository {
     return {
       userId: user.id,
       // Technische Adressen nie anzeigen — sie sind ein Implementierungsdetail.
-      email: email && email.endsWith('@dreambowl.intern') ? null : email,
+      email: istTechnisch(email) ? null : email,
       username: profile?.username ?? null,
       displayName: profile?.display_name ?? profile?.username ?? 'Unbekannt',
       department: profile?.department ?? null,
@@ -345,16 +367,26 @@ export class SupabaseRepository implements Repository {
     });
 
     const { data, error } = await signupClient.auth.signUp({
-      email: realEmail || `${username}@dreambowl.intern`,
+      email: realEmail || `${username}@${LOGIN_DOMAIN}`,
       password: input.password,
       options: { data: { username, display_name: input.displayName.trim() } },
     });
     if (error) {
-      throw new Error(
-        error.message.toLowerCase().includes('already registered')
-          ? `Der Benutzername „${username}" ist bereits vergeben.`
-          : error.message,
-      );
+      const text = error.message.toLowerCase();
+      if (text.includes('already registered')) {
+        throw new Error(`Der Benutzername „${username}" ist bereits vergeben.`);
+      }
+      // Lehnt Supabase die technische Adresse ab, hilft der Serversatz nicht
+      // weiter — er nennt eine Adresse, die niemand eingegeben hat.
+      if (text.includes('invalid') && text.includes('email') && !realEmail) {
+        throw new Error(
+          'Das Konto konnte ohne E-Mail-Adresse nicht angelegt werden: ' +
+            'Supabase weist die interne Anmeldekennung zurück. Trag im Feld ' +
+            'E-Mail eine echte Adresse ein — sie wird nur zum Anmelden ' +
+            'gebraucht, es geht nichts dorthin.',
+        );
+      }
+      throw new Error(error.message);
     }
     if (!data.user) throw new Error('Konto wurde nicht angelegt.');
 
