@@ -76,6 +76,9 @@
   --color-bereich-counter: #46bd84;
   --color-bereich-service: #e8845a;
   --color-bereich-kueche: #dda948;
+  /* Gedaempftes Violett: keiner der vier Arbeitsbereiche traegt es, und es
+     steht neben ihnen, ohne einen von ihnen zu beanspruchen. */
+  --color-bereich-leitung: #a98ad4;
 
   --color-db-ok: #3fb27a;
   --color-db-warn: #e0a038;

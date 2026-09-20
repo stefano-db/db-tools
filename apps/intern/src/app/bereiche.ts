@@ -163,6 +163,7 @@ export const BEREICH_FARBE: Record<Department, string> = {
   counter: 'var(--color-bereich-counter)',
   service: 'var(--color-bereich-service)',
   kueche: 'var(--color-bereich-kueche)',
+  geschaeftsleitung: 'var(--color-bereich-leitung)',
 };
 
 /**

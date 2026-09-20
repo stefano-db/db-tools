@@ -58,6 +58,7 @@ export const GROUPS: { no: number; name: string; color: string; symbol: string }
   { no: 3, name: 'Service Aushilfen', color: '#7b57c4', symbol: '🤝' },
   { no: 4, name: 'Counter', color: '#1a7a4c', symbol: '🎳' },
   { no: 5, name: 'Mechanik', color: '#1f6f92', symbol: '🔧' },
+  { no: 6, name: 'Geschäftsleitung', color: '#6b4fa0', symbol: '📋' },
 ];
 
 const gruppe = (no: number) => GROUPS.find((g) => g.no === no) ?? GROUPS[0];

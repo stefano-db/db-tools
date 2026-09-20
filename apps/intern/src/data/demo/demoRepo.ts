@@ -150,7 +150,7 @@ export class DemoRepository implements Repository {
       maintenance: ['mechanik'] as Department[],
       urkunden: ['counter'] as Department[],
       schliessfaecher: ['counter'] as Department[],
-      dokumente: ['mechanik', 'counter', 'service', 'kueche'] as Department[],
+      dokumente: ['mechanik', 'counter', 'service', 'kueche', 'geschaeftsleitung'] as Department[],
     };
   }
 

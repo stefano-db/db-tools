@@ -9,7 +9,7 @@ import {
 } from '../../data';
 import { Mascot } from '../../ui/Mascot';
 
-const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service', 'kueche'];
+const DEPARTMENTS: Department[] = ['mechanik', 'counter', 'service', 'kueche', 'geschaeftsleitung'];
 
 /**
  * Benutzerverwaltung.
