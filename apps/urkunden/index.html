@@ -655,7 +655,32 @@ function openPlayerPop(evId){
   const gameCells=sc=>Array.from({length:gCols},(_,i)=>`<td><input class="pinp pop-g" type="number" min="0" max="300" placeholder="–" value="${sc&&sc[i]!=null?sc[i]:''}"/></td>`).join('');
 
   let addNewRef=null;
-  const draw=()=>{
+
+  /* Was in der Zeile „Neuer Spieler…" steht, lebt nur im Formular — es gehoert
+     noch keinem Spieler. Beim Neuzeichnen ging es deshalb verloren, sobald
+     jemand eine Spalte anhaengte oder eine Zeile loeschte: mitten im
+     Eintippen, ohne Hinweis. Es wird jetzt vorher gelesen und danach wieder
+     eingesetzt. */
+  const entwurfLesen=()=>{
+    const z=_pop.querySelector('#pt-b .pnew');
+    if(!z)return null;
+    return{
+      name:z.querySelector('#pt-nn')?.value||'',
+      scores:[...z.querySelectorAll('.pop-g')].map(i=>i.value),
+    };
+  };
+  const entwurfSetzen=d=>{
+    if(!d)return;
+    const z=_pop.querySelector('#pt-b .pnew');
+    if(!z)return;
+    const nn=z.querySelector('#pt-nn');
+    if(nn)nn.value=d.name;
+    [...z.querySelectorAll('.pop-g')].forEach((inp,i)=>{if(d.scores[i]!=null)inp.value=d.scores[i];});
+    const t=z.querySelector('.ptot');
+    if(t){const sum=readRow(z).reduce((a,v)=>a+v,0);t.textContent=sum||'–';}
+  };
+
+  const draw=entwurf=>{
     _pop.querySelector('#pt-h').innerHTML=`<tr><th class="pnum">#</th><th style="min-width:180px">Name</th>${Array.from({length:gCols},(_,i)=>`<th style="text-align:center">Sp. ${i+1}</th>`).join('')}<th style="text-align:right">Gesamt</th><th style="width:46px;text-align:center"><button class="btn bs btn-ic btn-sm" id="pt-ag" title="Weiteres Spiel anhängen">＋</button></th></tr>`;
     const b=_pop.querySelector('#pt-b');
     b.innerHTML=ev.pl.map((p,i)=>`<tr data-pid="${e(p.id)}"><td class="pnum">${i+1}</td><td><input class="pinp pop-n" value="${e(p.name)}" placeholder="Name"/></td>${gameCells(p.scores)}<td class="ptot">${totOf(p.scores)}</td><td style="text-align:center"><button class="prm" title="Spieler entfernen">✕</button></td></tr>`).join('')
@@ -675,7 +700,8 @@ function openPlayerPop(evId){
       nm.addEventListener('input',()=>{p.name=nm.value;save();});
       nm.addEventListener('change',()=>{if(!nm.value.trim()){nm.value=p.name='Unbenannt';}persist();});
       tr.querySelector('.prm').addEventListener('click',()=>{
-        ev.pl=ev.pl.filter(x=>x.id!==p.id);persist();draw();
+        const entwurf=entwurfLesen();
+        ev.pl=ev.pl.filter(x=>x.id!==p.id);persist();draw(entwurf);
       });
     });
 
@@ -694,16 +720,40 @@ function openPlayerPop(evId){
     addNewRef=addNew;
     /* Das Anhaengen einer Spielspalte sitzt in der Kopfzeile und wird bei jedem
        Neuzeichnen neu verdrahtet. */
-    _pop.querySelector('#pt-ag')?.addEventListener('click',()=>{gCols++;draw();});
+    _pop.querySelector('#pt-ag')?.addEventListener('click',()=>{gCols++;draw(entwurfLesen());});
     nrow.querySelectorAll('.pinp').forEach(inp=>inp.addEventListener('keydown',e2=>{if(e2.key==='Enter'){e2.preventDefault();addNew();}}));
     const tot=()=>{const t=totOf(readRow(nrow));nrow.querySelector('.ptot').textContent=t||'–';};
     nrow.querySelectorAll('.pop-g').forEach(i=>i.addEventListener('input',tot));
+    entwurfSetzen(entwurf);
   };
 
-  _pop.querySelector('.pop-x').addEventListener('click',closePop);
-  _pop.querySelector('#pt-done').addEventListener('click',closePop);
+  /* Beim Schliessen wird uebernommen, was fertig ist. Wer einen Namen und ein
+     Ergebnis eingetippt hat, hat den Spieler gemeint — ihn wegzuwerfen, nur
+     weil zuletzt nicht auf „Fertig" geklickt wurde, versteht niemand. Fehlt
+     eine Haelfte, wird gesagt was fehlt, statt es stillschweigend zu
+     verschlucken. */
+  const schliessen=()=>{
+    const z=_pop?.querySelector('#pt-b .pnew');
+    if(z){
+      const nm=(z.querySelector('#pt-nn')?.value||'').trim();
+      const sc=readRow(z);
+      if(nm&&sc.length){
+        ev.pl.push({id:`p_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,name:nm,scores:sc,uncertain:false});
+        persist();
+        toast(`„${nm}" übernommen.`,'success');
+      }else if(nm||sc.length){
+        toast(nm
+          ? `„${nm}" wurde nicht übernommen — ohne Ergebnis kein Eintrag.`
+          : 'Ergebnis ohne Namen wurde nicht übernommen.','warning');
+      }
+    }
+    closePop();
+  };
+
+  _pop.querySelector('.pop-x').addEventListener('click',schliessen);
+  _pop.querySelector('#pt-done').addEventListener('click',schliessen);
   _pop.querySelector('#pt-addp').addEventListener('click',()=>addNewRef&&addNewRef());
-  _pop.addEventListener('mousedown',e2=>{if(e2.target===_pop)closePop();});
+  _pop.addEventListener('mousedown',e2=>{if(e2.target===_pop)schliessen();});
 
   document.body.appendChild(_pop);
   draw();
