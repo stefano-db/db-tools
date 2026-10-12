@@ -691,6 +691,10 @@ function openPlayerPop(evId){
   const gameCells=sc=>Array.from({length:gCols},(_,i)=>`<td><input class="pinp pop-g" type="number" min="0" max="300" placeholder="–" value="${sc&&sc[i]!=null?sc[i]:''}"/></td>`).join('');
 
   let addNewRef=null;
+  /* Die Eingabezeile steht erst da, wenn jemand sie anfordert. Dauerhaft
+     sichtbar sah sie aus wie ein Spieler, der schon halb angelegt ist, und bei
+     einer langen Liste stand sie unten im Weg. */
+  let zeileOffen=false;
 
   /* Was in der Zeile „Neuer Spieler…" steht, lebt nur im Formular — es gehoert
      noch keinem Spieler. Beim Neuzeichnen ging es deshalb verloren, sobald
@@ -720,7 +724,7 @@ function openPlayerPop(evId){
     _pop.querySelector('#pt-h').innerHTML=`<tr><th class="pnum">#</th><th style="min-width:180px">Name</th>${Array.from({length:gCols},(_,i)=>`<th style="text-align:center">Sp. ${i+1}</th>`).join('')}<th style="text-align:right">Gesamt</th><th style="width:46px;text-align:center"><button class="btn bs btn-ic btn-sm" id="pt-ag" title="Weiteres Spiel anhängen">＋</button></th></tr>`;
     const b=_pop.querySelector('#pt-b');
     b.innerHTML=ev.pl.map((p,i)=>`<tr data-pid="${e(p.id)}"><td class="pnum">${i+1}</td><td><input class="pinp pop-n" value="${e(p.name)}" placeholder="Name"/></td>${gameCells(p.scores)}<td class="ptot">${totOf(p.scores)}</td><td style="text-align:center"><button class="prm" title="Spieler entfernen">✕</button></td></tr>`).join('')
-      +`<tr class="pnew"><td class="pnum">＋</td><td><input class="pinp pop-n" id="pt-nn" placeholder="Neuer Spieler…"/></td>${gameCells(null)}<td class="ptot">–</td><td></td></tr>`;
+      +(zeileOffen?`<tr class="pnew"><td class="pnum">＋</td><td><input class="pinp pop-n" id="pt-nn" placeholder="Name"/></td>${gameCells(null)}<td class="ptot">–</td><td></td></tr>`:'');
     _pop.querySelector('#pt-cnt').textContent=`${ev.pl.length} Spieler`;
 
     /* Bestehende Zeilen: live bearbeitbar */
@@ -741,11 +745,23 @@ function openPlayerPop(evId){
       });
     });
 
-    /* Neue Zeile */
+    /* Neue Zeile — nur vorhanden, solange jemand eine anlegt */
     const nrow=b.querySelector('.pnew');
     const addNew=()=>{
-      const nm=(nrow.querySelector('#pt-nn').value||'').trim();
-      const sc=readRow(nrow);
+      /* Erster Klick oeffnet die Zeile. Jeder weitere uebernimmt, was
+         darinsteht, und oeffnet gleich die naechste — so legt man eine Runde
+         ohne Mauswechsel an. */
+      if(!zeileOffen){
+        zeileOffen=true;draw();
+        _pop.querySelector('#pt-nn')?.focus();
+        _pop.querySelector('.pop-scroll').scrollTop=_pop.querySelector('.pop-scroll').scrollHeight;
+        return;
+      }
+      const nm=(nrow?.querySelector('#pt-nn')?.value||'').trim();
+      const sc=nrow?readRow(nrow):[];
+      /* Leere Zeile und noch einmal geklickt: dann war es als „hier eintragen"
+         gemeint, nicht als Fehler. */
+      if(!nm&&!sc.length){nrow?.querySelector('#pt-nn')?.focus();return;}
       if(!nm){toast('Name eingeben.','warning');nrow.querySelector('#pt-nn').focus();return;}
       if(!sc.length){toast('Mindestens ein Spiel eintragen.','warning');nrow.querySelector('.pop-g')?.focus();return;}
       ev.pl.push({id:`p_${Date.now()}_${Math.random().toString(36).slice(2,5)}`,name:nm,scores:sc,uncertain:false});
@@ -757,9 +773,11 @@ function openPlayerPop(evId){
     /* Das Anhaengen einer Spielspalte sitzt in der Kopfzeile und wird bei jedem
        Neuzeichnen neu verdrahtet. */
     _pop.querySelector('#pt-ag')?.addEventListener('click',()=>{gCols++;draw(entwurfLesen());});
-    nrow.querySelectorAll('.pinp').forEach(inp=>inp.addEventListener('keydown',e2=>{if(e2.key==='Enter'){e2.preventDefault();addNew();}}));
-    const tot=()=>{const t=totOf(readRow(nrow));nrow.querySelector('.ptot').textContent=t||'–';};
-    nrow.querySelectorAll('.pop-g').forEach(i=>i.addEventListener('input',tot));
+    if(nrow){
+      nrow.querySelectorAll('.pinp').forEach(inp=>inp.addEventListener('keydown',e2=>{if(e2.key==='Enter'){e2.preventDefault();addNew();}}));
+      const tot=()=>{const t=totOf(readRow(nrow));nrow.querySelector('.ptot').textContent=t||'–';};
+      nrow.querySelectorAll('.pop-g').forEach(i=>i.addEventListener('input',tot));
+    }
     entwurfSetzen(entwurf);
   };
 
@@ -794,7 +812,8 @@ function openPlayerPop(evId){
 
   document.body.appendChild(_pop);
   draw();
-  setTimeout(()=>_pop?.querySelector('#pt-nn')?.focus(),0);
+  /* Kein Fokus beim Oeffnen: die Zeile gibt es noch nicht, und der Blick
+     gehoert zuerst auf die Liste, die schon da ist. */
 }
 
 function delDoc(evId,docId){
