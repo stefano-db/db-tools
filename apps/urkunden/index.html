@@ -266,7 +266,7 @@ td{padding:10px 14px;color:var(--t);vertical-align:middle}
   </aside>
   <main id="main">
     <header id="topbar">
-      <div class="bc"><a href="/" style="color:inherit">← Übersicht</a><span class="bc-sep">›</span><span id="bcv" class="bc-cur">Events</span></div>
+      <div class="bc"><span id="bcv" class="bc-cur">Events</span></div>
       <span id="clock"></span>
     </header>
     <div id="views">
@@ -1121,7 +1121,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   }catch(err){
     document.body.innerHTML='<div style="padding:48px;font-family:system-ui;color:#eee;background:#1a1a1d;min-height:100vh">'+
       '<h1>Daten konnten nicht geladen werden</h1><p>'+String(err&&err.message||err)+'</p>'+
-      '<p><a style="color:#e8b64c" href="/">Zurueck zur Uebersicht</a></p></div>';
+      '<p><a style="color:#e8b64c" href="index.html">Seite neu laden</a> · <a style="color:#e8b64c" href="anleitung.html">Anleitung</a></p></div>';
     return;
   }
   cleanup();

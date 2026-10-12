@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Anleitung · Dream Bowl Urkundensystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Dieselben Werte wie im Werkzeug: wer von dort herüberklickt, soll nicht das
+   Gefühl haben, die Seite gewechselt zu haben. */
+:root{
+  --bg:#0f0f10;--panel:#1a1a1d;--el:#232328;
+  --gold:#D4AF37;--gl:#e8c94a;--gm:rgba(212,175,55,0.12);--gb:rgba(212,175,55,0.3);
+  --t:#f2f2f2;--t2:#9c9c9c;--mt:#5a5a5a;
+  --b:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.13);
+  --warn:#e8a030;--green:#4caf7d;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--t);
+  font-family:'Montserrat',system-ui,sans-serif;font-size:15px;line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.seite{max-width:46rem;margin:0 auto;padding:clamp(1.5rem,5vw,3.5rem) clamp(1rem,4vw,2rem) 5rem}
+
+header{display:flex;flex-direction:column;gap:.6rem;margin-bottom:2.5rem}
+.marke{display:flex;align-items:center;gap:12px}
+.marke-i{
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),#a88a1e);
+  display:grid;place-items:center;font-size:1.1rem;
+}
+.marke-n{font-size:.9rem;font-weight:700;letter-spacing:-.02em}
+.marke-s{font-size:.55rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mt)}
+h1{
+  font-family:'Playfair Display',Georgia,serif;font-weight:700;
+  font-size:clamp(1.9rem,5vw,2.6rem);line-height:1.15;margin:.4rem 0 0;text-wrap:balance;
+}
+.anriss{color:var(--t2);margin:0;max-width:34em}
+
+.zurueck{
+  display:inline-flex;align-items:center;gap:.5rem;align-self:flex-start;
+  margin-top:1rem;padding:9px 18px;border-radius:8px;
+  background:var(--gm);border:1px solid var(--gb);color:var(--gl);
+  font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  text-decoration:none;transition:background .2s;
+}
+.zurueck:hover{background:rgba(212,175,55,0.2)}
+.zurueck:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+h2{
+  font-family:'Playfair Display',Georgia,serif;font-weight:700;
+  font-size:1.45rem;margin:3rem 0 .2rem;text-wrap:balance;
+}
+h2 .nr{
+  font-family:'Montserrat',sans-serif;font-size:.7rem;font-weight:700;
+  letter-spacing:.12em;color:var(--gold);display:block;margin-bottom:.35rem;
+}
+h3{font-size:.95rem;font-weight:700;margin:1.6rem 0 .3rem}
+p{margin:.6rem 0;max-width:38em}
+ul{margin:.6rem 0;padding-left:1.1rem;max-width:38em}
+li{margin:.3rem 0}
+li::marker{color:var(--mt)}
+
+.karte{
+  background:var(--panel);border:1px solid var(--b);border-radius:12px;
+  padding:1.1rem 1.3rem;margin:1.2rem 0;
+}
+.karte h3{margin-top:0}
+.karte.warnung{border-color:rgba(232,160,48,.35);background:rgba(232,160,48,.07)}
+.karte.warnung h3{color:var(--warn)}
+
+table{width:100%;border-collapse:collapse;margin:.8rem 0;font-size:.88rem}
+th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--b)}
+th{color:var(--mt);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+td:first-child{font-weight:600;white-space:nowrap}
+.tabelle{overflow-x:auto}
+
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.86em;
+  background:var(--el);border:1px solid var(--b);border-radius:4px;padding:.1em .4em;
+}
+.beispiel{
+  background:var(--el);border:1px solid var(--b);border-radius:8px;
+  padding:.8rem 1rem;overflow-x:auto;font-size:.84rem;
+}
+.beispiel table{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.beispiel th{color:var(--gold)}
+.beispiel td{border-bottom:1px solid rgba(255,255,255,.04)}
+
+footer{margin-top:3.5rem;padding-top:1.2rem;border-top:1px solid var(--b);color:var(--mt);font-size:.82rem}
+</style>
+</head>
+<body>
+<div class="seite">
+
+  <header>
+    <div class="marke">
+      <div class="marke-i">🎳</div>
+      <div>
+        <div class="marke-n">Dream Bowl</div>
+        <div class="marke-s">Urkundensystem</div>
+      </div>
+    </div>
+    <h1>Von der Ergebnisliste zur gedruckten Urkunde</h1>
+    <p class="anriss">
+      Vier Schritte, einmal eingerichtet. Danach dauert ein Event etwa zwei
+      Minuten.
+    </p>
+    <a class="zurueck" href="index.html">← Zum Urkundensystem</a>
+  </header>
+
+  <h2><span class="nr">Schritt 1</span>Event anlegen</h2>
+  <p>
+    Unter <strong>Events</strong> einen Namen eintragen und auf
+    <em>Event erstellen</em>. Der Name steht später auf jeder Urkunde — also
+    das, was die Gäste dort lesen sollen: „Geburtstag Lena", „Firmenfeier
+    Müller GmbH", „Betriebsturnier".
+  </p>
+
+  <h2><span class="nr">Schritt 2</span>Spieler eintragen</h2>
+  <p>Zwei Wege, je nachdem woher die Ergebnisse kommen:</p>
+  <ul>
+    <li><strong>Von Hand</strong> — über <em>Spieler</em>. Für kleine Runden schneller als jeder Export.</li>
+    <li><strong>Als Liste</strong> — über <em>＋ Excel</em>, oder die Datei einfach auf die Event-Zeile ziehen. Excel und CSV werden gelesen.</li>
+  </ul>
+
+  <h3>Wie die Tabelle aussehen muss</h3>
+  <p>
+    Eine Spalte mit Namen, daneben die Ergebnisse. Die Überschrift darf heißen
+    wie sie will, solange das Wort <em>Name</em>, <em>Spieler</em> oder
+    <em>Teilnehmer</em> darin vorkommt:
+  </p>
+  <div class="beispiel">
+    <table>
+      <tr><th>Name</th><th>Spiel 1</th><th>Spiel 2</th><th>Spiel 3</th></tr>
+      <tr><td>Max Müller</td><td>145</td><td>132</td><td>178</td></tr>
+      <tr><td>Anna Weber</td><td>98</td><td>156</td><td>121</td></tr>
+    </table>
+  </div>
+  <p>Was dabei von selbst funktioniert:</p>
+  <ul>
+    <li>Titelzeilen über der Tabelle werden übersprungen</li>
+    <li>Liegen die Daten im zweiten Tabellenblatt, werden sie dort gefunden</li>
+    <li>Eine Liste ganz ohne Überschrift wird als solche erkannt</li>
+    <li>Nummern vor dem Namen („1. Max Müller") fallen weg</li>
+    <li>Spalten wie <em>Pos</em> oder <em>Gesamt</em> stören nicht</li>
+  </ul>
+  <p>
+    Gezählt wird nur, was zwischen 0 und 300 liegt. Findet die Seite nichts,
+    sagt sie warum und welche Zeile sie als Überschrift gelesen hat — daran
+    sieht man meist sofort, woran es liegt.
+  </p>
+
+  <h2><span class="nr">Schritt 3</span>Auswerten</h2>
+  <p>
+    Unter <strong>Auswertung</strong> steht die Rangfolge. Oben wählt man,
+    wonach gewertet wird:
+  </p>
+  <div class="tabelle">
+    <table>
+      <tr><th>Wertung</th><th>Wofür</th></tr>
+      <tr><td>Gesamt</td><td>Alle Spiele addiert. Der Normalfall.</td></tr>
+      <tr><td>Schnitt</td><td>Wenn nicht alle gleich viele Spiele hatten.</td></tr>
+      <tr><td>Bestes</td><td>Das höchste Einzelspiel zählt.</td></tr>
+      <tr><td>Einzelnes Spiel</td><td>Nur Spiel 1, nur Spiel 2, und so weiter.</td></tr>
+    </table>
+  </div>
+  <p>
+    Zahlen lassen sich hier noch ändern, falls beim Eintippen etwas
+    danebenging.
+  </p>
+
+  <h2><span class="nr">Schritt 4</span>Urkunden drucken</h2>
+  <p>
+    Unter <strong>Urkunden</strong> liegt die Vorschau der ersten Urkunde.
+    Alles, was man dort einstellt, gilt für alle.
+  </p>
+
+  <h3>Hintergrund</h3>
+  <p>
+    Das vorgedruckte Urkundenpapier als Bild hochladen — es füllt die Seite in
+    A4 hochkant. Ohne Hintergrund wird auf weiß gedruckt, was auf vorgedrucktem
+    Papier genauso funktioniert: dann bleibt das Blatt eben, was es ist, und
+    nur der Text kommt dazu.
+  </p>
+
+  <h3>Felder setzen</h3>
+  <p>
+    Platzierung, Name, Event, Pins und Datum lassen sich mit der Maus
+    verschieben und in Größe, Farbe und Schrift einstellen. Wenn alles sitzt:
+    <strong>Positionen sperren</strong>. Dann verrutscht beim nächsten Event
+    nichts mehr, und die Einstellung bleibt erhalten.
+  </p>
+
+  <h3>Drucken</h3>
+  <p>
+    <strong>Alle drucken</strong> legt jede Urkunde auf eine eigene Seite und
+    öffnet den Druckdialog. Dort <em>A4</em>, <em>Hochformat</em> und
+    <em>Ränder: keine</em> wählen, damit das Bild nicht verkleinert wird.
+  </p>
+
+  <div class="karte warnung">
+    <h3>Erst eine Probe</h3>
+    <p style="margin-bottom:0">
+      Beim ersten Mal eine einzelne Seite auf normalem Papier drucken und gegen
+      das Urkundenpapier halten. Verschiebt sich etwas, liegt es fast immer an
+      den Rändern im Druckdialog, nicht an den Feldern auf dem Bildschirm.
+    </p>
+  </div>
+
+  <h2>Gut zu wissen</h2>
+
+  <div class="karte">
+    <h3>Die Events liegen auf diesem Gerät</h3>
+    <p style="margin-bottom:0">
+      Was hier angelegt wird, bleibt in diesem Browser. Ein anderer Rechner
+      sieht es nicht, und wer die Browserdaten löscht, löscht die Events mit.
+      Für einen Abend an einem Gerät ist das genau richtig. Sollen mehrere
+      gleichzeitig an derselben Liste arbeiten, führt der Weg über die interne
+      Plattform.
+    </p>
+  </div>
+
+  <div class="karte">
+    <h3>Events verschwinden nach sieben Tagen</h3>
+    <p style="margin-bottom:0">
+      Beim Öffnen räumt die Seite auf. Das ist Absicht: das Werkzeug wird
+      täglich benutzt, und niemand räumt zuverlässig hinterher. Was aufbewahrt
+      werden soll, vorher drucken.
+    </p>
+  </div>
+
+  <div class="karte">
+    <h3>Die Seite braucht keine Anmeldung</h3>
+    <p style="margin-bottom:0">
+      Wer die Adresse hat, kommt hinein. Deshalb gehört nichts hier hinein, was
+      nicht jeder sehen soll — Spielernamen eines Abends sind unbedenklich,
+      alles Weitere nicht.
+    </p>
+  </div>
+
+  <footer>
+    Dream Bowl Fellbach · Urkundensystem
+  </footer>
+
+</div>
+</body>
+</html>

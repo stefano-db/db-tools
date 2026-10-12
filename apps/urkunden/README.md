@@ -51,6 +51,12 @@ npm run pruefe:urkunden --prefix apps/intern
 ## Wenn beide Fassungen gepflegt werden
 
 `index.html` ist eine Kopie von `apps/intern/public/urkunden/index.html`, aus
-der drei Dinge entfernt wurden: die Anmeldung, der Meldungs-Reiter und der
-Rückweg in die Plattform. Eine Änderung am Werkzeug selbst — am Parser, am
+der drei Dinge entfernt wurden: die Anmeldung, der Meldungs-Reiter und die
+Verweise in die Plattform. Eine Änderung am Werkzeug selbst — am Parser, am
 Urkunden-Layout, am Druck — gehört in beide Dateien.
+
+`anleitung.html` gibt es nur hier. In der Plattform-Fassung zeigt der
+Anleitungs-Knopf auf dieselbe Datei, die dort aber fehlt — Cloudflare liefert
+dann die Plattform aus, was wie ein Neustart aussieht. Wer das dort auch
+beheben will, kopiert die Datei hinüber und passt die drei Karten unter „Gut zu
+wissen" an: dort sind die Events geteilt und liegen nicht im Browser.
