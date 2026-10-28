@@ -375,13 +375,20 @@ const DFS=[
    stehen, wie sie eingestellt sind — die haengen am Geschmack, nicht am
    Papier, und wer sie angepasst hat, will sie beim Vorlagenwechsel behalten. */
 const VORLAGEN=[
-  {id:'db-blanko',lbl:'Dream Bowl Blanko',pos:{
+  {id:'db-blanko',lbl:'Dream Bowl Blanko',bg:'vorlagen/db-blanko.jpg',pos:{
     platz:[39.3,30.2], name:[50.5,38.1], von:[50,53.3], pins:[49.8,61.3], datum:[16.7,92],
   }},
 ];
 function vorlageAnwenden(id){
   const v=VORLAGEN.find(x=>x.id===id);
   if(!v)return false;
+  /* Der eingescannte Blanko kommt mit: an ihm sieht man, ob die Felder auf den
+     vorgedruckten Linien sitzen. Gedruckt wird er nie — drawCC laesst den
+     Hintergrund bei forPrint weg, sonst laege das Papier doppelt auf dem Blatt. */
+  if(v.bg){
+    S.cbg=v.bg;_bs=null;_bi=null;
+    DB.saveBackground(v.bg).catch(()=>{/* ohne gesicherten Hintergrund laeuft die Positionierung weiter */});
+  }
   DFS.forEach(f=>{
     const p=v.pos[f.id];
     if(!p)return;
