@@ -332,6 +332,32 @@ const DFS=[
   {id:'pins', lbl:'Pins',       xP:50,yP:74,fs:24,col:'#1a1a1d',bold:true, font:'Arial'},
   {id:'datum',lbl:'Datum',      xP:27,yP:89,fs:13,col:'#444',   bold:false,font:'Arial'},
 ];
+/* ── Positions-Vorlagen ──────────────────────────────────────────────────────
+   Fertige Feldstellungen fuer ein bestimmtes Urkundenpapier: einmal
+   ausgemessen, danach ein Klick statt fuenf Felder ziehen.
+
+   Gesetzt werden nur X und Y. Schriftart, Groesse, Farbe und Fett bleiben
+   stehen, wie sie eingestellt sind — die haengen am Geschmack, nicht am
+   Papier, und wer sie angepasst hat, will sie beim Vorlagenwechsel behalten. */
+const VORLAGEN=[
+  {id:'db-blanko',lbl:'Dream Bowl Blanko',pos:{
+    platz:[39.3,30.2], name:[50.5,38.1], von:[50,53.3], pins:[49.8,61.3], datum:[16.7,92],
+  }},
+];
+function vorlageAnwenden(id){
+  const v=VORLAGEN.find(x=>x.id===id);
+  if(!v)return false;
+  DFS.forEach(f=>{
+    const p=v.pos[f.id];
+    if(!p)return;
+    /* Fehlt die Feldeinstellung noch, zuerst die Vorgabe setzen — sonst
+       schriebe die Vorlage X und Y in ein Nichts und das Feld bliebe leer. */
+    if(!S.cfs[f.id])S.cfs[f.id]={xP:f.xP,yP:f.yP,fs:f.fs,col:f.col,bold:f.bold,font:f.font};
+    S.cfs[f.id].xP=p[0];S.cfs[f.id].yP=p[1];
+  });
+  return true;
+}
+
 const MODES={total:{lbl:'Gesamt',f:s=>s.reduce((a,v)=>a+(+v||0),0)},average:{lbl:'Schnitt',f:s=>s.length?Math.round(s.reduce((a,v)=>a+(+v||0),0)/s.length*10)/10:0},best:{lbl:'Bestes',f:s=>s.length?Math.max(...s.map(Number)):0}};
 /* Einzelspiel-Wertungen werden nach der tatsächlichen Spielanzahl erzeugt (g1 … gN) */
 function getMode(key){
@@ -1001,7 +1027,10 @@ function renderC(){
           <div class="cslbl">Positionen</div>
           ${S.clf
             ?`<div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--gm);border-radius:8px;margin-bottom:10px"><span>🔒</span><span style="font-size:.8rem;color:var(--gold);font-weight:600">Gesperrt</span></div><button class="btn bs btn-sm" id="btn-ul" style="width:100%">🔓 Entsperren</button>`
-            :`<p style="font-size:.72rem;color:var(--mt);line-height:1.7;margin-bottom:10px">Feld anklicken &amp; ziehen zum Positionieren.</p><button class="btn bp btn-sm" id="btn-lk" style="width:100%">🔒 Positionen sperren</button>`}
+            :`<p style="font-size:.72rem;color:var(--mt);line-height:1.7;margin-bottom:10px">Feld anklicken &amp; ziehen zum Positionieren.</p>
+               <div class="fcsl">Vorlage</div>
+               <select class="fcinp" id="sp-vl" style="cursor:pointer;margin-bottom:10px"><option value="">– wählen –</option>${VORLAGEN.map(v=>`<option value="${v.id}">${e(v.lbl)}</option>`).join('')}</select>
+               <button class="btn bp btn-sm" id="btn-lk" style="width:100%">🔒 Positionen sperren</button>`}
         </div>
         <div class="card" style="padding:16px;flex:1;overflow-y:auto;min-height:0">
           <div class="cslbl">Feld: <span id="csl" style="color:var(--gold)">–</span></div>
@@ -1095,6 +1124,14 @@ function wireCert(ev,ranked){
       actions:[{label:'Abbrechen',style:'ghost'},{label:'Entsperren',style:'primary',fn:()=>{const pw=document.getElementById('upw')?.value||'';const sv=localStorage.getItem('db2_cpw');const ok=sv?btoa(encodeURIComponent(pw))===sv:pw==='dreambowl';if(ok){S.clf=false;saveCF();toast('Entsperrt.','success');renderC();}else toast('Falsches Passwort.','error');}}]});
     setTimeout(()=>document.getElementById('upw')?.addEventListener('keydown',ev2=>{if(ev2.key==='Enter')document.querySelector('#mov .bp')?.click();}),80);
   });
+  document.getElementById('sp-vl')?.addEventListener('change',ev2=>{
+    const id=ev2.target.value;
+    if(!id)return;
+    const v=VORLAGEN.find(x=>x.id===id);
+    if(!vorlageAnwenden(id))return;
+    saveCF();renderC();
+    toast(`Vorlage übernommen: ${v.lbl}`,'success');
+  });
   document.getElementById('btn-cr')?.addEventListener('click',()=>{DFS.forEach(f=>{S.cfs[f.id]={xP:f.xP,yP:f.yP,fs:f.fs,col:f.col,bold:f.bold,font:f.font};});S.csi=null;saveCF();renderC();toast('Zurückgesetzt.','info');});
   const setZ=z=>{S.cz=Math.min(1.5,Math.max(.25,z));const c=document.getElementById('cc');if(c){c.style.width=`${W*S.cz}px`;c.style.height=`${H*S.cz}px`;}const l=document.getElementById('zl');if(l)l.textContent=`${Math.round(S.cz*100)}%`;};
   document.getElementById('z-')?.addEventListener('click',()=>setZ(S.cz-.1));
@@ -1167,7 +1204,10 @@ async function doPDF(ev,ranked){
   try{
     if(!window.jspdf?.jsPDF&&!window.jsPDF){await new Promise((res,rej)=>{const s=document.createElement('script');s.src='lib/jspdf.umd.min.js';s.onload=res;s.onerror=()=>rej(new Error('jsPDF nicht geladen'));document.head.appendChild(s);});}
     const jsPDF=window.jspdf?.jsPDF||window.jsPDF;
-    const doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+    /* compress:true ist nicht optional: ohne das legt jsPDF die Bilddaten roh
+       ins Dokument, und drei Blaetter in Druckaufloesung werden rund 92 MB.
+       Mit Komprimierung sind es 244 KB — dieselben Seiten, verlustfrei. */
+    const doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4',compress:true});
     const pw=doc.internal.pageSize.getWidth(),ph=doc.internal.pageSize.getHeight();
     for(let i=0;i<ranked.length;i++){
       if(i>0)doc.addPage();
