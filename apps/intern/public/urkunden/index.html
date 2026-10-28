@@ -1323,6 +1323,16 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   try{
     const ok=await DB.boot(S);
     if(!ok)return;
+
+    /* Ohne Feldeinstellung zeichnet die Urkunde nichts: jedes Feld, zu dem
+       keine Angabe vorliegt, wird uebersprungen — das Blatt bleibt weiss, ohne
+       dass irgendwo ein Fehler erscheint. Die Vorgaben aus DFS standen bisher
+       nur hinter dem Knopf „Zuruecksetzen"; beim ersten Oeffnen hatte sie
+       niemand gedrueckt. Gesetzt wird nur, was fehlt — eine vorhandene
+       Positionierung bleibt unangetastet. */
+    DFS.forEach(f=>{
+      if(!S.cfs[f.id])S.cfs[f.id]={xP:f.xP,yP:f.yP,fs:f.fs,col:f.col,bold:f.bold,font:f.font};
+    });
   }catch(err){
     document.body.innerHTML='<div style="padding:48px;font-family:system-ui;color:#eee;background:#1a1a1d;min-height:100vh">'+
       '<h1>Daten konnten nicht geladen werden</h1><p>'+String(err&&err.message||err)+'</p>'+
